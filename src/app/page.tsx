@@ -2,20 +2,34 @@ import Image from "next/image";
 import {
   ArrowRight,
   BadgeCheck,
+  Bike,
   BriefcaseBusiness,
   Car,
   ChefHat,
+  ClipboardList,
+  Contact,
+  Drill,
   GraduationCap,
+  Hammer,
   HeartPulse,
   Home,
+  Image as ImageIcon,
+  Leaf,
   MapPin,
   Paintbrush,
+  Palette,
+  PencilRuler,
   PlugZap,
+  Send,
   Scissors,
   Search,
   ShieldCheck,
   Sparkles,
   Star,
+  Stethoscope,
+  User,
+  UserCheck,
+  Users,
   Wrench,
 } from "lucide-react";
 
@@ -35,16 +49,52 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 const cities = ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad"];
 
 const categories = [
-  { name: "Nurses", icon: HeartPulse, count: "1.2k" },
-  { name: "Maids", icon: Home, count: "2.8k" },
-  { name: "Teachers", icon: GraduationCap, count: "1.9k" },
-  { name: "Handwriting", icon: Paintbrush, count: "420" },
-  { name: "Drivers", icon: Car, count: "1.5k" },
-  { name: "Cooks", icon: ChefHat, count: "980" },
-  { name: "Electricians", icon: PlugZap, count: "760" },
-  { name: "Plumbers", icon: Wrench, count: "690" },
-  { name: "Beauticians", icon: Scissors, count: "840" },
-  { name: "Guards", icon: ShieldCheck, count: "610" },
+  { name: "Nurses", icon: HeartPulse },
+  { name: "Maids", icon: Home },
+  { name: "Teachers", icon: GraduationCap },
+  { name: "Handwriting Teachers", icon: Paintbrush },
+  { name: "Tutors", icon: GraduationCap },
+  { name: "Home Tutors", icon: Home },
+  { name: "Quran Teachers", icon: GraduationCap },
+  { name: "Drivers", icon: Car },
+  { name: "Cooks", icon: ChefHat },
+  { name: "Electricians", icon: PlugZap },
+  { name: "Plumbers", icon: Wrench },
+  { name: "Beauticians", icon: Scissors },
+  { name: "Security Guards", icon: ShieldCheck },
+  { name: "Office Boys", icon: BriefcaseBusiness },
+  { name: "Peons", icon: UserCheck },
+  { name: "Gardeners", icon: Leaf },
+  { name: "Carpenters", icon: Hammer },
+  { name: "AC Technicians", icon: Drill },
+  { name: "Mechanics", icon: Wrench },
+  { name: "Painters", icon: Palette },
+  { name: "Welders", icon: Drill },
+  { name: "Tailors", icon: Scissors },
+  { name: "Babysitters", icon: Users },
+  { name: "Caregivers", icon: Stethoscope },
+  { name: "Physiotherapists", icon: HeartPulse },
+  { name: "Lab Technicians", icon: Stethoscope },
+  { name: "Artists", icon: Palette },
+  { name: "Graphic Designers", icon: PencilRuler },
+  { name: "Photographers", icon: ImageIcon },
+  { name: "Event Staff", icon: Contact },
+  { name: "Delivery Riders", icon: Bike },
+];
+
+const trustBadges = [
+  { label: "Verified Profiles", icon: BadgeCheck },
+  { label: "Direct Contact", icon: Contact },
+  { label: "No Middleman", icon: UserCheck },
+  { label: "Pakistan Wide", icon: MapPin },
+];
+
+const bottomNavItems = [
+  { label: "Home", icon: Home, href: "#" },
+  { label: "Categories", icon: ClipboardList, href: "#categories" },
+  { label: "Requirements", icon: Send, href: "#requirements" },
+  { label: "Post Job", icon: BriefcaseBusiness, href: "#join" },
+  { label: "Profile", icon: User, href: "#join" },
 ];
 
 const workers = [
@@ -76,7 +126,7 @@ const workers = [
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen overflow-hidden">
+    <main className="min-h-screen overflow-hidden pb-20 md:pb-0">
       <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <a href="#" className="flex items-center gap-2" aria-label="Kamker home">
@@ -96,7 +146,13 @@ export default function HomePage() {
               Join as worker
             </a>
           </div>
-          <Button size="sm">Post a job</Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="hidden sm:inline-flex">
+              <Send aria-hidden="true" />
+              Send Requirement
+            </Button>
+            <Button size="sm">Post a job</Button>
+          </div>
         </nav>
       </header>
 
@@ -112,7 +168,7 @@ export default function HomePage() {
           />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(251,251,247,0.98)_0%,rgba(251,251,247,0.88)_38%,rgba(251,251,247,0.2)_100%)]" />
         </div>
-        <div className="mx-auto grid min-h-[calc(100svh-4rem)] max-w-7xl content-center px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto grid min-h-[620px] max-w-7xl content-center px-4 py-8 sm:min-h-[calc(100svh-4rem)] sm:px-6 lg:px-8">
           <div className="max-w-2xl">
             <Badge variant="secondary" className="mb-4 gap-1.5">
               <Sparkles className="size-3.5" aria-hidden="true" />
@@ -125,6 +181,23 @@ export default function HomePage() {
               Find nurses, maids, teachers, drivers, cooks, electricians,
               plumbers, beauticians, guards, artists, and tutors across Pakistan.
             </p>
+
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              {trustBadges.map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <Badge
+                    key={item.label}
+                    variant="outline"
+                    className="justify-center gap-1.5 bg-white/85 px-3 py-1.5 text-xs"
+                  >
+                    <Icon className="size-3.5" aria-hidden="true" />
+                    {item.label}
+                  </Badge>
+                );
+              })}
+            </div>
 
             <Card className="mt-7 max-w-xl border-0 bg-white/95 shadow-xl">
               <CardContent className="p-3">
@@ -156,13 +229,22 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
               {cities.map((city) => (
-                <Badge key={city} variant="outline" className="bg-white/80">
+                <Badge
+                  key={city}
+                  variant="outline"
+                  className="shrink-0 bg-white/80"
+                >
                   {city}
                 </Badge>
               ))}
             </div>
+
+            <Button className="mt-4 w-full sm:hidden" variant="outline">
+              <Send aria-hidden="true" />
+              Send Requirement
+            </Button>
           </div>
         </div>
       </section>
@@ -204,7 +286,7 @@ export default function HomePage() {
                     {category.name}
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {category.count} listed
+                    Available professionals
                   </p>
                 </CardContent>
               </Card>
@@ -213,7 +295,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-y bg-secondary/70">
+      <section id="requirements" className="border-y bg-secondary/70">
         <div className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
           <div className="grid gap-4 sm:grid-cols-3">
             {[
@@ -337,6 +419,25 @@ export default function HomePage() {
           </a>
         </div>
       </footer>
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-2 py-2 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
+          {bottomNavItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <a
+                key={item.label}
+                href={item.href}
+                className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md px-1 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              >
+                <Icon className="size-4" aria-hidden="true" />
+                <span>{item.label}</span>
+              </a>
+            );
+          })}
+        </div>
+      </nav>
     </main>
   );
 }
