@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, MapPin } from "lucide-react";
 
 import { BroadcastRequirementCta } from "@/components/broadcast-requirement-cta";
+import { CategoryGrid } from "@/components/category-grid";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +12,10 @@ import {
   categories,
   categorySlug,
   findCategoryBySlug,
+  findServiceGroupBySlug,
+  findServiceGroupForCategory,
+  getGroupSubcategoryCards,
+  parentCategories,
 } from "@/lib/marketplace-data";
 
 type CategoryDetailPageProps = {
@@ -24,21 +29,21 @@ type CategoryDetailPageProps = {
 };
 
 export function generateStaticParams() {
-  return categories.map((category) => ({
+  return [...parentCategories, ...categories].map((category) => ({
     slug: categorySlug(category.name),
   }));
 }
 
 export async function generateMetadata({ params }: CategoryDetailPageProps) {
   const { slug } = await params;
+  const serviceGroup = findServiceGroupBySlug(slug);
   const category = findCategoryBySlug(slug);
+  const name = serviceGroup?.name ?? category?.name;
 
   return {
-    title: category
-      ? `${category.name} Professionals | Kamker`
-      : "Category | Kamker",
-    description: category
-      ? `Find and send requirements to ${category.name} professionals on Kamker.`
+    title: name ? `${name} Professionals | Kamker` : "Category | Kamker",
+    description: name
+      ? `Find and send requirements to ${name} professionals on Kamker.`
       : "Find professionals on Kamker.",
   };
 }
@@ -48,17 +53,26 @@ export default async function CategoryDetailPage({
   searchParams,
 }: CategoryDetailPageProps) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
+  const serviceGroup = findServiceGroupBySlug(slug);
   const category = findCategoryBySlug(slug);
 
-  if (!category) {
+  if (!serviceGroup && !category) {
     notFound();
   }
 
   const city = query?.city?.trim() || undefined;
   const area = query?.area?.trim() || undefined;
+  const parentGroup = category ? findServiceGroupForCategory(category.name) : null;
+  const pageName = serviceGroup?.name ?? category?.name ?? "Category";
+  const pageDescription = serviceGroup
+    ? serviceGroup.description
+    : parentGroup
+      ? `${category?.name} are part of ${parentGroup.name}. Send one requirement and reach approved matching professionals.`
+      : "Send one requirement and reach approved professionals matching this service category.";
+  const subcategoryCards = serviceGroup ? getGroupSubcategoryCards(serviceGroup) : [];
   const recipientCount = await getBroadcastRecipientCount({
-    category: category.name,
-    subcategory: category.name,
+    category: serviceGroup?.name ?? parentGroup?.name ?? category?.name,
+    subcategory: category?.name,
     city,
     area,
   });
@@ -83,13 +97,14 @@ export default async function CategoryDetailPage({
       </header>
 
       <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <Badge variant="secondary">Category</Badge>
+        <Badge variant="secondary">
+          {serviceGroup ? "Service Group" : "Subcategory"}
+        </Badge>
         <h1 className="mt-3 text-3xl font-bold tracking-normal sm:text-4xl">
-          {category.name} Professionals
+          {pageName} Professionals
         </h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          Send one requirement and reach approved professionals matching this
-          service category.
+          {pageDescription}
         </p>
 
         {city || area ? (
@@ -101,11 +116,41 @@ export default async function CategoryDetailPage({
 
         <BroadcastRequirementCta
           count={recipientCount}
-          category={category.name}
-          subcategory={category.name}
+          category={serviceGroup?.name ?? parentGroup?.name ?? category?.name}
+          subcategory={category?.name}
           city={city}
           area={area}
         />
+
+        {serviceGroup ? (
+          <Card className="mt-6 bg-white shadow-sm">
+            <CardContent className="p-5">
+              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                Choose a specific service
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Message the full {serviceGroup.name} group, or choose one professional type for a more targeted requirement.
+              </p>
+              <CategoryGrid categories={subcategoryCards} />
+            </CardContent>
+          </Card>
+        ) : parentGroup ? (
+          <Card className="mt-6 bg-white shadow-sm">
+            <CardContent className="p-5">
+              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                Parent service group
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {category?.name} belongs to {parentGroup.name}. You can also send one broader requirement to every approved professional in this group.
+              </p>
+              <Button asChild className="mt-4 h-11 w-full sm:w-auto" variant="outline">
+                <Link href={`/categories/${categorySlug(parentGroup.name)}`}>
+                  View {parentGroup.name}
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
