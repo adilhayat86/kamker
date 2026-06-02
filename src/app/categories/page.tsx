@@ -5,7 +5,7 @@ import { BroadcastRequirementCta } from "@/components/broadcast-requirement-cta"
 import { CategoryGrid } from "@/components/category-grid";
 import { Button } from "@/components/ui/button";
 import { getBroadcastRecipientCount } from "@/lib/broadcast";
-import { categories } from "@/lib/marketplace-data";
+import { parentCategories } from "@/lib/marketplace-data";
 
 export const metadata = {
   title: "All Categories | Kamker",
@@ -51,11 +51,11 @@ export default async function CategoriesPage({
           All services
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-normal">
-          Browse all categories
+          Browse service groups
         </h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          Find verified professionals for home, office, education, health,
-          events, repairs, and daily service needs across Pakistan.
+          Start with a broad group like Healthcare, Education, or Home Repairs,
+          then choose a specific professional type such as Nurses or Electricians.
         </p>
 
         <BroadcastRequirementCta
@@ -64,7 +64,7 @@ export default async function CategoriesPage({
           area={area}
         />
 
-        <CategoryGrid categories={categories} />
+        <CategoryGrid categories={parentCategories} />
       </section>
     </main>
   );
