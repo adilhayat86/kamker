@@ -36,6 +36,13 @@ export const categories = [
 
 export type MarketplaceCategory = (typeof categories)[number];
 
+export type ServiceGroup = {
+  name: string;
+  icon: string;
+  description: string;
+  subcategories: string[];
+};
+
 export function categorySlug(name: string) {
   return name
     .toLowerCase()
@@ -44,12 +51,88 @@ export function categorySlug(name: string) {
     .replace(/(^-|-$)/g, "");
 }
 
+export function categoryCountValue(count: string) {
+  return Number(count.replace(/,/g, "")) || 0;
+}
+
+function categoryByName(name: string) {
+  return categories.find((category) => category.name === name);
+}
+
+function groupCountValue(subcategories: string[]) {
+  return subcategories.reduce((total, subcategory) => {
+    const category = categoryByName(subcategory);
+
+    return total + (category ? categoryCountValue(category.count) : 0);
+  }, 0);
+}
+
+export function formatCount(value: number) {
+  return value.toLocaleString("en-US");
+}
+
+export const serviceGroups: ServiceGroup[] = [
+  {
+    name: "Healthcare",
+    icon: "stethoscope",
+    description: "Nurses, caregivers, physiotherapists, lab technicians, and home health support.",
+    subcategories: ["Nurses", "Caregivers", "Physiotherapists", "Lab Technicians"],
+  },
+  {
+    name: "Domestic Help",
+    icon: "home",
+    description: "Maids, cooks, babysitters, gardeners, and daily home support staff.",
+    subcategories: ["Maids", "Cooks", "Babysitters", "Gardeners"],
+  },
+  {
+    name: "Education",
+    icon: "graduation",
+    description: "Teachers, tutors, Quran teachers, home tutors, and handwriting teachers.",
+    subcategories: ["Teachers", "Tutors", "Home Tutors", "Quran Teachers", "Handwriting Teachers"],
+  },
+  {
+    name: "Home Repairs",
+    icon: "wrench",
+    description: "Electricians, plumbers, AC technicians, carpenters, painters, welders, and mechanics.",
+    subcategories: ["Electricians", "Plumbers", "AC Technicians", "Carpenters", "Painters", "Welders", "Mechanics"],
+  },
+  {
+    name: "Transport & Security",
+    icon: "car",
+    description: "Drivers, delivery riders, guards, office boys, and peons.",
+    subcategories: ["Drivers", "Delivery Riders", "Security Guards", "Office Boys", "Peons"],
+  },
+  {
+    name: "Beauty & Creative",
+    icon: "palette",
+    description: "Beauticians, artists, graphic designers, photographers, event staff, and tailors.",
+    subcategories: ["Beauticians", "Artists", "Graphic Designers", "Photographers", "Event Staff", "Tailors"],
+  },
+];
+
+export const parentCategories = serviceGroups.map((group) => ({
+  name: group.name,
+  icon: group.icon,
+  count: formatCount(groupCountValue(group.subcategories)),
+  description: group.description,
+}));
+
 export function findCategoryBySlug(slug: string) {
   return categories.find((category) => categorySlug(category.name) === slug);
 }
 
-export function categoryCountValue(count: string) {
-  return Number(count.replace(/,/g, "")) || 0;
+export function findServiceGroupBySlug(slug: string) {
+  return serviceGroups.find((group) => categorySlug(group.name) === slug);
+}
+
+export function findServiceGroupForCategory(categoryName: string) {
+  return serviceGroups.find((group) => group.subcategories.includes(categoryName));
+}
+
+export function getGroupSubcategoryCards(group: ServiceGroup) {
+  return group.subcategories
+    .map((subcategoryName) => categoryByName(subcategoryName))
+    .filter((category): category is MarketplaceCategory => Boolean(category));
 }
 
 export type Professional = {
