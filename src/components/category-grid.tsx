@@ -62,19 +62,23 @@ const categoryIcons = {
 
 export function CategoryGrid({ categories }: CategoryGridProps) {
   return (
-    <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-7 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {categories.map((category) => {
         const Icon =
           categoryIcons[category.icon as keyof typeof categoryIcons] ?? Wrench;
 
         return (
-          <Card key={category.name} className="bg-white/90 shadow-sm">
-            <CardContent className="p-4 sm:p-5">
-              <div className="flex size-14 items-center justify-center rounded-md bg-accent text-accent-foreground">
-                <Icon className="size-7" aria-hidden="true" />
+          <Card key={category.name} className="h-full bg-white/95 shadow-sm">
+            <CardContent className="flex min-h-36 flex-col justify-between p-4 sm:min-h-40 sm:p-5">
+              <div>
+                <div className="flex size-12 items-center justify-center rounded-md bg-accent text-accent-foreground sm:size-14">
+                  <Icon className="size-6 sm:size-7" aria-hidden="true" />
+                </div>
+                <h3 className="mt-4 min-h-10 text-sm font-semibold leading-tight sm:text-base">
+                  {category.name}
+                </h3>
               </div>
-              <h3 className="mt-4 text-base font-semibold">{category.name}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-3 text-xs text-muted-foreground sm:text-sm">
                 {category.count} available
               </p>
             </CardContent>
