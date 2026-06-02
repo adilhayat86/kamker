@@ -3,6 +3,9 @@ create table if not exists categories (
   name text not null unique,
   slug text not null unique,
   icon text,
+  description text,
+  parent_id bigint references categories(id),
+  sort_order integer not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -82,6 +85,7 @@ create table if not exists requirement_notifications (
   unique(requirement_id, professional_id, channel)
 );
 
+create index if not exists categories_parent_idx on categories(parent_id);
 create index if not exists professionals_city_category_idx on professionals(city_id, category_id);
 create index if not exists professionals_active_idx on professionals(is_active);
 create index if not exists professionals_featured_idx on professionals(is_featured, featured_until);
