@@ -59,9 +59,12 @@ export default async function ProfessionalProfilePage({
                 className="size-28 rounded-full bg-accent object-cover"
               />
               <div className="flex-1">
-                <Badge variant="secondary" className="gap-1">
+                <Badge className="gap-1 bg-primary text-primary-foreground">
                   <BadgeCheck className="size-3" aria-hidden="true" />
                   Verified badge placeholder
+                </Badge>
+                <Badge variant="outline" className="ml-2">
+                  CNIC Verification Badge
                 </Badge>
                 <h1 className="mt-3 text-3xl font-bold tracking-normal">
                   {professional.name}

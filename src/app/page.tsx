@@ -33,9 +33,9 @@ const featuredCategories = categories.slice(0, 12);
 const bottomNavItems = [
   { label: "Home", icon: Home, href: "#" },
   { label: "Categories", icon: ClipboardList, href: "/categories" },
-  { label: "Search", icon: User, href: "/professionals" },
-  { label: "Requirements", icon: Send, href: "/send-requirement" },
-  { label: "Account", icon: BriefcaseBusiness, href: "/register" },
+  { label: "Send Requirement", icon: Send, href: "/send-requirement" },
+  { label: "Register", icon: BriefcaseBusiness, href: "/register" },
+  { label: "Account", icon: User, href: "/register/customer" },
 ];
 
 const stats = [
@@ -92,7 +92,7 @@ export default function HomePage() {
           />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(251,251,247,0.98)_0%,rgba(251,251,247,0.92)_42%,rgba(251,251,247,0.58)_100%)]" />
         </div>
-        <div className="mx-auto grid min-h-[216px] max-w-7xl content-center px-4 py-4 sm:min-h-[520px] sm:px-6 lg:px-8">
+        <div className="mx-auto grid min-h-[173px] max-w-7xl content-center px-4 py-4 sm:min-h-[416px] sm:px-6 lg:px-8">
           <aside
             aria-label="Reserved Google Ads space"
             className="absolute right-4 top-4 hidden min-h-24 w-64 items-center justify-center rounded-lg border border-dashed bg-white/75 px-4 text-center text-xs text-muted-foreground shadow-sm backdrop-blur lg:flex"
@@ -128,15 +128,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {stats.map(([value, label]) => (
             <Card key={label} className="bg-white shadow-sm">
-              <CardContent className="p-4 text-center sm:p-5">
-                <p className="text-xl font-bold text-primary sm:text-3xl">
+              <CardContent className="p-5 text-center sm:p-7">
+                <p className="text-2xl font-bold text-primary sm:text-4xl">
                   {value}
                 </p>
-                <p className="mt-1 text-xs font-medium text-muted-foreground sm:text-sm">
+                <p className="mt-2 text-sm font-semibold text-muted-foreground">
                   {label}
                 </p>
               </CardContent>
@@ -145,13 +145,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <AdBanner label="Reserved ad space below hero" />
       </section>
 
       <section
         id="requirements"
-        className="mx-auto max-w-7xl px-4 py-2 sm:px-6 lg:px-8"
+        className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
       >
         <Card className="border-primary/20 bg-primary text-primary-foreground shadow-lg">
           <CardContent className="p-5 sm:p-6">
@@ -172,7 +172,7 @@ export default function HomePage() {
 
       <section
         id="categories"
-        className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
+        className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8"
       >
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -192,12 +192,12 @@ export default function HomePage() {
         </Button>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <AdBanner label="Reserved ad space after categories" />
       </section>
 
       <section className="border-y bg-secondary/70">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <p className="text-sm font-semibold uppercase tracking-normal text-primary">
             Trust and safety
           </p>
@@ -219,7 +219,7 @@ export default function HomePage() {
 
       <section
         id="professionals"
-        className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"
+        className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8"
       >
         <p className="text-sm font-semibold uppercase tracking-normal text-primary">
           New on Kamker
@@ -237,15 +237,15 @@ export default function HomePage() {
                 </div>
               ) : null}
               <Card className="bg-white shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
+                <CardContent className="p-5">
+                  <div className="flex items-start gap-5">
                     <Image
                       src={professional.image}
                       alt={`${professional.name} profile photo`}
-                      width={64}
-                      height={64}
+                      width={88}
+                      height={88}
                       loading="lazy"
-                      className="size-16 shrink-0 rounded-full bg-accent object-cover"
+                      className="size-20 shrink-0 rounded-full bg-accent object-cover sm:size-22"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
@@ -257,14 +257,17 @@ export default function HomePage() {
                             {professional.role}
                           </p>
                         </div>
-                        <Badge variant="secondary" className="shrink-0 gap-1">
+                        <Badge className="shrink-0 gap-1 bg-primary text-primary-foreground">
                           <BadgeCheck className="size-3" aria-hidden="true" />
                           Verified
                         </Badge>
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground">
+                      <p className="mt-3 text-sm text-muted-foreground">
                         {professional.experience}
                       </p>
+                      <Badge variant="outline" className="mt-2 bg-white">
+                        CNIC Verification Badge
+                      </Badge>
                       <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <MapPin className="size-4" aria-hidden="true" />
@@ -278,7 +281,7 @@ export default function HomePage() {
                       </div>
                     </div>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="mt-5 grid grid-cols-2 gap-2">
                   <Button variant="outline" className="h-11">
                     <Phone aria-hidden="true" />
                     Call
@@ -301,7 +304,7 @@ export default function HomePage() {
       </section>
 
       <section id="join" className="bg-[#14372f] text-white">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:px-8">
           <div>
             <Badge className="bg-white text-[#14372f]">Registration</Badge>
             <h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-normal sm:text-4xl">
@@ -338,7 +341,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <AdBanner label="Reserved ad space before footer" />
       </section>
 
