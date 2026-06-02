@@ -22,7 +22,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { isSupabaseConfigured } from "@/lib/supabase";
 import { logoutProfessional } from "@/app/logout/actions";
 
 export const metadata = {
@@ -63,7 +62,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const statusMessage = status ? statusMessages[status] : null;
   const dbProfessional = await getAccountProfessional();
 
-  if (isSupabaseConfigured && !dbProfessional) {
+  if (!dbProfessional) {
     redirect("/login");
   }
 

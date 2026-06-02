@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getSessionProfessional } from "@/lib/auth";
 
 import { logoutProfessional } from "./actions";
 
@@ -10,7 +12,13 @@ export const metadata = {
   title: "Logout | Kamker",
 };
 
-export default function LogoutPage() {
+export default async function LogoutPage() {
+  const professional = await getSessionProfessional();
+
+  if (!professional) {
+    redirect("/login");
+  }
+
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-md">

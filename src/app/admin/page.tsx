@@ -4,6 +4,7 @@ import {
   CalendarDays,
   ClipboardList,
   Send,
+  ShieldAlert,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -178,6 +179,19 @@ export default async function AdminPage() {
         <p className="mt-2 text-muted-foreground">
           Review requirements and approve professionals before they appear publicly.
         </p>
+
+        <Card className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm">
+          <CardContent className="flex gap-3 p-4">
+            <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+            <div>
+              <p className="font-semibold">Admin protection needed later</p>
+              <p className="mt-1 text-sm text-amber-900">
+                This dashboard is intentionally visible during Phase 1. Add
+                admin-only authentication before using it with real data.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           {adminStats.map((item) => {

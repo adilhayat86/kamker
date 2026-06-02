@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAccountProfessional, getDemoAccountProfessional } from "@/lib/account";
 import { categories, cities } from "@/lib/marketplace-data";
-import { isSupabaseConfigured } from "@/lib/supabase";
 
 import { updateProfessionalProfile } from "./actions";
 
@@ -100,7 +99,7 @@ export default async function EditAccountPage({
   const statusMessage = status ? statusMessages[status] : null;
   const dbProfessional = await getAccountProfessional();
 
-  if (isSupabaseConfigured && !dbProfessional) {
+  if (!dbProfessional) {
     redirect("/login");
   }
 
