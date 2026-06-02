@@ -1,11 +1,29 @@
 import Link from "next/link";
-import { BadgeCheck, ClipboardList, Send, Users } from "lucide-react";
+import {
+  BadgeCheck,
+  CalendarDays,
+  ClipboardList,
+  Send,
+  Sparkles,
+  Users,
+} from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  isActiveFeaturedProfessional,
+  recentProfessionals,
+} from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
-import { approveProfessional, rejectProfessional, verifyCnic } from "./actions";
+import {
+  approveProfessional,
+  makeProfessionalFeatured,
+  rejectProfessional,
+  removeProfessionalFeatured,
+  verifyCnic,
+} from "./actions";
 
 type Requirement = {
   id: string;
@@ -36,10 +54,31 @@ type PendingProfessional = {
   categories: { name: string } | null;
 };
 
+type AdminProfessional = {
+  id: string;
+  full_name: string;
+  is_featured: boolean;
+  featured_until: string | null;
+  cities: { name: string } | null;
+  categories: { name: string } | null;
+};
+
 export const metadata = {
   title: "Admin Dashboard | Kamker",
   description: "Kamker admin dashboard for requirements and registrations.",
 };
+
+function isDbFeatured(professional: AdminProfessional) {
+  return (
+    professional.is_featured &&
+    Boolean(professional.featured_until) &&
+    new Date(professional.featured_until as string) > new Date()
+  );
+}
+
+function dateInputValue(value: string | null) {
+  return value ? value.slice(0, 10) : "";
+}
 
 async function getRequirements() {
   if (!isSupabaseConfigured || !supabase) {
@@ -57,7 +96,7 @@ async function getRequirements() {
     return [] as Requirement[];
   }
 
-  return (data ?? []) as Requirement[];
+  return (data ?? []) as unknown as Requirement[];
 }
 
 async function getPendingProfessionals() {
@@ -77,17 +116,52 @@ async function getPendingProfessionals() {
     return [] as PendingProfessional[];
   }
 
-  return (data ?? []) as PendingProfessional[];
+  return (data ?? []) as unknown as PendingProfessional[];
+}
+
+async function getAdminProfessionals() {
+  if (!isSupabaseConfigured || !supabase) {
+    return [] as AdminProfessional[];
+  }
+
+  const { data, error } = await supabase
+    .from("professionals")
+    .select("id, full_name, is_featured, featured_until, cities(name), categories(name)")
+    .eq("is_active", true)
+    .order("is_featured", { ascending: false })
+    .order("featured_until", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error("Failed to load featured professionals", error);
+    return [] as AdminProfessional[];
+  }
+
+  return (data ?? []) as unknown as AdminProfessional[];
 }
 
 export default async function AdminPage() {
-  const [requirements, pendingProfessionals] = await Promise.all([
-    getRequirements(),
-    getPendingProfessionals(),
-  ]);
+  const [requirements, pendingProfessionals, adminProfessionals] =
+    await Promise.all([
+      getRequirements(),
+      getPendingProfessionals(),
+      getAdminProfessionals(),
+    ]);
+
+  const showDemoFeaturedManagement = adminProfessionals.length === 0;
+  const activeFeaturedCount = showDemoFeaturedManagement
+    ? recentProfessionals.filter((professional) =>
+        isActiveFeaturedProfessional(professional),
+      ).length
+    : adminProfessionals.filter(isDbFeatured).length;
 
   const adminStats = [
-    { label: "Pending Professionals", value: String(pendingProfessionals.length), icon: BadgeCheck },
+    {
+      label: "Pending Professionals",
+      value: String(pendingProfessionals.length),
+      icon: BadgeCheck,
+    },
     { label: "Total Customers", value: "32,400+", icon: Users },
     { label: "Recent Requirements", value: String(requirements.length), icon: Send },
   ];
@@ -125,6 +199,146 @@ export default async function AdminPage() {
 
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="size-5 text-primary" aria-hidden="true" />
+                <div>
+                  <h2 className="text-xl font-semibold">
+                    Featured Professionals
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Promote profiles and set the featured_until date.
+                  </p>
+                </div>
+              </div>
+              <Badge className="w-fit bg-primary text-primary-foreground">
+                {activeFeaturedCount} active
+              </Badge>
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              {showDemoFeaturedManagement
+                ? recentProfessionals.map((professional) => {
+                    const isFeatured =
+                      isActiveFeaturedProfessional(professional);
+
+                    return (
+                      <div
+                        key={professional.id}
+                        className="grid gap-3 rounded-lg border p-4 lg:grid-cols-[1fr_220px_140px_150px]"
+                      >
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold">{professional.name}</p>
+                            {isFeatured ? (
+                              <Badge className="gap-1 bg-[#f6c343] text-[#241a04] hover:bg-[#f6c343]">
+                                <Sparkles className="size-3" aria-hidden="true" />
+                                Featured
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">Regular</Badge>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {professional.role} - {professional.city}
+                          </p>
+                        </div>
+
+                        <label className="grid gap-2">
+                          <span className="flex items-center gap-1 text-sm font-medium">
+                            <CalendarDays className="size-4" aria-hidden="true" />
+                            featured_until
+                          </span>
+                          <input
+                            name="featuredUntil"
+                            type="date"
+                            defaultValue={professional.featured_until ?? ""}
+                            className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          />
+                        </label>
+
+                        <div className="grid gap-2 sm:grid-cols-2 lg:w-72">
+                          <Button className="h-11">Make Featured</Button>
+                          <Button variant="outline" className="h-11">
+                            Remove Featured
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })
+                : adminProfessionals.map((professional) => {
+                    const isFeatured = isDbFeatured(professional);
+
+                    return (
+                      <div
+                        key={professional.id}
+                        className="grid gap-3 rounded-lg border p-4 lg:grid-cols-[1fr_220px_auto]"
+                      >
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold">
+                              {professional.full_name}
+                            </p>
+                            {isFeatured ? (
+                              <Badge className="gap-1 bg-[#f6c343] text-[#241a04] hover:bg-[#f6c343]">
+                                <Sparkles className="size-3" aria-hidden="true" />
+                                Featured
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">Regular</Badge>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {professional.categories?.name ?? "Professional"} -{" "}
+                            {professional.cities?.name ?? "Unknown city"}
+                          </p>
+                        </div>
+
+                        <form action={makeProfessionalFeatured} className="contents">
+                          <input
+                            type="hidden"
+                            name="professionalId"
+                            value={professional.id}
+                          />
+                          <label className="grid gap-2">
+                            <span className="flex items-center gap-1 text-sm font-medium">
+                              <CalendarDays className="size-4" aria-hidden="true" />
+                              featured_until
+                            </span>
+                            <input
+                              name="featuredUntil"
+                              type="date"
+                              defaultValue={dateInputValue(professional.featured_until)}
+                              className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            />
+                          </label>
+                          <Button className="h-11" type="submit">
+                            Make Featured
+                          </Button>
+                        </form>
+                        <form action={removeProfessionalFeatured}>
+                          <input
+                            type="hidden"
+                            name="professionalId"
+                            value={professional.id}
+                          />
+                          <Button
+                            variant="outline"
+                            className="h-11 w-full"
+                            type="submit"
+                          >
+                            Remove Featured
+                          </Button>
+                        </form>
+                      </div>
+                    );
+                  })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mt-6 bg-white shadow-sm">
+          <CardContent className="p-5">
             <div className="flex items-center gap-2">
               <ClipboardList className="size-5 text-primary" aria-hidden="true" />
               <h2 className="text-xl font-semibold">Pending Professionals</h2>
@@ -138,17 +352,26 @@ export default async function AdminPage() {
                       <div>
                         <p className="font-semibold">{professional.full_name}</p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          {professional.categories?.name ?? "Professional"} • {professional.cities?.name ?? "Unknown city"}
-                          {professional.area ? ` • ${professional.area}` : ""}
+                          {professional.categories?.name ?? "Professional"} -{" "}
+                          {professional.cities?.name ?? "Unknown city"}
+                          {professional.area ? ` - ${professional.area}` : ""}
                         </p>
                       </div>
-                      <span className="text-sm font-medium text-primary">Pending Review</span>
+                      <span className="text-sm font-medium text-primary">
+                        Pending Review
+                      </span>
                     </div>
                     <div className="mt-3 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
                       <span>Phone: {professional.phone_number}</span>
-                      <span>WhatsApp: {professional.whatsapp_number ?? "Not provided"}</span>
-                      <span>CNIC: {professional.cnic ? "Provided" : "Not provided"}</span>
-                      <span>Rate: {professional.expected_rate ?? "Not provided"}</span>
+                      <span>
+                        WhatsApp: {professional.whatsapp_number ?? "Not provided"}
+                      </span>
+                      <span>
+                        CNIC: {professional.cnic ? "Provided" : "Not provided"}
+                      </span>
+                      <span>
+                        Rate: {professional.expected_rate ?? "Not provided"}
+                      </span>
                     </div>
                     {professional.short_bio ? (
                       <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -157,17 +380,35 @@ export default async function AdminPage() {
                     ) : null}
                     <div className="mt-4 grid gap-2 sm:grid-cols-3">
                       <form action={approveProfessional}>
-                        <input type="hidden" name="professionalId" value={professional.id} />
-                        <Button className="w-full" type="submit">Approve</Button>
+                        <input
+                          type="hidden"
+                          name="professionalId"
+                          value={professional.id}
+                        />
+                        <Button className="w-full" type="submit">
+                          Approve
+                        </Button>
                       </form>
                       <form action={rejectProfessional}>
-                        <input type="hidden" name="professionalId" value={professional.id} />
-                        <Button className="w-full" type="submit" variant="outline">Keep Pending</Button>
+                        <input
+                          type="hidden"
+                          name="professionalId"
+                          value={professional.id}
+                        />
+                        <Button className="w-full" type="submit" variant="outline">
+                          Keep Pending
+                        </Button>
                       </form>
                       <form action={verifyCnic}>
-                        <input type="hidden" name="professionalId" value={professional.id} />
+                        <input
+                          type="hidden"
+                          name="professionalId"
+                          value={professional.id}
+                        />
                         <Button className="w-full" type="submit" variant="outline">
-                          {professional.is_cnic_verified ? "CNIC Verified" : "Verify CNIC"}
+                          {professional.is_cnic_verified
+                            ? "CNIC Verified"
+                            : "Verify CNIC"}
                         </Button>
                       </form>
                     </div>
@@ -195,14 +436,18 @@ export default async function AdminPage() {
                   <div key={requirement.id} className="rounded-lg border p-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="font-semibold">{requirement.required_service}</p>
+                        <p className="font-semibold">
+                          {requirement.required_service}
+                        </p>
                         <p className="mt-1 text-sm text-muted-foreground">
                           {requirement.cities?.name ?? "Unknown city"}
-                          {requirement.area ? ` • ${requirement.area}` : ""} • {requirement.urgency}
+                          {requirement.area ? ` - ${requirement.area}` : ""} -{" "}
+                          {requirement.urgency}
                         </p>
                       </div>
                       <div className="text-sm font-medium text-primary">
-                        {requirement.status} / {requirement.broadcast_status ?? "free"}
+                        {requirement.status} /{" "}
+                        {requirement.broadcast_status ?? "free"}
                       </div>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -213,7 +458,8 @@ export default async function AdminPage() {
               </div>
             ) : (
               <div className="mt-4 rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
-                No requirements found yet. Submit one from the Send Requirement page after setup.
+                No requirements found yet. Submit one from the Send Requirement
+                page after setup.
               </div>
             )}
           </CardContent>

@@ -34,7 +34,24 @@ export const categories = [
   { name: "Delivery Riders", icon: "bike", count: "1,715" },
 ];
 
-export const recentProfessionals = [
+export type Professional = {
+  id: string;
+  name: string;
+  role: string;
+  city: string;
+  area: string;
+  rating: string;
+  ratingCount: string;
+  experience: string;
+  rate: string;
+  bio: string;
+  responseTime: string;
+  image: string;
+  is_featured: boolean;
+  featured_until: string | null;
+};
+
+export const recentProfessionals: Professional[] = [
   {
     id: "maryam-safdar",
     name: "Maryam Safdar",
@@ -48,6 +65,8 @@ export const recentProfessionals = [
     bio: "Home and event beautician for makeup, hair styling, and party looks.",
     responseTime: "Replies in 12 min",
     image: "/avatars/pro-1.svg",
+    is_featured: true,
+    featured_until: "2030-12-31",
   },
   {
     id: "bilal-ahmed",
@@ -62,6 +81,8 @@ export const recentProfessionals = [
     bio: "Experienced city and intercity driver with clean vehicle handling record.",
     responseTime: "Replies in 8 min",
     image: "/avatars/pro-2.svg",
+    is_featured: true,
+    featured_until: "2030-12-31",
   },
   {
     id: "hafsa-rehman",
@@ -76,6 +97,8 @@ export const recentProfessionals = [
     bio: "Quran teacher for children and women with tajweed and basic Islamic studies.",
     responseTime: "Replies in 20 min",
     image: "/avatars/pro-3.svg",
+    is_featured: true,
+    featured_until: "2030-12-31",
   },
   {
     id: "ayesha-noor",
@@ -90,6 +113,8 @@ export const recentProfessionals = [
     bio: "Home nurse for elderly care, medication support, and post-operative care.",
     responseTime: "Replies in 15 min",
     image: "/avatars/pro-4.svg",
+    is_featured: true,
+    featured_until: "2030-12-31",
   },
   {
     id: "rashid-khan",
@@ -104,6 +129,8 @@ export const recentProfessionals = [
     bio: "Electrician for wiring, switchboards, fans, lights, and emergency repairs.",
     responseTime: "Replies in 10 min",
     image: "/avatars/pro-5.svg",
+    is_featured: true,
+    featured_until: "2030-12-31",
   },
   {
     id: "sana-tariq",
@@ -118,5 +145,58 @@ export const recentProfessionals = [
     bio: "Home tutor for primary and middle school students, focused on Maths and English.",
     responseTime: "Replies in 18 min",
     image: "/avatars/pro-6.svg",
+    is_featured: true,
+    featured_until: "2030-12-31",
+  },
+  {
+    id: "imran-shah",
+    name: "Imran Shah",
+    role: "Plumber",
+    city: "Karachi",
+    area: "North Nazimabad",
+    rating: "4.6",
+    ratingCount: "87 reviews",
+    experience: "9 years experience",
+    rate: "From Rs. 1,500/visit",
+    bio: "Plumbing repairs for kitchens, bathrooms, water lines, and urgent leakage issues.",
+    responseTime: "Replies in 25 min",
+    image: "/avatars/pro-2.svg",
+    is_featured: false,
+    featured_until: null,
+  },
+  {
+    id: "nadia-farooq",
+    name: "Nadia Farooq",
+    role: "Caregiver",
+    city: "Lahore",
+    area: "Model Town",
+    rating: "4.8",
+    ratingCount: "74 reviews",
+    experience: "6 years experience",
+    rate: "From Rs. 2,800/day",
+    bio: "Caregiver for elderly support, personal assistance, and daytime home care.",
+    responseTime: "Replies in 22 min",
+    image: "/avatars/pro-4.svg",
+    is_featured: false,
+    featured_until: null,
   },
 ];
+
+export function isActiveFeaturedProfessional(
+  professional: Professional,
+  now = new Date(),
+) {
+  return (
+    professional.is_featured &&
+    Boolean(professional.featured_until) &&
+    new Date(professional.featured_until as string) > now
+  );
+}
+
+export function getActiveFeaturedProfessionals(limit?: number) {
+  const featured = recentProfessionals.filter((professional) =>
+    isActiveFeaturedProfessional(professional),
+  );
+
+  return typeof limit === "number" ? featured.slice(0, limit) : featured;
+}

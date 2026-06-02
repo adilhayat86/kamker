@@ -63,3 +63,60 @@ export async function verifyCnic(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/professionals");
 }
+
+export async function makeProfessionalFeatured(formData: FormData) {
+  const id = formData.get("professionalId");
+  const featuredUntil = formData.get("featuredUntil");
+
+  if (typeof id !== "string" || !id || !isSupabaseConfigured || !supabase) {
+    return;
+  }
+
+  const fallbackDate = new Date();
+  fallbackDate.setDate(fallbackDate.getDate() + 30);
+
+  const featuredUntilValue =
+    typeof featuredUntil === "string" && featuredUntil
+      ? new Date(`${featuredUntil}T23:59:59.000Z`).toISOString()
+      : fallbackDate.toISOString();
+
+  const { error } = await supabase
+    .from("professionals")
+    .update({
+      is_featured: true,
+      featured_until: featuredUntilValue,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to feature professional", error);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/professionals");
+}
+
+export async function removeProfessionalFeatured(formData: FormData) {
+  const id = formData.get("professionalId");
+
+  if (typeof id !== "string" || !id || !isSupabaseConfigured || !supabase) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("professionals")
+    .update({
+      is_featured: false,
+      featured_until: null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to remove featured professional", error);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/professionals");
+}

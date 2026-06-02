@@ -2,22 +2,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { Fragment } from "react";
 import {
-  BadgeCheck,
   BriefcaseBusiness,
   CheckCircle2,
   ClipboardList,
   Home,
-  MapPin,
   MessageCircle,
-  Phone,
   Send,
   Sparkles,
-  Star,
   User,
 } from "lucide-react";
 
 import { AdBanner } from "@/components/ad-banner";
 import { CategoryGrid } from "@/components/category-grid";
+import { ProfessionalCard } from "@/components/professional-card";
 import { SearchPanel } from "@/components/search-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,8 +22,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   categories,
   cities,
-  recentProfessionals,
+  getActiveFeaturedProfessionals,
+  type Professional,
 } from "@/lib/marketplace-data";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 const featuredCategories = categories.slice(0, 12);
 
@@ -52,7 +51,70 @@ const trustItems = [
   "No Middleman",
 ];
 
-export default function HomePage() {
+type HomepageFeaturedProfessional = {
+  id: string;
+  full_name: string;
+  area: string | null;
+  experience: string | null;
+  expected_rate: string | null;
+  short_bio: string | null;
+  profile_photo_url: string | null;
+  rating: number | null;
+  featured_until: string | null;
+  cities: { name: string } | null;
+  categories: { name: string } | null;
+};
+
+async function getHomepageFeaturedProfessionals() {
+  if (!isSupabaseConfigured || !supabase) {
+    return getActiveFeaturedProfessionals(6);
+  }
+
+  const { data, error } = await supabase
+    .from("professionals")
+    .select(
+      "id, full_name, area, experience, expected_rate, short_bio, profile_photo_url, rating, featured_until, cities(name), categories(name)",
+    )
+    .eq("is_active", true)
+    .eq("is_featured", true)
+    .gt("featured_until", new Date().toISOString())
+    .order("featured_until", { ascending: false })
+    .limit(6);
+
+  if (error || !data?.length) {
+    if (error) {
+      console.error("Failed to load homepage featured professionals", error);
+    }
+
+    return getActiveFeaturedProfessionals(6);
+  }
+
+  return (data as unknown as HomepageFeaturedProfessional[]).map(
+    (professional): Professional => ({
+      id: professional.id,
+      name: professional.full_name,
+      role: professional.categories?.name ?? "Professional",
+      city: professional.cities?.name ?? "Pakistan",
+      area: professional.area ?? "Service area",
+      rating: String(professional.rating ?? 0),
+      ratingCount: "new",
+      experience:
+        professional.experience ??
+        professional.short_bio ??
+        "Experience will be updated soon.",
+      rate: professional.expected_rate ?? "Rate on request",
+      bio: professional.short_bio ?? "This professional is new on Kamker.",
+      responseTime: "Response time will be updated soon",
+      image: professional.profile_photo_url || "/kamker-professionals.png",
+      is_featured: true,
+      featured_until: professional.featured_until,
+    }),
+  );
+}
+
+export default async function HomePage() {
+  const featuredProfessionals = await getHomepageFeaturedProfessionals();
+
   return (
     <main className="min-h-screen overflow-hidden pb-24 md:pb-0">
       <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
@@ -222,82 +284,25 @@ export default function HomePage() {
         className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8"
       >
         <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-          New on Kamker
+          Featured professionals
         </p>
         <h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">
-          Recently Added Professionals
+          Trusted profiles to contact first
         </h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          Featured profiles are highlighted only while their featured period is
+          active.
+        </p>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {recentProfessionals.map((professional, index) => (
+          {featuredProfessionals.map((professional, index) => (
             <Fragment key={professional.name}>
               {index === 3 ? (
                 <div className="sm:col-span-2 lg:col-span-3">
                   <AdBanner label="Reserved ad space between professional listings" />
                 </div>
               ) : null}
-              <Card className="bg-white shadow-sm">
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-5">
-                    <Image
-                      src={professional.image}
-                      alt={`${professional.name} profile photo`}
-                      width={88}
-                      height={88}
-                      loading="lazy"
-                      className="size-20 shrink-0 rounded-full bg-accent object-cover sm:size-22"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="font-semibold leading-tight">
-                            {professional.name}
-                          </h3>
-                          <p className="mt-1 text-sm font-medium text-primary">
-                            {professional.role}
-                          </p>
-                        </div>
-                        <Badge className="shrink-0 gap-1 bg-primary text-primary-foreground">
-                          <BadgeCheck className="size-3" aria-hidden="true" />
-                          Verified
-                        </Badge>
-                      </div>
-                      <p className="mt-3 text-sm text-muted-foreground">
-                        {professional.experience}
-                      </p>
-                      <Badge variant="outline" className="mt-2 bg-white">
-                        CNIC Verification Badge
-                      </Badge>
-                      <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="size-4" aria-hidden="true" />
-                          {professional.city}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Star className="size-4 fill-[#f6c343] text-[#f6c343]" aria-hidden="true" />
-                          {professional.rating} ({professional.ratingCount})
-                        </span>
-                        <span className="text-primary">{professional.responseTime}</span>
-                      </div>
-                    </div>
-                </div>
-                  <div className="mt-5 grid grid-cols-2 gap-2">
-                  <Button variant="outline" className="h-11">
-                    <Phone aria-hidden="true" />
-                    Call
-                  </Button>
-                    <Button className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                      <MessageCircle aria-hidden="true" />
-                      WhatsApp
-                    </Button>
-                  </div>
-                  <Button asChild className="mt-2 h-11 w-full" variant="outline">
-                    <Link href={`/professionals/${professional.id}`}>
-                      View Profile
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
+              <ProfessionalCard professional={professional} featured />
             </Fragment>
           ))}
         </div>
