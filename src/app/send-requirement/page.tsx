@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { categories, cities } from "@/lib/marketplace-data";
 
+import { submitRequirement } from "./actions";
+
 export const metadata = {
   title: "Send Requirement | Kamker",
   description: "Send your service requirement to matching Kamker professionals.",
@@ -12,7 +14,26 @@ export const metadata = {
 
 const urgencyOptions = ["Today", "Within 2 days", "This week", "Flexible"];
 
-export default function SendRequirementPage() {
+const statusMessages = {
+  success: "Your requirement has been saved.",
+  missing: "Please fill service, city, phone number, urgency, and details.",
+  "not-configured": "Supabase is not configured yet.",
+  error: "Could not save requirement. Please try again.",
+} as const;
+
+type SendRequirementPageProps = {
+  searchParams?: Promise<{
+    status?: keyof typeof statusMessages;
+  }>;
+};
+
+export default async function SendRequirementPage({
+  searchParams,
+}: SendRequirementPageProps) {
+  const params = await searchParams;
+  const status = params?.status;
+  const statusMessage = status ? statusMessages[status] : null;
+
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-3xl">
@@ -25,9 +46,19 @@ export default function SendRequirementPage() {
         <p className="mt-2 text-muted-foreground">
           Describe your need and receive responses from matching professionals.
         </p>
+        <p className="mt-2 text-sm font-medium text-primary">
+          Paid broadcast to matching professionals can be enabled later.
+        </p>
+
+        {statusMessage ? (
+          <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
+            {statusMessage}
+          </div>
+        ) : null}
+
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
-            <form className="grid gap-4 sm:grid-cols-2">
+            <form action={submitRequirement} className="grid gap-4 sm:grid-cols-2">
               <SelectField
                 label="Required service"
                 name="service"
