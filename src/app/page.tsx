@@ -1,133 +1,61 @@
 import Image from "next/image";
+import Link from "next/link";
+import { Fragment } from "react";
 import {
-  ArrowRight,
   BadgeCheck,
-  Bike,
   BriefcaseBusiness,
-  Car,
-  ChefHat,
+  CheckCircle2,
   ClipboardList,
-  Contact,
-  Drill,
-  GraduationCap,
-  Hammer,
-  HeartPulse,
   Home,
-  Image as ImageIcon,
-  Leaf,
   MapPin,
-  Paintbrush,
-  Palette,
-  PencilRuler,
-  PlugZap,
+  MessageCircle,
+  Phone,
   Send,
-  Scissors,
-  Search,
-  ShieldCheck,
   Sparkles,
   Star,
-  Stethoscope,
   User,
-  UserCheck,
-  Users,
-  Wrench,
 } from "lucide-react";
 
-import { AdSlot } from "@/components/ad-slot";
+import { AdBanner } from "@/components/ad-banner";
+import { CategoryGrid } from "@/components/category-grid";
+import { SearchPanel } from "@/components/search-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { isSupabaseConfigured } from "@/lib/supabase";
+  categories,
+  cities,
+  recentProfessionals,
+} from "@/lib/marketplace-data";
 
-const cities = ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad"];
-
-const categories = [
-  { name: "Nurses", icon: HeartPulse },
-  { name: "Maids", icon: Home },
-  { name: "Teachers", icon: GraduationCap },
-  { name: "Handwriting Teachers", icon: Paintbrush },
-  { name: "Tutors", icon: GraduationCap },
-  { name: "Home Tutors", icon: Home },
-  { name: "Quran Teachers", icon: GraduationCap },
-  { name: "Drivers", icon: Car },
-  { name: "Cooks", icon: ChefHat },
-  { name: "Electricians", icon: PlugZap },
-  { name: "Plumbers", icon: Wrench },
-  { name: "Beauticians", icon: Scissors },
-  { name: "Security Guards", icon: ShieldCheck },
-  { name: "Office Boys", icon: BriefcaseBusiness },
-  { name: "Peons", icon: UserCheck },
-  { name: "Gardeners", icon: Leaf },
-  { name: "Carpenters", icon: Hammer },
-  { name: "AC Technicians", icon: Drill },
-  { name: "Mechanics", icon: Wrench },
-  { name: "Painters", icon: Palette },
-  { name: "Welders", icon: Drill },
-  { name: "Tailors", icon: Scissors },
-  { name: "Babysitters", icon: Users },
-  { name: "Caregivers", icon: Stethoscope },
-  { name: "Physiotherapists", icon: HeartPulse },
-  { name: "Lab Technicians", icon: Stethoscope },
-  { name: "Artists", icon: Palette },
-  { name: "Graphic Designers", icon: PencilRuler },
-  { name: "Photographers", icon: ImageIcon },
-  { name: "Event Staff", icon: Contact },
-  { name: "Delivery Riders", icon: Bike },
-];
-
-const trustBadges = [
-  { label: "Verified Profiles", icon: BadgeCheck },
-  { label: "Direct Contact", icon: Contact },
-  { label: "No Middleman", icon: UserCheck },
-  { label: "Pakistan Wide", icon: MapPin },
-];
+const featuredCategories = categories.slice(0, 12);
 
 const bottomNavItems = [
   { label: "Home", icon: Home, href: "#" },
-  { label: "Categories", icon: ClipboardList, href: "#categories" },
-  { label: "Requirements", icon: Send, href: "#requirements" },
-  { label: "Post Job", icon: BriefcaseBusiness, href: "#join" },
-  { label: "Profile", icon: User, href: "#join" },
+  { label: "Categories", icon: ClipboardList, href: "/categories" },
+  { label: "Search", icon: User, href: "/professionals" },
+  { label: "Requirements", icon: Send, href: "/send-requirement" },
+  { label: "Account", icon: BriefcaseBusiness, href: "/register" },
 ];
 
-const workers = [
-  {
-    name: "Ayesha N.",
-    role: "Home Nurse",
-    city: "Lahore",
-    rating: "4.9",
-    rate: "From Rs. 2,500/day",
-    tags: ["Elder care", "Verified CNIC"],
-  },
-  {
-    name: "Rashid K.",
-    role: "Electrician",
-    city: "Karachi",
-    rating: "4.8",
-    rate: "From Rs. 1,200/visit",
-    tags: ["Same day", "Wiring"],
-  },
-  {
-    name: "Sana T.",
-    role: "Tutor",
-    city: "Islamabad",
-    rating: "5.0",
-    rate: "From Rs. 12,000/month",
-    tags: ["Maths", "O/A Level"],
-  },
+const stats = [
+  ["50,000+", "Professionals"],
+  ["120+", "Categories"],
+  ["25+", "Cities"],
+  ["Fast", "Response"],
+];
+
+const trustItems = [
+  "Verified CNIC",
+  "Phone Verified",
+  "Direct Contact",
+  "No Middleman",
 ];
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen overflow-hidden pb-20 md:pb-0">
-      <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
+    <main className="min-h-screen overflow-hidden pb-24 md:pb-0">
+      <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <a href="#" className="flex items-center gap-2" aria-label="Kamker home">
             <span className="flex size-9 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
@@ -142,17 +70,13 @@ export default function HomePage() {
             <a href="#professionals" className="hover:text-foreground">
               Professionals
             </a>
-            <a href="#join" className="hover:text-foreground">
-              Join as worker
-            </a>
+            <Link href="/register" className="hover:text-foreground">
+              Register
+            </Link>
           </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" className="hidden sm:inline-flex">
-              <Send aria-hidden="true" />
-              Send Requirement
-            </Button>
-            <Button size="sm">Post a job</Button>
-          </div>
+          <Button asChild size="sm">
+            <Link href="/register">Register</Link>
+          </Button>
         </nav>
       </header>
 
@@ -164,213 +88,214 @@ export default function HomePage() {
             fill
             priority
             sizes="100vw"
-            className="object-cover object-center"
+            className="object-cover object-center opacity-40"
           />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(251,251,247,0.98)_0%,rgba(251,251,247,0.88)_38%,rgba(251,251,247,0.2)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(251,251,247,0.98)_0%,rgba(251,251,247,0.92)_42%,rgba(251,251,247,0.58)_100%)]" />
         </div>
-        <div className="mx-auto grid min-h-[430px] max-w-7xl content-center px-4 py-5 sm:min-h-[calc(100svh-4rem)] sm:px-6 sm:py-8 lg:px-8">
+        <div className="mx-auto grid min-h-[216px] max-w-7xl content-center px-4 py-4 sm:min-h-[520px] sm:px-6 lg:px-8">
+          <aside
+            aria-label="Reserved Google Ads space"
+            className="absolute right-4 top-4 hidden min-h-24 w-64 items-center justify-center rounded-lg border border-dashed bg-white/75 px-4 text-center text-xs text-muted-foreground shadow-sm backdrop-blur lg:flex"
+          >
+            Google Ads placeholder
+          </aside>
           <div className="max-w-2xl">
-            <Badge variant="secondary" className="mb-3 gap-1.5 sm:mb-4">
+            <Badge variant="secondary" className="mb-2 gap-1.5">
               <Sparkles className="size-3.5" aria-hidden="true" />
               Pakistan service marketplace
             </Badge>
             <h1 className="max-w-xl text-3xl font-bold leading-tight tracking-normal sm:text-5xl lg:text-6xl">
               Hire trusted local workers without the guesswork.
             </h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground sm:mt-4 sm:text-lg sm:leading-7">
-              Find nurses, maids, teachers, drivers, cooks, electricians,
-              plumbers, beauticians, guards, artists, and tutors across Pakistan.
+            <p className="mt-2 max-w-xl text-sm leading-5 text-muted-foreground sm:mt-4 sm:text-lg sm:leading-7">
+              Find verified nurses, maids, drivers, tutors, technicians, guards,
+              and home service professionals across Pakistan.
             </p>
-
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-5 sm:flex sm:flex-wrap">
-              {trustBadges.map((item) => {
-                const Icon = item.icon;
-
-                return (
-                  <Badge
-                    key={item.label}
-                    variant="outline"
-                    className="justify-center gap-1.5 bg-white/85 px-3 py-1.5 text-xs"
-                  >
-                    <Icon className="size-3.5" aria-hidden="true" />
-                    {item.label}
-                  </Badge>
-                );
-              })}
-            </div>
-
-            <Card className="mt-4 max-w-xl border-0 bg-white/95 shadow-xl sm:mt-7">
-              <CardContent className="p-2 sm:p-3">
-                <form className="grid gap-2 sm:grid-cols-[1fr_0.75fr_auto] sm:gap-3">
-                  <label className="relative">
-                    <Search
-                      className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground sm:top-3.5"
-                      aria-hidden="true"
-                    />
-                    <span className="sr-only">Service</span>
-                    <Input
-                      placeholder="Nurse, maid, tutor..."
-                      className="h-10 pl-9 sm:h-11"
-                      name="service"
-                    />
-                  </label>
-                  <label className="relative">
-                    <MapPin
-                      className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground sm:top-3.5"
-                      aria-hidden="true"
-                    />
-                    <span className="sr-only">City</span>
-                    <Input
-                      placeholder="City"
-                      className="h-10 pl-9 sm:h-11"
-                      name="city"
-                    />
-                  </label>
-                  <Button type="submit" className="h-10 sm:h-11">
-                    Search
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:mt-4 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
-              {cities.map((city) => (
-                <Badge
-                  key={city}
-                  variant="outline"
-                  className="shrink-0 bg-white/80"
-                >
-                  {city}
-                </Badge>
-              ))}
-            </div>
-
-            <Button className="mt-2 h-10 w-full sm:hidden" variant="outline">
-              <Send aria-hidden="true" />
-              Send Requirement
-            </Button>
           </div>
         </div>
+      </section>
+
+      <section className="sticky top-16 z-30 border-b bg-background/95 px-4 py-3 shadow-sm backdrop-blur sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <SearchPanel />
+          <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+            {cities.map((city) => (
+              <Badge key={city} variant="outline" className="shrink-0 bg-white">
+                {city}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {stats.map(([value, label]) => (
+            <Card key={label} className="bg-white shadow-sm">
+              <CardContent className="p-4 text-center sm:p-5">
+                <p className="text-xl font-bold text-primary sm:text-3xl">
+                  {value}
+                </p>
+                <p className="mt-1 text-xs font-medium text-muted-foreground sm:text-sm">
+                  {label}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+        <AdBanner label="Reserved ad space below hero" />
+      </section>
+
+      <section
+        id="requirements"
+        className="mx-auto max-w-7xl px-4 py-2 sm:px-6 lg:px-8"
+      >
+        <Card className="border-primary/20 bg-primary text-primary-foreground shadow-lg">
+          <CardContent className="p-5 sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-2xl font-bold">Need a Worker?</p>
+                <p className="mt-1 text-sm text-white/85">
+                  Describe your need and receive responses from professionals.
+                </p>
+              </div>
+              <Button asChild className="h-14 w-full bg-white text-primary hover:bg-white/90 sm:w-64">
+                <Link href="/send-requirement">Send Requirement</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </section>
 
       <section
         id="categories"
-        className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8"
+        className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
       >
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div className="flex items-end justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-              Browse by need
+              Featured categories
             </p>
-            <h2 className="mt-1 text-2xl font-bold tracking-normal sm:mt-2 sm:text-3xl">
-              Popular service categories
+            <h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">
+              Find help for everyday needs
             </h2>
           </div>
-          <Button variant="outline">
-            View all
-            <ArrowRight aria-hidden="true" />
-          </Button>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:grid-cols-3 lg:grid-cols-5">
-          {categories.map((category) => {
-            const Icon = category.icon;
+        <CategoryGrid categories={featuredCategories} />
 
-            return (
-              <Card key={category.name} className="bg-white/90">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex size-10 items-center justify-center rounded-md bg-accent text-accent-foreground sm:size-11">
-                    <Icon className="size-5" aria-hidden="true" />
-                  </div>
-                  <h3 className="mt-3 text-sm font-semibold sm:mt-4 sm:text-base">
-                    {category.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Available professionals
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <Button asChild variant="outline" className="mt-5 h-12 w-full sm:w-auto">
+          <Link href="/categories">View All Categories</Link>
+        </Button>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <AdSlot label="Top ad banner 970 x 90" />
+        <AdBanner label="Reserved ad space after categories" />
       </section>
 
-      <section id="requirements" className="border-y bg-secondary/70">
-        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              ["CNIC-aware profiles", "Capture identity status and service history."],
-              ["Local availability", "Filter by city, area, gender, and timings."],
-              ["Direct booking path", "Move from search to quote request quickly."],
-            ].map(([title, description]) => (
-              <div key={title} className="rounded-lg bg-background p-5">
-                <BadgeCheck className="size-5 text-primary" aria-hidden="true" />
-                <h3 className="mt-4 font-semibold">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {description}
-                </p>
-              </div>
+      <section className="border-y bg-secondary/70">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+            Trust and safety
+          </p>
+          <h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">
+            Built for direct, verified hiring
+          </h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-4">
+            {trustItems.map((item) => (
+              <Card key={item} className="bg-background shadow-sm">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <CheckCircle2 className="size-5 text-primary" aria-hidden="true" />
+                  <span className="text-sm font-semibold">{item}</span>
+                </CardContent>
+              </Card>
             ))}
           </div>
-          <AdSlot label="Sidebar ad slot 300 x 250" className="min-h-64 bg-white" />
         </div>
       </section>
 
       <section
         id="professionals"
-        className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8"
+        className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"
       >
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-              Featured today
-            </p>
-            <h2 className="mt-2 text-3xl font-bold tracking-normal">
-              Professionals ready nearby
-            </h2>
-          </div>
-          <Badge variant={isSupabaseConfigured ? "default" : "secondary"}>
-            Supabase {isSupabaseConfigured ? "connected" : "ready"}
-          </Badge>
-        </div>
+        <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+          New on Kamker
+        </p>
+        <h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">
+          Recently Added Professionals
+        </h2>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          {workers.map((worker) => (
-            <Card key={worker.name} className="bg-white">
-              <CardHeader>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <CardTitle>{worker.name}</CardTitle>
-                    <CardDescription>{worker.role}</CardDescription>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {recentProfessionals.map((professional, index) => (
+            <Fragment key={professional.name}>
+              {index === 3 ? (
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <AdBanner label="Reserved ad space between professional listings" />
+                </div>
+              ) : null}
+              <Card className="bg-white shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-4">
+                    <Image
+                      src={professional.image}
+                      alt={`${professional.name} profile photo`}
+                      width={64}
+                      height={64}
+                      loading="lazy"
+                      className="size-16 shrink-0 rounded-full bg-accent object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="font-semibold leading-tight">
+                            {professional.name}
+                          </h3>
+                          <p className="mt-1 text-sm font-medium text-primary">
+                            {professional.role}
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="shrink-0 gap-1">
+                          <BadgeCheck className="size-3" aria-hidden="true" />
+                          Verified
+                        </Badge>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {professional.experience}
+                      </p>
+                      <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="size-4" aria-hidden="true" />
+                          {professional.city}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Star className="size-4 fill-[#f6c343] text-[#f6c343]" aria-hidden="true" />
+                          {professional.rating} ({professional.ratingCount})
+                        </span>
+                        <span className="text-primary">{professional.responseTime}</span>
+                      </div>
+                    </div>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <Button variant="outline" className="h-11">
+                    <Phone aria-hidden="true" />
+                    Call
+                  </Button>
+                    <Button className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]">
+                      <MessageCircle aria-hidden="true" />
+                      WhatsApp
+                    </Button>
                   </div>
-                  <div className="flex items-center gap-1 rounded-md bg-[#fff4d6] px-2 py-1 text-sm font-semibold text-[#7a4c00]">
-                    <Star className="size-4 fill-current" aria-hidden="true" />
-                    {worker.rating}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MapPin className="size-4" aria-hidden="true" />
-                  {worker.city}
-                </div>
-                <p className="mt-3 text-lg font-semibold">{worker.rate}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {worker.tags.map((tag) => (
-                    <Badge key={tag} variant="outline">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-                <Button className="mt-5 w-full" variant="outline">
-                  View profile
-                </Button>
-              </CardContent>
-            </Card>
+                  <Button asChild className="mt-2 h-11 w-full" variant="outline">
+                    <Link href={`/professionals/${professional.id}`}>
+                      View Profile
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </Fragment>
           ))}
         </div>
       </section>
@@ -378,14 +303,13 @@ export default function HomePage() {
       <section id="join" className="bg-[#14372f] text-white">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:px-8">
           <div>
-            <Badge className="bg-white text-[#14372f]">For workers</Badge>
+            <Badge className="bg-white text-[#14372f]">Registration</Badge>
             <h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-normal sm:text-4xl">
-              Build a professional profile people can trust.
+              Join Kamker as a professional or customer.
             </h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-white/75">
-              List your skills, preferred areas, rates, timing, work photos, and
-              verification status. Kamker is prepared for Supabase-backed worker
-              profiles, bookings, and reviews.
+              Professionals can create verified service profiles. Customers can
+              send requirements and contact matching professionals directly.
             </p>
           </div>
           <Card className="border-white/15 bg-white/10 text-white shadow-none">
@@ -395,34 +319,54 @@ export default function HomePage() {
                   <BriefcaseBusiness className="size-6" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Start as a Kamker pro</h3>
+                  <h3 className="font-semibold">Register on Kamker</h3>
                   <p className="text-sm text-white/70">
-                    Nurses, tutors, cooks, drivers, artists, and tradespeople.
+                    Choose the path that matches how you use the marketplace.
                   </p>
                 </div>
               </div>
-              <Button className="mt-5 w-full bg-white text-[#14372f] hover:bg-white/90">
-                Create worker profile
-              </Button>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <Button asChild className="h-12 bg-white text-[#14372f] hover:bg-white/90">
+                  <Link href="/register/professional">Register as Professional</Link>
+                </Button>
+                <Button asChild className="h-12 bg-white/15 text-white hover:bg-white/25">
+                  <Link href="/register/customer">Register as Customer</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
       </section>
 
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <AdBanner label="Reserved ad space before footer" />
+      </section>
+
       <footer className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <p>Kamker Pakistan service directory marketplace.</p>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <a href="#" className="hover:text-foreground">
-            Privacy
+            About
+          </a>
+          <a href="#" className="hover:text-foreground">
+            Privacy Policy
           </a>
           <a href="#" className="hover:text-foreground">
             Terms
           </a>
           <a href="#" className="hover:text-foreground">
-            Contact
+            Contact Us
           </a>
         </div>
       </footer>
+
+      <a
+        href="https://wa.me/"
+        aria-label="WhatsApp help"
+        className="fixed bottom-20 right-4 z-40 flex size-12 items-center justify-center rounded-full bg-[#25d366] text-white shadow-lg md:hidden"
+      >
+        <MessageCircle className="size-6" aria-hidden="true" />
+      </a>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-2 py-2 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1">

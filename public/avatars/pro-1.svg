@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-label="Professional profile photo">
+  <rect width="96" height="96" rx="48" fill="#d9efe7"/>
+  <circle cx="48" cy="34" r="17" fill="#116149"/>
+  <path d="M20 86c4-20 17-31 28-31s24 11 28 31" fill="#2b8a68"/>
+  <path d="M31 29c5-14 23-16 34-4-10 0-18 2-34 4Z" fill="#17372f"/>
+</svg>
