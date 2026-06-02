@@ -5,11 +5,32 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cities } from "@/lib/marketplace-data";
 
+import { registerCustomer } from "./actions";
+
 export const metadata = {
   title: "Register as Customer | Kamker",
 };
 
-export default function CustomerRegisterPage() {
+const statusMessages = {
+  success: "Customer profile submitted successfully.",
+  missing: "Please fill name, phone, and city.",
+  "not-configured": "Supabase is not configured yet.",
+  error: "Could not register customer. Please try again.",
+} as const;
+
+type CustomerRegisterPageProps = {
+  searchParams?: Promise<{
+    status?: keyof typeof statusMessages;
+  }>;
+};
+
+export default async function CustomerRegisterPage({
+  searchParams,
+}: CustomerRegisterPageProps) {
+  const params = await searchParams;
+  const status = params?.status;
+  const statusMessage = status ? statusMessages[status] : null;
+
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-2xl">
@@ -19,9 +40,14 @@ export default function CustomerRegisterPage() {
         <h1 className="mt-4 text-3xl font-bold tracking-normal">
           Register as Customer
         </h1>
+        {statusMessage ? (
+          <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
+            {statusMessage}
+          </div>
+        ) : null}
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
-            <form className="grid gap-4 sm:grid-cols-2">
+            <form action={registerCustomer} className="grid gap-4 sm:grid-cols-2">
               <FormField label="Full name" name="fullName" />
               <FormField label="Phone number" name="phone" type="tel" />
               <SelectField label="City" name="city" options={cities} />
