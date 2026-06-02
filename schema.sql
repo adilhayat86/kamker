@@ -28,6 +28,7 @@ create table if not exists professionals (
   is_cnic_verified boolean not null default false,
   is_phone_verified boolean not null default false,
   rating numeric(2, 1) not null default 0,
+  is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -52,5 +53,22 @@ create table if not exists requirements (
   whatsapp_number text,
   urgency text not null,
   status text not null default 'open',
+  broadcast_status text not null default 'free',
+  payment_status text not null default 'unpaid',
   created_at timestamptz not null default now()
 );
+
+create table if not exists requirement_notifications (
+  id uuid primary key default gen_random_uuid(),
+  requirement_id uuid not null references requirements(id) on delete cascade,
+  professional_id uuid not null references professionals(id) on delete cascade,
+  channel text not null default 'app',
+  status text not null default 'pending',
+  sent_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique(requirement_id, professional_id, channel)
+);
+
+create index if not exists professionals_city_category_idx on professionals(city_id, category_id);
+create index if not exists requirements_city_status_idx on requirements(city_id, status);
+create index if not exists requirement_notifications_requirement_idx on requirement_notifications(requirement_id);
