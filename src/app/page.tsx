@@ -34,7 +34,7 @@ const bottomNavItems = [
   { label: "Categories", icon: ClipboardList, href: "/categories" },
   { label: "Send Requirement", icon: Send, href: "/send-requirement" },
   { label: "Register", icon: BriefcaseBusiness, href: "/register" },
-  { label: "Account", icon: User, href: "/register/customer" },
+  { label: "Account", icon: User, href: "/account" },
 ];
 
 const stats = [
@@ -135,9 +135,12 @@ export default async function HomePage() {
             <Link href="/register" className="hover:text-foreground">
               Register
             </Link>
+            <Link href="/account" className="hover:text-foreground">
+              My Account
+            </Link>
           </div>
           <Button asChild size="sm">
-            <Link href="/register">Register</Link>
+            <Link href="/account">My Account</Link>
           </Button>
         </nav>
       </header>
