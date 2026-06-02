@@ -1,10 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, MapPin, MessageCircle, Phone, Star } from "lucide-react";
+import { BadgeCheck, MapPin, MessageCircle, Phone, Search, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { categories, cities, recentProfessionals } from "@/lib/marketplace-data";
 
@@ -30,6 +31,18 @@ type DbProfessional = {
   categories: { name: string } | null;
 };
 
+type ProfessionalsPageProps = {
+  searchParams?: Promise<{
+    q?: string;
+    city?: string;
+    category?: string;
+  }>;
+};
+
+function matches(value: string | null | undefined, query: string) {
+  return value?.toLowerCase().includes(query.toLowerCase()) ?? false;
+}
+
 async function getDbProfessionals() {
   if (!isSupabaseConfigured || !supabase) {
     return [] as DbProfessional[];
@@ -40,8 +53,9 @@ async function getDbProfessionals() {
     .select(
       "id, full_name, phone_number, whatsapp_number, area, experience, expected_rate, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, rating, cities(name), categories(name)",
     )
+    .eq("is_active", true)
     .order("created_at", { ascending: false })
-    .limit(30);
+    .limit(100);
 
   if (error) {
     console.error("Failed to load professionals", error);
@@ -51,9 +65,29 @@ async function getDbProfessionals() {
   return (data ?? []) as DbProfessional[];
 }
 
-export default async function ProfessionalsPage() {
+export default async function ProfessionalsPage({ searchParams }: ProfessionalsPageProps) {
+  const params = await searchParams;
+  const q = params?.q?.trim() ?? "";
+  const city = params?.city?.trim() ?? "";
+  const category = params?.category?.trim() ?? "";
+
   const dbProfessionals = await getDbProfessionals();
+  const filteredDbProfessionals = dbProfessionals.filter((professional) => {
+    const keywordMatch = q
+      ? matches(professional.full_name, q) ||
+        matches(professional.area, q) ||
+        matches(professional.experience, q) ||
+        matches(professional.short_bio, q) ||
+        matches(professional.categories?.name, q) ||
+        matches(professional.cities?.name, q)
+      : true;
+    const cityMatch = city ? professional.cities?.name === city : true;
+    const categoryMatch = category ? professional.categories?.name === category : true;
+
+    return keywordMatch && cityMatch && categoryMatch;
+  });
   const hasDbProfessionals = dbProfessionals.length > 0;
+  const activeProfessionals = hasDbProfessionals ? filteredDbProfessionals : [];
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -65,38 +99,63 @@ export default async function ProfessionalsPage() {
           Professionals
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Browse local professionals and contact them directly without a middleman.
+          Browse approved local professionals and contact them directly without a middleman.
         </p>
         {!hasDbProfessionals ? (
           <p className="mt-2 text-sm text-muted-foreground">
-            Demo listings are shown until real professionals are added in Supabase.
+            Demo listings are shown until approved professionals are added in Supabase.
           </p>
         ) : null}
 
-        <div className="mt-6 grid gap-3 rounded-lg bg-white p-3 shadow-sm sm:grid-cols-2">
+        <form className="mt-6 grid gap-3 rounded-lg bg-white p-3 shadow-sm lg:grid-cols-[1.2fr_1fr_1fr_auto]">
+          <label className="grid gap-2">
+            <span className="text-sm font-medium">Search</span>
+            <Input name="q" placeholder="Nurse, driver, area, name" defaultValue={q} />
+          </label>
           <label className="grid gap-2">
             <span className="text-sm font-medium">City Filter</span>
-            <select className="h-11 rounded-md border border-input bg-background px-3 text-sm">
-              <option>All cities</option>
-              {cities.map((city) => (
-                <option key={city}>{city}</option>
+            <select name="city" defaultValue={city} className="h-11 rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">All cities</option>
+              {cities.map((cityOption) => (
+                <option key={cityOption} value={cityOption}>{cityOption}</option>
               ))}
             </select>
           </label>
           <label className="grid gap-2">
             <span className="text-sm font-medium">Category Filter</span>
-            <select className="h-11 rounded-md border border-input bg-background px-3 text-sm">
-              <option>All categories</option>
-              {categories.map((category) => (
-                <option key={category.name}>{category.name}</option>
+            <select name="category" defaultValue={category} className="h-11 rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">All categories</option>
+              {categories.map((categoryOption) => (
+                <option key={categoryOption.name} value={categoryOption.name}>{categoryOption.name}</option>
               ))}
             </select>
           </label>
-        </div>
+          <div className="flex items-end gap-2">
+            <Button className="h-11 w-full lg:w-auto" type="submit">
+              <Search aria-hidden="true" />
+              Search
+            </Button>
+            <Button asChild className="h-11 w-full lg:w-auto" variant="outline">
+              <Link href="/professionals">Reset</Link>
+            </Button>
+          </div>
+        </form>
+
+        {hasDbProfessionals ? (
+          <p className="mt-4 text-sm text-muted-foreground">
+            Showing {activeProfessionals.length} approved professional{activeProfessionals.length === 1 ? "" : "s"}.
+          </p>
+        ) : null}
+
+        {hasDbProfessionals && activeProfessionals.length === 0 ? (
+          <div className="mt-6 rounded-lg border border-dashed bg-white p-6 text-sm text-muted-foreground">
+            No approved professionals match your search. Try another city, category, or keyword.
+          </div>
+        ) : null}
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {hasDbProfessionals
-            ? dbProfessionals.map((professional) => {
+            ? activeProfessionals.map((professional) => {
                 const whatsappNumber = professional.whatsapp_number ?? professional.phone_number;
 
                 return (
@@ -121,14 +180,14 @@ export default async function ProfessionalsPage() {
                             </div>
                             <Badge className="gap-1 bg-primary text-primary-foreground">
                               <BadgeCheck className="size-3" aria-hidden="true" />
-                              {professional.is_phone_verified ? "Verified" : "New"}
+                              Approved
                             </Badge>
                           </div>
                           <p className="mt-2 text-sm text-muted-foreground">
                             {professional.experience ?? professional.short_bio ?? "Experience will be updated soon."}
                           </p>
                           <Badge variant="outline" className="mt-2">
-                            {professional.is_cnic_verified ? "CNIC Verified" : "CNIC Pending"}
+                            {professional.is_cnic_verified ? "CNIC Verified" : "Profile Reviewed"}
                           </Badge>
                           <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
