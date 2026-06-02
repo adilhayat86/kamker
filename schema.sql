@@ -28,7 +28,7 @@ create table if not exists professionals (
   is_cnic_verified boolean not null default false,
   is_phone_verified boolean not null default false,
   rating numeric(2, 1) not null default 0,
-  is_active boolean not null default true,
+  is_active boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -70,5 +70,6 @@ create table if not exists requirement_notifications (
 );
 
 create index if not exists professionals_city_category_idx on professionals(city_id, category_id);
+create index if not exists professionals_active_idx on professionals(is_active);
 create index if not exists requirements_city_status_idx on requirements(city_id, status);
 create index if not exists requirement_notifications_requirement_idx on requirement_notifications(requirement_id);
