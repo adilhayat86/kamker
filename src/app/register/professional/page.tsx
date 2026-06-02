@@ -6,11 +6,32 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { categories, cities } from "@/lib/marketplace-data";
 
+import { registerProfessional } from "./actions";
+
 export const metadata = {
   title: "Register as Professional | Kamker",
 };
 
-export default function ProfessionalRegisterPage() {
+const statusMessages = {
+  success: "Professional profile submitted successfully.",
+  missing: "Please fill name, phone, city, and profession.",
+  "not-configured": "Supabase is not configured yet.",
+  error: "Could not register professional. Please try again.",
+} as const;
+
+type ProfessionalRegisterPageProps = {
+  searchParams?: Promise<{
+    status?: keyof typeof statusMessages;
+  }>;
+};
+
+export default async function ProfessionalRegisterPage({
+  searchParams,
+}: ProfessionalRegisterPageProps) {
+  const params = await searchParams;
+  const status = params?.status;
+  const statusMessage = status ? statusMessages[status] : null;
+
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-3xl">
@@ -20,6 +41,11 @@ export default function ProfessionalRegisterPage() {
         <h1 className="mt-4 text-3xl font-bold tracking-normal">
           Register as Professional
         </h1>
+        {statusMessage ? (
+          <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
+            {statusMessage}
+          </div>
+        ) : null}
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
             <div className="mb-5 flex items-center gap-4 rounded-lg border border-dashed p-4">
@@ -33,7 +59,7 @@ export default function ProfessionalRegisterPage() {
                 </p>
               </div>
             </div>
-            <form className="grid gap-4 sm:grid-cols-2">
+            <form action={registerProfessional} className="grid gap-4 sm:grid-cols-2">
               <FormField label="Full name" name="fullName" />
               <FormField label="Phone number" name="phone" type="tel" />
               <FormField label="WhatsApp number" name="whatsapp" type="tel" />
