@@ -11,3 +11,5 @@ pnpm-debug.log*
 *.tsbuildinfo
 dev-server*.log
 .codex-remote-attachments/
+.gh-cli/
+gh.zip
