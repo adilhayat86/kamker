@@ -13,8 +13,9 @@ export const metadata = {
 };
 
 const statusMessages = {
-  success: "Professional profile submitted successfully.",
-  missing: "Please fill name, phone, city, and profession.",
+  success: "Professional profile submitted successfully. You can now log in.",
+  missing:
+    "Please fill name, phone, city, profession, password, secret question, and secret answer.",
   "not-configured": "Supabase is not configured yet.",
   error: "Could not register professional. Please try again.",
 } as const;
@@ -44,6 +45,11 @@ export default async function ProfessionalRegisterPage({
         {statusMessage ? (
           <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
             {statusMessage}
+            {status === "success" ? (
+              <Button asChild className="mt-3 w-full sm:w-auto">
+                <Link href="/login">Go to Login</Link>
+              </Button>
+            ) : null}
           </div>
         ) : null}
         <Card className="mt-6 bg-white shadow-sm">
@@ -73,6 +79,18 @@ export default async function ProfessionalRegisterPage({
               <FormField label="Experience" name="experience" placeholder="5 years" />
               <FormField label="Expected rate" name="rate" placeholder="Rs. 2,000/day" />
               <FormField label="CNIC optional" name="cnic" />
+              <FormField label="Password" name="password" type="password" />
+              <FormField
+                label="Secret question"
+                name="secretQuestion"
+                placeholder="What is your first school name?"
+              />
+              <FormField
+                label="Secret answer"
+                name="secretAnswer"
+                type="password"
+                placeholder="Answer"
+              />
               <div className="sm:col-span-2">
                 <TextAreaField label="Short bio" name="bio" />
               </div>

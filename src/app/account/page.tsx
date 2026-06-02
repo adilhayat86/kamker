@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   BadgeCheck,
   BriefcaseBusiness,
   Clock,
   Crown,
   Edit,
+  LogOut,
   MapPin,
   MessageCircle,
   Phone,
@@ -20,6 +22,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { logoutProfessional } from "@/app/logout/actions";
 
 export const metadata = {
   title: "My Account | Kamker",
@@ -58,6 +62,11 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
   const dbProfessional = await getAccountProfessional();
+
+  if (isSupabaseConfigured && !dbProfessional) {
+    redirect("/login");
+  }
+
   const demoProfessional = dbProfessional ? null : getDemoAccountProfessional();
 
   const fullName = dbProfessional?.full_name ?? demoProfessional?.name ?? "";
@@ -85,12 +94,22 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
           <Link href="/" className="text-sm font-medium text-primary">
             Kamker
           </Link>
-          <Button asChild size="sm" variant="outline">
-            <Link href="/account/edit">
-              <Edit aria-hidden="true" />
-              Edit Profile
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link href="/account/edit">
+                <Edit aria-hidden="true" />
+                Edit Profile
+              </Link>
+            </Button>
+            {dbProfessional ? (
+              <form action={logoutProfessional}>
+                <Button size="sm" variant="outline">
+                  <LogOut aria-hidden="true" />
+                  Logout
+                </Button>
+              </form>
+            ) : null}
+          </div>
         </div>
 
         <Card className="mt-5 overflow-hidden bg-white shadow-sm">

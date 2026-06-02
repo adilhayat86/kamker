@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { getSessionProfessional } from "@/lib/auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 function field(formData: FormData, key: string) {
@@ -12,7 +13,6 @@ function field(formData: FormData, key: string) {
 }
 
 export async function updateProfessionalProfile(formData: FormData) {
-  const id = field(formData, "professionalId");
   const fullName = field(formData, "fullName");
   const phoneNumber = field(formData, "phone");
   const whatsappNumber = field(formData, "whatsapp");
@@ -23,12 +23,18 @@ export async function updateProfessionalProfile(formData: FormData) {
   const expectedRate = field(formData, "rate");
   const shortBio = field(formData, "bio");
 
-  if (!id || !fullName || !phoneNumber || !cityName || !categoryName) {
+  if (!fullName || !phoneNumber || !cityName || !categoryName) {
     redirect("/account/edit?status=missing");
   }
 
   if (!isSupabaseConfigured || !supabase) {
     redirect("/account/edit?status=not-configured");
+  }
+
+  const sessionProfessional = await getSessionProfessional();
+
+  if (!sessionProfessional) {
+    redirect("/login");
   }
 
   const { data: city } = await supabase
@@ -56,7 +62,7 @@ export async function updateProfessionalProfile(formData: FormData) {
       expected_rate: expectedRate || null,
       short_bio: shortBio || null,
     })
-    .eq("id", id);
+    .eq("id", sessionProfessional.id);
 
   if (error) {
     console.error("Failed to update professional profile", error);
@@ -67,7 +73,7 @@ export async function updateProfessionalProfile(formData: FormData) {
   revalidatePath("/account");
   revalidatePath("/account/edit");
   revalidatePath("/professionals");
-  revalidatePath(`/professionals/${id}`);
+  revalidatePath(`/professionals/${sessionProfessional.id}`);
 
   redirect("/account?status=updated");
 }

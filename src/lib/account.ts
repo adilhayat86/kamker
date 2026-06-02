@@ -3,6 +3,7 @@ import {
   recentProfessionals,
   type Professional,
 } from "@/lib/marketplace-data";
+import { getSessionProfessional } from "@/lib/auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export type AccountProfessional = {
@@ -57,19 +58,5 @@ export async function getAccountProfessional() {
     return null;
   }
 
-  const { data, error } = await supabase
-    .from("professionals")
-    .select(
-      "id, full_name, phone_number, whatsapp_number, area, experience, expected_rate, short_bio, cnic, is_cnic_verified, is_phone_verified, is_active, is_featured, featured_until, cities(name), categories(name)",
-    )
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Failed to load account professional", error);
-    return null;
-  }
-
-  return data as unknown as AccountProfessional | null;
+  return getSessionProfessional();
 }

@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft, Save, UserCog } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAccountProfessional, getDemoAccountProfessional } from "@/lib/account";
 import { categories, cities } from "@/lib/marketplace-data";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 import { updateProfessionalProfile } from "./actions";
 
@@ -97,10 +99,14 @@ export default async function EditAccountPage({
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
   const dbProfessional = await getAccountProfessional();
+
+  if (isSupabaseConfigured && !dbProfessional) {
+    redirect("/login");
+  }
+
   const demoProfessional = dbProfessional ? null : getDemoAccountProfessional();
   const isDemo = !dbProfessional;
 
-  const professionalId = dbProfessional?.id ?? "";
   const fullName = dbProfessional?.full_name ?? demoProfessional?.name ?? "";
   const profession =
     dbProfessional?.categories?.name ?? demoProfessional?.role ?? "";
@@ -162,7 +168,6 @@ export default async function EditAccountPage({
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
             <form action={updateProfessionalProfile} className="grid gap-4 sm:grid-cols-2">
-              <input type="hidden" name="professionalId" value={professionalId} />
               <TextInput
                 label="Full name"
                 name="fullName"

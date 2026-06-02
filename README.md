@@ -36,6 +36,7 @@ Environment variables:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+KAMKER_AUTH_SECRET=
 ```
 
-The app builds without these variables, but Supabase-backed features should set them in Vercel project settings.
+The app builds without these variables, but Supabase-backed features should set them in Vercel project settings. Set `KAMKER_AUTH_SECRET` to a long random value for signing password-recovery cookies in production.

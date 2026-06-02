@@ -25,12 +25,23 @@ create table if not exists professionals (
   short_bio text,
   cnic text,
   profile_photo_url text,
+  password_hash text,
+  secret_question text,
+  secret_answer_hash text,
   is_cnic_verified boolean not null default false,
   is_phone_verified boolean not null default false,
   rating numeric(2, 1) not null default 0,
   is_active boolean not null default false,
   is_featured boolean not null default false,
   featured_until timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists professional_sessions (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null references professionals(id) on delete cascade,
+  session_token_hash text not null unique,
+  expires_at timestamptz not null,
   created_at timestamptz not null default now()
 );
 
@@ -74,5 +85,8 @@ create table if not exists requirement_notifications (
 create index if not exists professionals_city_category_idx on professionals(city_id, category_id);
 create index if not exists professionals_active_idx on professionals(is_active);
 create index if not exists professionals_featured_idx on professionals(is_featured, featured_until);
+create index if not exists professionals_phone_number_idx on professionals(phone_number);
 create index if not exists requirements_city_status_idx on requirements(city_id, status);
 create index if not exists requirement_notifications_requirement_idx on requirement_notifications(requirement_id);
+create index if not exists professional_sessions_professional_idx on professional_sessions(professional_id);
+create index if not exists professional_sessions_expires_idx on professional_sessions(expires_at);

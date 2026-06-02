@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { hashSecret } from "@/lib/auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 function field(formData: FormData, key: string) {
@@ -20,8 +21,19 @@ export async function registerProfessional(formData: FormData) {
   const expectedRate = field(formData, "rate");
   const cnic = field(formData, "cnic");
   const shortBio = field(formData, "bio");
+  const password = field(formData, "password");
+  const secretQuestion = field(formData, "secretQuestion");
+  const secretAnswer = field(formData, "secretAnswer");
 
-  if (!fullName || !phoneNumber || !cityName || !categoryName) {
+  if (
+    !fullName ||
+    !phoneNumber ||
+    !cityName ||
+    !categoryName ||
+    !password ||
+    !secretQuestion ||
+    !secretAnswer
+  ) {
     redirect("/register/professional?status=missing");
   }
 
@@ -41,6 +53,11 @@ export async function registerProfessional(formData: FormData) {
     .eq("name", categoryName)
     .maybeSingle();
 
+  const [passwordHash, secretAnswerHash] = await Promise.all([
+    hashSecret(password),
+    hashSecret(secretAnswer.toLowerCase()),
+  ]);
+
   const { error } = await supabase.from("professionals").insert({
     full_name: fullName,
     phone_number: phoneNumber,
@@ -52,6 +69,9 @@ export async function registerProfessional(formData: FormData) {
     expected_rate: expectedRate || null,
     short_bio: shortBio || null,
     cnic: cnic || null,
+    password_hash: passwordHash,
+    secret_question: secretQuestion,
+    secret_answer_hash: secretAnswerHash,
     is_phone_verified: false,
     is_cnic_verified: false,
   });
