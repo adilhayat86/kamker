@@ -168,21 +168,21 @@ export default function HomePage() {
           />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(251,251,247,0.98)_0%,rgba(251,251,247,0.88)_38%,rgba(251,251,247,0.2)_100%)]" />
         </div>
-        <div className="mx-auto grid min-h-[620px] max-w-7xl content-center px-4 py-8 sm:min-h-[calc(100svh-4rem)] sm:px-6 lg:px-8">
+        <div className="mx-auto grid min-h-[430px] max-w-7xl content-center px-4 py-5 sm:min-h-[calc(100svh-4rem)] sm:px-6 sm:py-8 lg:px-8">
           <div className="max-w-2xl">
-            <Badge variant="secondary" className="mb-4 gap-1.5">
+            <Badge variant="secondary" className="mb-3 gap-1.5 sm:mb-4">
               <Sparkles className="size-3.5" aria-hidden="true" />
               Pakistan service marketplace
             </Badge>
-            <h1 className="max-w-xl text-4xl font-bold leading-tight tracking-normal sm:text-5xl lg:text-6xl">
+            <h1 className="max-w-xl text-3xl font-bold leading-tight tracking-normal sm:text-5xl lg:text-6xl">
               Hire trusted local workers without the guesswork.
             </h1>
-            <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
+            <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground sm:mt-4 sm:text-lg sm:leading-7">
               Find nurses, maids, teachers, drivers, cooks, electricians,
               plumbers, beauticians, guards, artists, and tutors across Pakistan.
             </p>
 
-            <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-5 sm:flex sm:flex-wrap">
               {trustBadges.map((item) => {
                 const Icon = item.icon;
 
@@ -199,37 +199,41 @@ export default function HomePage() {
               })}
             </div>
 
-            <Card className="mt-7 max-w-xl border-0 bg-white/95 shadow-xl">
-              <CardContent className="p-3">
-                <form className="grid gap-3 sm:grid-cols-[1fr_0.75fr_auto]">
+            <Card className="mt-4 max-w-xl border-0 bg-white/95 shadow-xl sm:mt-7">
+              <CardContent className="p-2 sm:p-3">
+                <form className="grid gap-2 sm:grid-cols-[1fr_0.75fr_auto] sm:gap-3">
                   <label className="relative">
                     <Search
-                      className="pointer-events-none absolute left-3 top-3.5 size-4 text-muted-foreground"
+                      className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground sm:top-3.5"
                       aria-hidden="true"
                     />
                     <span className="sr-only">Service</span>
                     <Input
                       placeholder="Nurse, maid, tutor..."
-                      className="pl-9"
+                      className="h-10 pl-9 sm:h-11"
                       name="service"
                     />
                   </label>
                   <label className="relative">
                     <MapPin
-                      className="pointer-events-none absolute left-3 top-3.5 size-4 text-muted-foreground"
+                      className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground sm:top-3.5"
                       aria-hidden="true"
                     />
                     <span className="sr-only">City</span>
-                    <Input placeholder="City" className="pl-9" name="city" />
+                    <Input
+                      placeholder="City"
+                      className="h-10 pl-9 sm:h-11"
+                      name="city"
+                    />
                   </label>
-                  <Button type="submit" className="h-11">
+                  <Button type="submit" className="h-10 sm:h-11">
                     Search
                   </Button>
                 </form>
               </CardContent>
             </Card>
 
-            <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+            <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:mt-4 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
               {cities.map((city) => (
                 <Badge
                   key={city}
@@ -241,7 +245,7 @@ export default function HomePage() {
               ))}
             </div>
 
-            <Button className="mt-4 w-full sm:hidden" variant="outline">
+            <Button className="mt-2 h-10 w-full sm:hidden" variant="outline">
               <Send aria-hidden="true" />
               Send Requirement
             </Button>
@@ -249,20 +253,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <AdSlot label="Top ad banner 970 x 90" />
-      </section>
-
       <section
         id="categories"
-        className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8"
+        className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8"
       >
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-normal text-primary">
               Browse by need
             </p>
-            <h2 className="mt-2 text-3xl font-bold tracking-normal">
+            <h2 className="mt-1 text-2xl font-bold tracking-normal sm:mt-2 sm:text-3xl">
               Popular service categories
             </h2>
           </div>
@@ -272,17 +272,17 @@ export default function HomePage() {
           </Button>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:grid-cols-3 lg:grid-cols-5">
           {categories.map((category) => {
             const Icon = category.icon;
 
             return (
               <Card key={category.name} className="bg-white/90">
-                <CardContent className="p-4">
-                  <div className="flex size-11 items-center justify-center rounded-md bg-accent text-accent-foreground">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex size-10 items-center justify-center rounded-md bg-accent text-accent-foreground sm:size-11">
                     <Icon className="size-5" aria-hidden="true" />
                   </div>
-                  <h3 className="mt-4 text-base font-semibold">
+                  <h3 className="mt-3 text-sm font-semibold sm:mt-4 sm:text-base">
                     {category.name}
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
@@ -293,6 +293,10 @@ export default function HomePage() {
             );
           })}
         </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <AdSlot label="Top ad banner 970 x 90" />
       </section>
 
       <section id="requirements" className="border-y bg-secondary/70">
