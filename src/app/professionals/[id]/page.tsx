@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BadgeCheck, MapPin, MessageCircle, Phone, Send, Star } from "lucide-react";
 
+import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -89,9 +90,7 @@ export default async function ProfessionalProfilePage({
     return (
       <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
         <section className="mx-auto max-w-3xl">
-          <Link href="/professionals" className="text-sm font-medium text-primary">
-            Back to professionals
-          </Link>
+          <PageNavigation backHref="/professionals" backLabel="Professionals" />
           <Card className="mt-6 bg-white shadow-sm">
             <CardContent className="p-5">
               <div className="flex flex-col gap-5 sm:flex-row">
@@ -189,9 +188,7 @@ export default async function ProfessionalProfilePage({
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-3xl">
-        <Link href="/professionals" className="text-sm font-medium text-primary">
-          Back to professionals
-        </Link>
+        <PageNavigation backHref="/professionals" backLabel="Professionals" />
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
             <div className="flex flex-col gap-5 sm:flex-row">

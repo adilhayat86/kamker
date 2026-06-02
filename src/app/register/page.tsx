@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BriefcaseBusiness, User } from "lucide-react";
 
+import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -13,9 +14,7 @@ export default function RegisterPage() {
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-4xl">
-        <Link href="/" className="text-sm font-medium text-primary">
-          Kamker
-        </Link>
+        <PageNavigation />
         <h1 className="mt-4 text-3xl font-bold tracking-normal">Register</h1>
         <p className="mt-2 text-muted-foreground">
           Choose how you want to use Kamker.

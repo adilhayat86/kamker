@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { logoutProfessional } from "@/app/logout/actions";
+import { PageNavigation } from "@/components/page-navigation";
 
 export const metadata = {
   title: "My Account | Kamker",
@@ -89,10 +90,8 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-5xl">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="text-sm font-medium text-primary">
-            Kamker
-          </Link>
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+          <PageNavigation backHref="/professionals" backLabel="Directory" />
           <div className="flex items-center gap-2">
             <Button asChild size="sm" variant="outline">
               <Link href="/account/edit">

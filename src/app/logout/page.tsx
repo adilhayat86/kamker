@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
 
+import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getSessionProfessional } from "@/lib/auth";
@@ -22,9 +22,7 @@ export default async function LogoutPage() {
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-md">
-        <Link href="/" className="text-sm font-medium text-primary">
-          Kamker
-        </Link>
+        <PageNavigation backHref="/account" backLabel="Account" />
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
             <div className="flex items-center gap-3">

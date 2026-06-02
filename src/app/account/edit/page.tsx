@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Save, UserCog } from "lucide-react";
+import { Save, UserCog } from "lucide-react";
 
+import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAccountProfessional, getDemoAccountProfessional } from "@/lib/account";
@@ -121,17 +121,7 @@ export default async function EditAccountPage({
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-3xl">
-        <div className="flex items-center justify-between gap-3">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/account">
-              <ArrowLeft aria-hidden="true" />
-              Account
-            </Link>
-          </Button>
-          <Link href="/" className="text-sm font-medium text-primary">
-            Kamker
-          </Link>
-        </div>
+        <PageNavigation backHref="/account" backLabel="Account" />
 
         <div className="mt-6">
           <div className="flex items-center gap-3">

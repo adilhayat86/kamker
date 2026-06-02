@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
+import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -63,9 +62,7 @@ export default async function SendRequirementPage({
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-3xl">
-        <Link href="/" className="text-sm font-medium text-primary">
-          Kamker
-        </Link>
+        <PageNavigation backHref="/categories" backLabel="Categories" />
         <h1 className="mt-4 text-3xl font-bold tracking-normal">
           Send Requirement
         </h1>

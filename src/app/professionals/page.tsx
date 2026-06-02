@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { ProfessionalCard } from "@/components/professional-card";
+import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -222,9 +223,7 @@ export default async function ProfessionalsPage({
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-7xl">
-        <Link href="/" className="text-sm font-medium text-primary">
-          Kamker
-        </Link>
+        <PageNavigation backHref="/categories" backLabel="Categories" />
         <h1 className="mt-4 text-3xl font-bold tracking-normal">
           Professionals
         </h1>

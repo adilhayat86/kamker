@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Camera } from "lucide-react";
 
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
+import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { categories, cities } from "@/lib/marketplace-data";
@@ -36,9 +37,7 @@ export default async function ProfessionalRegisterPage({
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-3xl">
-        <Link href="/register" className="text-sm font-medium text-primary">
-          Back to register
-        </Link>
+        <PageNavigation backHref="/register" backLabel="Register" />
         <h1 className="mt-4 text-3xl font-bold tracking-normal">
           Register as Professional
         </h1>

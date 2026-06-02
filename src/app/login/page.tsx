@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LockKeyhole, Phone } from "lucide-react";
 
+import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -33,9 +34,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-md">
-        <Link href="/" className="text-sm font-medium text-primary">
-          Kamker
-        </Link>
+        <PageNavigation backHref="/register" backLabel="Register" />
         <div className="mt-6 flex items-center gap-3">
           <div className="flex size-12 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <LockKeyhole className="size-6" aria-hidden="true" />
