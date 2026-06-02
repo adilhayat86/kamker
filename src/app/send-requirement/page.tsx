@@ -3,6 +3,10 @@ import Link from "next/link";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  getBroadcastRecipientCount,
+  serviceFromBroadcastQuery,
+} from "@/lib/broadcast";
 import { categories, cities } from "@/lib/marketplace-data";
 
 import { submitRequirement } from "./actions";
@@ -24,6 +28,10 @@ const statusMessages = {
 type SendRequirementPageProps = {
   searchParams?: Promise<{
     status?: keyof typeof statusMessages;
+    category?: string;
+    subcategory?: string;
+    city?: string;
+    area?: string;
   }>;
 };
 
@@ -33,6 +41,24 @@ export default async function SendRequirementPage({
   const params = await searchParams;
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
+  const category = params?.category?.trim() || undefined;
+  const subcategory = params?.subcategory?.trim() || undefined;
+  const city = params?.city?.trim();
+  const area = params?.area?.trim();
+  const selectedService = serviceFromBroadcastQuery({
+    category,
+    subcategory,
+  });
+  const selectedCity = cities.includes(city ?? "") ? city : "";
+  const hasBroadcastContext = Boolean(category || subcategory || city || area);
+  const recipientCount = hasBroadcastContext
+    ? await getBroadcastRecipientCount({
+        category,
+        subcategory,
+        city: selectedCity || undefined,
+        area: area || undefined,
+      })
+    : null;
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -46,9 +72,38 @@ export default async function SendRequirementPage({
         <p className="mt-2 text-muted-foreground">
           Describe your need and receive responses from matching professionals.
         </p>
-        <p className="mt-2 text-sm font-medium text-primary">
-          Paid broadcast to matching professionals can be enabled later.
-        </p>
+
+        {hasBroadcastContext ? (
+          <Card className="mt-5 border-primary/20 bg-accent text-accent-foreground shadow-sm">
+            <CardContent className="p-4">
+              <p className="font-semibold">
+                Your requirement will be sent to matching professionals in this
+                category.
+              </p>
+              {recipientCount !== null ? (
+                <p className="mt-1 text-sm">
+                  Estimated recipients: {recipientCount.toLocaleString()}{" "}
+                  professionals
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border bg-white p-4 text-sm shadow-sm">
+            <p className="font-semibold text-primary">Free mode</p>
+            <p className="mt-1 text-muted-foreground">
+              Your requirement is saved so Kamker can review and organize it.
+            </p>
+          </div>
+          <div className="rounded-lg border bg-white p-4 text-sm shadow-sm">
+            <p className="font-semibold text-primary">Paid broadcast later</p>
+            <p className="mt-1 text-muted-foreground">
+              Message all matching professionals by service, city, and area.
+            </p>
+          </div>
+        </div>
 
         {statusMessage ? (
           <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
@@ -63,9 +118,15 @@ export default async function SendRequirementPage({
                 label="Required service"
                 name="service"
                 options={categories.map((category) => category.name)}
+                defaultValue={selectedService?.name}
               />
-              <SelectField label="City" name="city" options={cities} />
-              <FormField label="Area" name="area" />
+              <SelectField
+                label="City"
+                name="city"
+                options={cities}
+                defaultValue={selectedCity}
+              />
+              <FormField label="Area" name="area" defaultValue={area} />
               <FormField label="Budget optional" name="budget" placeholder="Rs. 5,000" />
               <FormField label="Phone number" name="phone" type="tel" />
               <FormField label="WhatsApp number" name="whatsapp" type="tel" />

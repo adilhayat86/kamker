@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+import { BroadcastRequirementCta } from "@/components/broadcast-requirement-cta";
 import { CategoryGrid } from "@/components/category-grid";
 import { Button } from "@/components/ui/button";
+import { getBroadcastRecipientCount } from "@/lib/broadcast";
 import { categories } from "@/lib/marketplace-data";
 
 export const metadata = {
@@ -10,7 +12,21 @@ export const metadata = {
   description: "Browse all Kamker service categories across Pakistan.",
 };
 
-export default function CategoriesPage() {
+type CategoriesPageProps = {
+  searchParams?: Promise<{
+    city?: string;
+    area?: string;
+  }>;
+};
+
+export default async function CategoriesPage({
+  searchParams,
+}: CategoriesPageProps) {
+  const params = await searchParams;
+  const city = params?.city?.trim() || undefined;
+  const area = params?.area?.trim() || undefined;
+  const recipientCount = await getBroadcastRecipientCount({ city, area });
+
   return (
     <main className="min-h-screen bg-background">
       <header className="border-b bg-background/90 backdrop-blur">
@@ -41,6 +57,12 @@ export default function CategoriesPage() {
           Find verified professionals for home, office, education, health,
           events, repairs, and daily service needs across Pakistan.
         </p>
+
+        <BroadcastRequirementCta
+          count={recipientCount}
+          city={city}
+          area={area}
+        />
 
         <CategoryGrid categories={categories} />
       </section>

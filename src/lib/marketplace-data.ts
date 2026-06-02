@@ -34,6 +34,24 @@ export const categories = [
   { name: "Delivery Riders", icon: "bike", count: "1,715" },
 ];
 
+export type MarketplaceCategory = (typeof categories)[number];
+
+export function categorySlug(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+export function findCategoryBySlug(slug: string) {
+  return categories.find((category) => categorySlug(category.name) === slug);
+}
+
+export function categoryCountValue(count: string) {
+  return Number(count.replace(/,/g, "")) || 0;
+}
+
 export type Professional = {
   id: string;
   name: string;
