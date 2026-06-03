@@ -53,5 +53,5 @@ export async function registerCompany(formData: FormData) {
     redirect("/register/company?status=error");
   }
 
-  redirect(`/register/company?status=success&companyId=${data.id}`);
+  redirect(`/companies/${data.id}/packages`);
 }
