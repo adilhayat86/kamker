@@ -183,6 +183,58 @@ export async function deleteProfessional(formData: FormData) {
   revalidatePath("/professionals");
 }
 
+export async function approveCompanyVerification(formData: FormData) {
+  const id = formData.get("companyId");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("companies")
+    .update({ verification_status: "verified" })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to approve company verification", error);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/companies");
+}
+
+export async function rejectCompanyVerification(formData: FormData) {
+  const id = formData.get("companyId");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("companies")
+    .update({ verification_status: "rejected" })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to reject company verification", error);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/companies");
+}
+
 export async function updateAutoApprovalMode(formData: FormData) {
   if (!(await canMutateAdmin())) {
     return;
