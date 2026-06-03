@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BriefcaseBusiness, User } from "lucide-react";
+import { BriefcaseBusiness, Building2, User } from "lucide-react";
 
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
@@ -7,19 +7,19 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata = {
   title: "Register | Kamker",
-  description: "Register as a professional or customer on Kamker.",
+  description: "Register as a professional, company, or customer on Kamker.",
 };
 
 export default function RegisterPage() {
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
-      <section className="mx-auto max-w-4xl">
+      <section className="mx-auto max-w-5xl">
         <PageNavigation />
         <h1 className="mt-4 text-3xl font-bold tracking-normal">Register</h1>
         <p className="mt-2 text-muted-foreground">
           Choose how you want to use Kamker.
         </p>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
           <Card className="bg-white shadow-sm">
             <CardContent className="p-5">
               <BriefcaseBusiness className="size-8 text-primary" aria-hidden="true" />
@@ -31,6 +31,20 @@ export default function RegisterPage() {
               </p>
               <Button asChild className="mt-5 w-full">
                 <Link href="/register/professional">Continue</Link>
+              </Button>
+            </CardContent>
+          </Card>
+          <Card className="bg-white shadow-sm">
+            <CardContent className="p-5">
+              <Building2 className="size-8 text-primary" aria-hidden="true" />
+              <h2 className="mt-4 text-xl font-semibold">
+                Register Company
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Agencies can prepare for paid packages with multiple listings.
+              </p>
+              <Button asChild className="mt-5 w-full" variant="outline">
+                <Link href="/register/company">Continue</Link>
               </Button>
             </CardContent>
           </Card>
