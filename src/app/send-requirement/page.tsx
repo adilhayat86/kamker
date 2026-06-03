@@ -16,6 +16,7 @@ export const metadata = {
 };
 
 const urgencyOptions = ["Today", "Within 2 days", "This week", "Flexible"];
+const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evening"];
 
 const statusMessages = {
   success: "Your requirement has been saved.",
@@ -124,6 +125,11 @@ export default async function SendRequirementPage({
                 defaultValue={selectedCity}
               />
               <FormField label="Area" name="area" defaultValue={area} />
+              <SelectField
+                label="Availability"
+                name="availability"
+                options={availabilityOptions}
+              />
               <FormField label="Budget optional" name="budget" placeholder="Rs. 5,000" />
               <FormField label="Phone number" name="phone" type="tel" />
               <FormField label="WhatsApp number" name="whatsapp" type="tel" />

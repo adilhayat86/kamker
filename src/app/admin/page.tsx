@@ -8,6 +8,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { logoutAdmin } from "@/app/admin/login/actions";
@@ -46,6 +47,7 @@ type Requirement = {
   broadcast_status: string | null;
   created_at: string;
   cities: { name: string } | null;
+  matched_count: number;
 };
 
 type PendingProfessional = {
@@ -112,7 +114,35 @@ async function getRequirements() {
     return [] as Requirement[];
   }
 
-  return (data ?? []) as unknown as Requirement[];
+  const requirements = (data ?? []) as unknown as Omit<Requirement, "matched_count">[];
+  const requirementIds = requirements.map((requirement) => requirement.id);
+
+  if (requirementIds.length === 0) {
+    return [] as Requirement[];
+  }
+
+  const { data: matches, error: matchesError } = await supabase
+    .from("requirement_matches")
+    .select("requirement_id")
+    .in("requirement_id", requirementIds);
+
+  if (matchesError) {
+    console.error("Failed to load requirement match counts", matchesError);
+  }
+
+  const countByRequirement = new Map<string, number>();
+
+  ((matches ?? []) as { requirement_id: string }[]).forEach((match) => {
+    countByRequirement.set(
+      match.requirement_id,
+      (countByRequirement.get(match.requirement_id) ?? 0) + 1,
+    );
+  });
+
+  return requirements.map((requirement) => ({
+    ...requirement,
+    matched_count: countByRequirement.get(requirement.id) ?? 0,
+  }));
 }
 
 async function getPendingProfessionals() {
@@ -603,9 +633,12 @@ export default async function AdminPage() {
                   <div key={requirement.id} className="rounded-lg border p-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="font-semibold">
+                        <Link
+                          href={`/admin/requirements/${requirement.id}`}
+                          className="font-semibold text-primary hover:underline"
+                        >
                           {requirement.required_service}
-                        </p>
+                        </Link>
                         <p className="mt-1 text-sm text-muted-foreground">
                           {requirement.cities?.name ?? "Unknown city"}
                           {requirement.area ? ` - ${requirement.area}` : ""} -{" "}
@@ -617,6 +650,9 @@ export default async function AdminPage() {
                         {requirement.broadcast_status ?? "free"}
                       </div>
                     </div>
+                    <p className="mt-2 text-sm font-medium">
+                      Matched Professionals: {requirement.matched_count}
+                    </p>
                     <p className="mt-3 text-sm leading-6 text-muted-foreground">
                       {requirement.details}
                     </p>

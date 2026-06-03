@@ -66,6 +66,7 @@ create table if not exists requirements (
   required_service text not null,
   city_id bigint references cities(id),
   area text,
+  availability text,
   details text not null,
   budget text,
   phone_number text not null,
@@ -88,6 +89,15 @@ create table if not exists requirement_notifications (
   unique(requirement_id, professional_id, channel)
 );
 
+create table if not exists requirement_matches (
+  id uuid primary key default gen_random_uuid(),
+  requirement_id uuid references requirements(id) on delete cascade,
+  professional_id uuid references professionals(id) on delete cascade,
+  match_score integer not null,
+  created_at timestamptz not null default now(),
+  unique(requirement_id, professional_id)
+);
+
 create index if not exists categories_parent_idx on categories(parent_id);
 
 create table if not exists admin_settings (
@@ -103,12 +113,15 @@ on conflict (key) do nothing;
 alter table professionals add column if not exists gender text;
 alter table professionals add column if not exists availability text;
 alter table professionals add column if not exists years_experience integer;
+alter table requirements add column if not exists availability text;
 
 create index if not exists professionals_city_category_idx on professionals(city_id, category_id);
 create index if not exists professionals_active_idx on professionals(is_active);
 create index if not exists professionals_featured_idx on professionals(is_featured, featured_until);
 create index if not exists professionals_phone_number_idx on professionals(phone_number);
 create index if not exists requirements_city_status_idx on requirements(city_id, status);
+create index if not exists requirement_matches_requirement_idx on requirement_matches(requirement_id);
+create index if not exists requirement_matches_professional_idx on requirement_matches(professional_id);
 create index if not exists requirement_notifications_requirement_idx on requirement_notifications(requirement_id);
 create index if not exists professional_sessions_professional_idx on professional_sessions(professional_id);
 create index if not exists professional_sessions_expires_idx on professional_sessions(expires_at);

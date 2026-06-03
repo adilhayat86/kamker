@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { createRequirementMatches } from "@/lib/requirement-matching";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 function requiredValue(formData: FormData, key: string) {
@@ -14,6 +15,7 @@ export async function submitRequirement(formData: FormData) {
   const requiredService = requiredValue(formData, "service");
   const cityName = requiredValue(formData, "city");
   const area = requiredValue(formData, "area");
+  const availability = requiredValue(formData, "availability");
   const budget = requiredValue(formData, "budget");
   const phoneNumber = requiredValue(formData, "phone");
   const whatsappNumber = requiredValue(formData, "whatsapp");
@@ -34,23 +36,36 @@ export async function submitRequirement(formData: FormData) {
     .eq("name", cityName)
     .maybeSingle();
 
-  const { error } = await supabase.from("requirements").insert({
-    required_service: requiredService,
-    city_id: city?.id ?? null,
-    area: area || null,
-    details,
-    budget: budget || null,
-    phone_number: phoneNumber,
-    whatsapp_number: whatsappNumber || null,
-    urgency,
-    broadcast_status: "pending_payment",
-    status: "open",
-  });
+  const { data: requirement, error } = await supabase
+    .from("requirements")
+    .insert({
+      required_service: requiredService,
+      city_id: city?.id ?? null,
+      area: area || null,
+      availability: availability || null,
+      details,
+      budget: budget || null,
+      phone_number: phoneNumber,
+      whatsapp_number: whatsappNumber || null,
+      urgency,
+      broadcast_status: "pending_payment",
+      status: "open",
+    })
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error || !requirement) {
     console.error("Failed to submit requirement", error);
     redirect("/send-requirement?status=error");
   }
+
+  await createRequirementMatches({
+    id: requirement.id as string,
+    requiredService,
+    cityName,
+    area: area || null,
+    availability: availability || null,
+  });
 
   redirect("/send-requirement?status=success");
 }
