@@ -9,7 +9,10 @@ export function SearchPanel() {
   return (
     <Card className="border-0 bg-white/95 shadow-md">
       <CardContent className="p-2 sm:p-3">
-        <form className="grid gap-2 sm:grid-cols-[1fr_0.75fr_auto] sm:gap-3">
+        <form
+          action="/professionals"
+          className="grid gap-2 sm:grid-cols-[1fr_0.75fr_auto] sm:gap-3"
+        >
           <label className="relative">
             <Search
               className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground sm:top-3.5"
@@ -19,7 +22,7 @@ export function SearchPanel() {
             <Input
               placeholder="Search nurses, maids, drivers, tutors..."
               className="h-10 pl-9 sm:h-11"
-              name="service"
+              name="q"
             />
           </label>
           <label className="relative">
@@ -33,9 +36,7 @@ export function SearchPanel() {
               name="city"
               defaultValue=""
             >
-              <option value="" disabled>
-                Select location
-              </option>
+              <option value="">All locations</option>
               {cities.map((city) => (
                 <option key={city} value={city}>
                   {city}
