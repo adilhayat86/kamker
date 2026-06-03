@@ -185,7 +185,7 @@ export async function getSessionProfessional() {
   const { data: professional, error: professionalError } = await supabase
     .from("professionals")
     .select(
-      "id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, short_bio, cnic, is_cnic_verified, is_phone_verified, is_active, is_featured, featured_until, cities(name), categories(name)",
+      "id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_featured, featured_until, cities(name), categories(name)",
     )
     .eq("id", session.professional_id as string)
     .maybeSingle();

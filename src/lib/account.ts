@@ -19,6 +19,7 @@ export type AccountProfessional = {
   expected_rate: string | null;
   short_bio: string | null;
   cnic: string | null;
+  profile_photo_url: string | null;
   is_cnic_verified: boolean;
   is_phone_verified: boolean;
   is_active: boolean;

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { getAutoApproveProfessionals } from "@/lib/admin-settings";
 import { hashSecret } from "@/lib/auth";
+import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 function field(formData: FormData, key: string) {
@@ -70,6 +71,17 @@ export async function registerProfessional(formData: FormData) {
     hashSecret(secretAnswer.toLowerCase()),
   ]);
   const autoApprove = await getAutoApproveProfessionals();
+  let profilePhotoUrl: string | null = null;
+
+  try {
+    profilePhotoUrl = await uploadProfessionalPhoto(formData);
+  } catch (error) {
+    redirect(
+      error instanceof Error && error.message === "invalid-photo"
+        ? "/register/professional?status=invalid-photo"
+        : "/register/professional?status=photo-error",
+    );
+  }
 
   const { error } = await supabase.from("professionals").insert({
     full_name: fullName,
@@ -85,6 +97,7 @@ export async function registerProfessional(formData: FormData) {
     expected_rate: expectedRate || null,
     short_bio: shortBio || null,
     cnic: cnic || null,
+    profile_photo_url: profilePhotoUrl,
     password_hash: passwordHash,
     secret_question: secretQuestion,
     secret_answer_hash: secretAnswerHash,

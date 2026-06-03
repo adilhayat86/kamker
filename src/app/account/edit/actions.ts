@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getSessionProfessional } from "@/lib/auth";
+import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 function field(formData: FormData, key: string) {
@@ -65,23 +66,40 @@ export async function updateProfessionalProfile(formData: FormData) {
     .select("id")
     .eq("name", categoryName)
     .maybeSingle();
+  let profilePhotoUrl: string | null = null;
+
+  try {
+    profilePhotoUrl = await uploadProfessionalPhoto(formData);
+  } catch (error) {
+    redirect(
+      error instanceof Error && error.message === "invalid-photo"
+        ? "/account/edit?status=invalid-photo"
+        : "/account/edit?status=photo-error",
+    );
+  }
+
+  const updates: Record<string, string | number | null> = {
+    full_name: fullName,
+    phone_number: phoneNumber,
+    whatsapp_number: whatsappNumber || null,
+    city_id: city?.id ?? null,
+    area: area || null,
+    category_id: category?.id ?? null,
+    gender,
+    availability,
+    years_experience: yearsExperience,
+    experience: experience || null,
+    expected_rate: expectedRate || null,
+    short_bio: shortBio || null,
+  };
+
+  if (profilePhotoUrl) {
+    updates.profile_photo_url = profilePhotoUrl;
+  }
 
   const { error } = await supabase
     .from("professionals")
-    .update({
-      full_name: fullName,
-      phone_number: phoneNumber,
-      whatsapp_number: whatsappNumber || null,
-      city_id: city?.id ?? null,
-      area: area || null,
-      category_id: category?.id ?? null,
-      gender,
-      availability,
-      years_experience: yearsExperience,
-      experience: experience || null,
-      expected_rate: expectedRate || null,
-      short_bio: shortBio || null,
-    })
+    .update(updates)
     .eq("id", sessionProfessional.id);
 
   if (error) {

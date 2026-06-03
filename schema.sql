@@ -98,6 +98,44 @@ create table if not exists requirement_matches (
   unique(requirement_id, professional_id)
 );
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'professional-photos',
+  'professional-photos',
+  true,
+  2097152,
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'professional_photos_public_read'
+  ) then
+    create policy professional_photos_public_read
+    on storage.objects for select
+    using (bucket_id = 'professional-photos');
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'professional_photos_insert'
+  ) then
+    create policy professional_photos_insert
+    on storage.objects for insert
+    with check (bucket_id = 'professional-photos');
+  end if;
+end $$;
+
 create index if not exists categories_parent_idx on categories(parent_id);
 
 create table if not exists admin_settings (

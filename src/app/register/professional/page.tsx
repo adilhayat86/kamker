@@ -20,6 +20,8 @@ const statusMessages = {
   missing:
     "Please fill name, phone, city, profession, gender, availability, hourly rate, password, secret question, and secret answer.",
   "not-configured": "Supabase is not configured yet.",
+  "invalid-photo": "Upload a jpg, png, or webp image under 2MB.",
+  "photo-error": "Could not upload profile photo. Please try again.",
   error: "Could not register professional. Please try again.",
 } as const;
 
@@ -65,13 +67,22 @@ export default async function ProfessionalRegisterPage({
                 <Camera className="size-7" aria-hidden="true" />
               </div>
               <div>
-                <p className="font-semibold">Profile photo placeholder</p>
+                <p className="font-semibold">Profile photo</p>
                 <p className="text-sm text-muted-foreground">
-                  Upload support will be connected later.
+                  Upload a jpg, png, or webp image under 2MB.
                 </p>
               </div>
             </div>
             <form action={registerProfessional} className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2 sm:col-span-2">
+                <span className="text-sm font-medium">Profile photo</span>
+                <input
+                  name="photo"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                />
+              </label>
               <FormField label="Full name" name="fullName" />
               <FormField label="Phone number" name="phone" type="tel" />
               <FormField label="WhatsApp number" name="whatsapp" type="tel" />

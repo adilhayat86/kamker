@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -11,7 +12,6 @@ import {
   MessageCircle,
   Phone,
   ShieldCheck,
-  User,
 } from "lucide-react";
 
 import {
@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { logoutProfessional } from "@/app/logout/actions";
 import { PageNavigation } from "@/components/page-navigation";
+import { fallbackProfessionalImage } from "@/lib/professional-photo";
 
 export const metadata = {
   title: "My Account | Kamker",
@@ -83,6 +84,8 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const experience = dbProfessional?.experience ?? demoProfessional?.experience;
   const expectedRate = dbProfessional?.expected_rate ?? demoProfessional?.rate;
   const bio = dbProfessional?.short_bio ?? demoProfessional?.bio;
+  const profilePhotoUrl =
+    dbProfessional?.profile_photo_url ?? demoProfessional?.image ?? fallbackProfessionalImage();
   const isCnicVerified =
     dbProfessional?.is_cnic_verified ?? demoProfessional?.is_cnic_verified ?? false;
   const isApproved = dbProfessional?.is_active ?? demoProfessional?.is_active ?? false;
@@ -118,9 +121,13 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
             <div className="bg-primary p-5 text-primary-foreground sm:p-7">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-white text-primary">
-                    <User className="size-8" aria-hidden="true" />
-                  </div>
+                  <Image
+                    src={profilePhotoUrl}
+                    alt={`${fullName} profile photo`}
+                    width={80}
+                    height={80}
+                    className="size-16 shrink-0 rounded-full bg-white object-cover ring-2 ring-white/60"
+                  />
                   <div>
                     <p className="text-sm text-white/75">Professional Dashboard</p>
                     <h1 className="mt-1 text-3xl font-bold tracking-normal">

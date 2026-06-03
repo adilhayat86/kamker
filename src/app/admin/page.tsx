@@ -1,3 +1,4 @@
+import Image from "next/image";
 import {
   BadgeCheck,
   CalendarDays,
@@ -25,6 +26,7 @@ import {
   recentProfessionals,
 } from "@/lib/marketplace-data";
 import { PageNavigation } from "@/components/page-navigation";
+import { fallbackProfessionalImage } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 import {
@@ -63,6 +65,7 @@ type PendingProfessional = {
   expected_rate: string | null;
   short_bio: string | null;
   cnic: string | null;
+  profile_photo_url: string | null;
   is_cnic_verified: boolean;
   is_active: boolean;
   created_at: string;
@@ -152,7 +155,7 @@ async function getPendingProfessionals() {
 
   const { data, error } = await supabase
     .from("professionals")
-    .select("id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, short_bio, cnic, is_cnic_verified, is_active, created_at, cities(name), categories(name)")
+    .select("id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, short_bio, cnic, profile_photo_url, is_cnic_verified, is_active, created_at, cities(name), categories(name)")
     .eq("is_active", false)
     .order("created_at", { ascending: false })
     .limit(20);
@@ -499,13 +502,22 @@ export default async function AdminPage() {
                 {pendingProfessionals.map((professional) => (
                   <div key={professional.id} className="rounded-lg border p-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <p className="font-semibold">{professional.full_name}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {professional.categories?.name ?? "Professional"} -{" "}
-                          {professional.cities?.name ?? "Unknown city"}
-                          {professional.area ? ` - ${professional.area}` : ""}
-                        </p>
+                      <div className="flex gap-3">
+                        <Image
+                          src={professional.profile_photo_url ?? fallbackProfessionalImage()}
+                          alt={`${professional.full_name} profile photo`}
+                          width={64}
+                          height={64}
+                          className="size-14 rounded-full bg-accent object-cover"
+                        />
+                        <div>
+                          <p className="font-semibold">{professional.full_name}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {professional.categories?.name ?? "Professional"} -{" "}
+                            {professional.cities?.name ?? "Unknown city"}
+                            {professional.area ? ` - ${professional.area}` : ""}
+                          </p>
+                        </div>
                       </div>
                       <span className="text-sm font-medium text-primary">
                         Pending Review
