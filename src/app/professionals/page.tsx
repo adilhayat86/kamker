@@ -500,118 +500,131 @@ export default async function ProfessionalsPage({
           </p>
         ) : null}
 
-        <form className="sticky top-16 z-20 mt-6 grid gap-3 rounded-lg bg-white p-3 shadow-sm lg:grid-cols-[1.2fr_1fr_1fr_0.8fr_0.9fr_1fr_1fr_auto]">
-          <label className="grid gap-2">
-            <span className="text-sm font-medium">Search</span>
-            <Input name="q" placeholder="Nurse, driver, area, name" defaultValue={q} />
-          </label>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium">City</span>
-            <select
-              name="city"
-              defaultValue={city}
-              className="h-11 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">All cities</option>
-              {cities.map((cityOption) => (
-                <option key={cityOption} value={cityOption}>
-                  {cityOption}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium">Category</span>
-            <select
-              name="category"
-              defaultValue={category}
-              className="h-11 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">All categories</option>
-              {categories.map((categoryOption) => (
-                <option key={categoryOption.name} value={categoryOption.name}>
-                  {categoryOption.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium">Gender</span>
-            <select
-              name="gender"
-              defaultValue={gender}
-              className="h-11 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">Any</option>
-              <option value="Female">Female</option>
-              <option value="Male">Male</option>
-            </select>
-          </label>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium">Availability</span>
-            <select
-              name="availability"
-              defaultValue={availability}
-              className="h-11 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">Any time</option>
-              {availabilityOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium">Hourly Rate</span>
-            <select
-              name="rate"
-              defaultValue={rate}
-              className="h-11 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">Any rate</option>
-              {hourlyRateOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-2">
-            <span className="text-sm font-medium">Sort</span>
-            <select
-              name="sort"
-              defaultValue={sort}
-              className="h-11 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="featured">Featured first</option>
-              <option value="newest">Recently added</option>
-              <option value="experienced">Most experienced</option>
-              <option value="rate-low">Lowest hourly rate</option>
-              <option value="rate-high">Highest hourly rate</option>
-            </select>
-          </label>
-          <div className="flex flex-col justify-end gap-2">
-            <label className="flex h-11 items-center gap-2 rounded-md border border-input px-3 text-sm">
-              <input
-                type="checkbox"
-                name="verified"
-                value="true"
-                defaultChecked={verified}
-                className="size-4"
+        <form className="mt-6 rounded-lg bg-white p-3 shadow-sm">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+            <label className="grid gap-1">
+              <span className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+                Search professionals
+              </span>
+              <Input
+                className="h-10"
+                name="q"
+                placeholder="Nurse, driver, area, name"
+                defaultValue={q}
               />
-              Verified only
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              <Button className="h-11" type="submit">
-                <Search aria-hidden="true" />
-                Search
-              </Button>
-              <Button asChild className="h-11" variant="outline">
-                <Link href="/professionals">Clear</Link>
-              </Button>
-            </div>
+            <Button className="h-10 self-end" type="submit">
+              <Search aria-hidden="true" />
+              Search
+            </Button>
+            <Button asChild className="h-10 self-end" variant="outline">
+              <Link href="/professionals">Clear</Link>
+            </Button>
           </div>
+
+          <details className="mt-2 rounded-md border border-border bg-muted/30 px-3 py-2">
+            <summary className="cursor-pointer text-sm font-semibold text-primary">
+              Advanced filters
+            </summary>
+            <div className="mt-3 grid max-h-[20vh] gap-2 overflow-y-auto pr-1 sm:max-h-none sm:grid-cols-2 lg:grid-cols-7">
+              <label className="grid gap-1">
+                <span className="text-xs font-medium">City</span>
+                <select
+                  name="city"
+                  defaultValue={city}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">All cities</option>
+                  {cities.map((cityOption) => (
+                    <option key={cityOption} value={cityOption}>
+                      {cityOption}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1">
+                <span className="text-xs font-medium">Category</span>
+                <select
+                  name="category"
+                  defaultValue={category}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">All categories</option>
+                  {categories.map((categoryOption) => (
+                    <option key={categoryOption.name} value={categoryOption.name}>
+                      {categoryOption.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1">
+                <span className="text-xs font-medium">Gender</span>
+                <select
+                  name="gender"
+                  defaultValue={gender}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Any</option>
+                  <option value="Female">Female</option>
+                  <option value="Male">Male</option>
+                </select>
+              </label>
+              <label className="grid gap-1">
+                <span className="text-xs font-medium">Availability</span>
+                <select
+                  name="availability"
+                  defaultValue={availability}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Any time</option>
+                  {availabilityOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1">
+                <span className="text-xs font-medium">Hourly Rate</span>
+                <select
+                  name="rate"
+                  defaultValue={rate}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Any rate</option>
+                  {hourlyRateOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1">
+                <span className="text-xs font-medium">Sort</span>
+                <select
+                  name="sort"
+                  defaultValue={sort}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="featured">Featured first</option>
+                  <option value="newest">Recently added</option>
+                  <option value="experienced">Most experienced</option>
+                  <option value="rate-low">Lowest hourly rate</option>
+                  <option value="rate-high">Highest hourly rate</option>
+                </select>
+              </label>
+              <label className="flex h-10 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm">
+                <input
+                  type="checkbox"
+                  name="verified"
+                  value="true"
+                  defaultChecked={verified}
+                  className="size-4"
+                />
+                Verified only
+              </label>
+            </div>
+          </details>
         </form>
 
         {hasDbProfessionals ? (
