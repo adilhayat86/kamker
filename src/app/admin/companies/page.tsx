@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Building2, ShieldAlert } from "lucide-react";
 import { redirect } from "next/navigation";
 
+import { approveCompanyVerification, rejectCompanyVerification } from "@/app/admin/actions";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,7 +81,7 @@ export default async function AdminCompaniesPage() {
             </Badge>
             <h1 className="mt-3 text-3xl font-bold tracking-normal">Companies</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Review company registrations, payment status, and verification status. Approval actions will be added in the next phase.
+              Review company registrations, payment status, and verification status.
             </p>
           </div>
           <Button asChild variant="outline">
@@ -140,6 +141,30 @@ export default async function AdminCompaniesPage() {
                   {company.description ? (
                     <p className="mt-4 text-sm leading-6 text-muted-foreground">{company.description}</p>
                   ) : null}
+
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    <form action={approveCompanyVerification}>
+                      <input type="hidden" name="companyId" value={company.id} />
+                      <Button
+                        className="w-full"
+                        type="submit"
+                        disabled={!adminAuthenticated || company.verification_status === "verified"}
+                      >
+                        Approve Verification
+                      </Button>
+                    </form>
+                    <form action={rejectCompanyVerification}>
+                      <input type="hidden" name="companyId" value={company.id} />
+                      <Button
+                        className="w-full"
+                        type="submit"
+                        variant="outline"
+                        disabled={!adminAuthenticated || company.verification_status === "rejected"}
+                      >
+                        Reject Verification
+                      </Button>
+                    </form>
+                  </div>
                 </CardContent>
               </Card>
             ))
