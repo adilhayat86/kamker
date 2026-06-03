@@ -235,6 +235,68 @@ export async function rejectCompanyVerification(formData: FormData) {
   revalidatePath("/admin/companies");
 }
 
+export async function approveCompanyListing(formData: FormData) {
+  const id = formData.get("listingId");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("company_listings")
+    .update({ status: "approved" })
+    .eq("id", id)
+    .select("company_id")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to approve company listing", error);
+  }
+
+  revalidatePath("/admin/company-listings");
+  revalidatePath("/company-listings");
+  if (data?.company_id) {
+    revalidatePath(`/companies/${data.company_id}/dashboard`);
+  }
+}
+
+export async function rejectCompanyListing(formData: FormData) {
+  const id = formData.get("listingId");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("company_listings")
+    .update({ status: "rejected" })
+    .eq("id", id)
+    .select("company_id")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to reject company listing", error);
+  }
+
+  revalidatePath("/admin/company-listings");
+  revalidatePath("/company-listings");
+  if (data?.company_id) {
+    revalidatePath(`/companies/${data.company_id}/dashboard`);
+  }
+}
+
 export async function updateAutoApprovalMode(formData: FormData) {
   if (!(await canMutateAdmin())) {
     return;
