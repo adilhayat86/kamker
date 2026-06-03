@@ -1,0 +1,141 @@
+import Link from "next/link";
+import { Building2, ShieldCheck } from "lucide-react";
+
+import { FormField, SelectField, TextAreaField } from "@/components/form-field";
+import { PageNavigation } from "@/components/page-navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { categories, cities } from "@/lib/marketplace-data";
+
+import { registerCompany } from "./actions";
+
+export const metadata = {
+  title: "Register Company | Kamker",
+  description: "Register a company or agency on Kamker.",
+};
+
+const statusMessages = {
+  success:
+    "Company details saved. Next step will be package selection and manual payment review.",
+  missing:
+    "Please fill company name, category, city, contact person, phone number, and description.",
+  "not-configured": "Supabase is not configured yet.",
+  error: "Could not register company. Please try again.",
+} as const;
+
+const companyCategories = [
+  "Security Company",
+  "Bodyguard Service",
+  "Cleaning Company",
+  "Maid Agency",
+  "Nursing Agency",
+  "Driver Company",
+  "Tutor Academy",
+  "Construction Contractor",
+  "Home Repair Company",
+  "Beauty/Event Company",
+  "Fire Safety Trainer",
+  "Licensed Firearm Safety Trainer",
+  ...categories.map((category) => category.name),
+];
+
+type CompanyRegisterPageProps = {
+  searchParams?: Promise<{
+    status?: keyof typeof statusMessages;
+    companyId?: string;
+  }>;
+};
+
+export default async function CompanyRegisterPage({
+  searchParams,
+}: CompanyRegisterPageProps) {
+  const params = await searchParams;
+  const status = params?.status;
+  const companyId = params?.companyId;
+  const statusMessage = status ? statusMessages[status] : null;
+
+  return (
+    <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-3xl">
+        <PageNavigation backHref="/register" backLabel="Register" />
+
+        <div className="mt-5 flex items-center gap-3">
+          <div className="flex size-12 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Building2 className="size-6" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+              Company account
+            </p>
+            <h1 className="text-3xl font-bold tracking-normal">Register Company</h1>
+          </div>
+        </div>
+
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          Register your agency or business first. After approval flow is added,
+          companies will choose a package for 20, 50, or 100 listings.
+        </p>
+
+        <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <div className="flex gap-3">
+            <ShieldCheck className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+            <p>
+              Kamker is a directory only. Security, bodyguard, and firearm
+              training related companies must be legal/licensed providers. Weapon
+              or ammunition sales are not allowed.
+            </p>
+          </div>
+        </div>
+
+        {statusMessage ? (
+          <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
+            <p>{statusMessage}</p>
+            {status === "success" ? (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <Button asChild>
+                  <Link href="/register/company">Register Another Company</Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href={companyId ? `/register/company?companyId=${companyId}` : "/register/company"}>
+                    Package Selection Coming Next
+                  </Link>
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <Card className="mt-6 bg-white shadow-sm">
+          <CardContent className="p-5">
+            <form action={registerCompany} className="grid gap-4 sm:grid-cols-2">
+              <FormField label="Company name" name="companyName" />
+              <SelectField
+                label="Company category"
+                name="category"
+                options={companyCategories}
+              />
+              <SelectField label="City" name="city" options={cities} />
+              <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" />
+              <FormField label="Contact person" name="contactPerson" />
+              <FormField label="Phone number" name="phone" type="tel" />
+              <FormField label="WhatsApp number" name="whatsapp" type="tel" />
+              <FormField
+                label="License number optional"
+                name="licenseNumber"
+                placeholder="For security/bodyguard/fire safety companies"
+              />
+              <div className="sm:col-span-2">
+                <TextAreaField
+                  label="Company description"
+                  name="description"
+                  placeholder="Tell customers what services your company offers, areas covered, staff types, timings, and verification details."
+                />
+              </div>
+              <Button className="h-12 sm:col-span-2">Save Company Details</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </section>
+    </main>
+  );
+}
