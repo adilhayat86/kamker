@@ -45,7 +45,7 @@ function DetailCard({
   value,
 }: {
   label: string;
-  value: string | null | undefined;
+  value: string | number | null | undefined;
 }) {
   return (
     <div className="rounded-lg border bg-white p-4 shadow-sm">
@@ -77,6 +77,9 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const phoneNumber = dbProfessional?.phone_number ?? demoProfessional?.phone_number;
   const whatsappNumber =
     dbProfessional?.whatsapp_number ?? demoProfessional?.whatsapp_number;
+  const gender = dbProfessional?.gender;
+  const availability = dbProfessional?.availability;
+  const yearsExperience = dbProfessional?.years_experience;
   const experience = dbProfessional?.experience ?? demoProfessional?.experience;
   const expectedRate = dbProfessional?.expected_rate ?? demoProfessional?.rate;
   const bio = dbProfessional?.short_bio ?? demoProfessional?.bio;
@@ -177,8 +180,11 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                 <DetailCard label="Area" value={area} />
                 <DetailCard label="Phone Number" value={phoneNumber} />
                 <DetailCard label="WhatsApp Number" value={whatsappNumber} />
+                <DetailCard label="Gender" value={gender} />
+                <DetailCard label="Availability" value={availability} />
+                <DetailCard label="Years Experience" value={yearsExperience} />
                 <DetailCard label="Experience" value={experience} />
-                <DetailCard label="Expected Rate" value={expectedRate} />
+                <DetailCard label="Hourly Rate" value={expectedRate} />
                 <DetailCard
                   label="Featured Status"
                   value={isFeatured ? "Active" : "Inactive"}

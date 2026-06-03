@@ -226,17 +226,17 @@ export default async function EditAccountPage({
                 disabled={isDemo}
               />
               <TextInput
+                label="Hourly Rate"
+                name="rate"
+                value={expectedRate}
+                placeholder="Rs. 500/hour"
+                disabled={isDemo}
+              />
+              <TextInput
                 label="Experience details"
                 name="experience"
                 value={experience}
                 placeholder="5 years home nursing"
-                disabled={isDemo}
-              />
-              <TextInput
-                label="Hourly rate"
-                name="rate"
-                value={expectedRate}
-                placeholder="Rs. 500/hour"
                 disabled={isDemo}
               />
               <label className="grid gap-2 sm:col-span-2">

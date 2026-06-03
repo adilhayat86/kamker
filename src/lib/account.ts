@@ -12,6 +12,9 @@ export type AccountProfessional = {
   phone_number: string;
   whatsapp_number: string | null;
   area: string | null;
+  gender: string | null;
+  availability: string | null;
+  years_experience: number | null;
   experience: string | null;
   expected_rate: string | null;
   short_bio: string | null;

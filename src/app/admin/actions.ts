@@ -2,12 +2,24 @@
 
 import { revalidatePath } from "next/cache";
 
+import { requireAdmin } from "@/lib/admin-auth";
+import { setAutoApproveProfessionals } from "@/lib/admin-settings";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+
+async function canMutateAdmin() {
+  return requireAdmin();
+}
 
 export async function approveProfessional(formData: FormData) {
   const id = formData.get("professionalId");
 
-  if (typeof id !== "string" || !id || !isSupabaseConfigured || !supabase) {
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
     return;
   }
 
@@ -27,7 +39,13 @@ export async function approveProfessional(formData: FormData) {
 export async function rejectProfessional(formData: FormData) {
   const id = formData.get("professionalId");
 
-  if (typeof id !== "string" || !id || !isSupabaseConfigured || !supabase) {
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
     return;
   }
 
@@ -47,7 +65,13 @@ export async function rejectProfessional(formData: FormData) {
 export async function verifyCnic(formData: FormData) {
   const id = formData.get("professionalId");
 
-  if (typeof id !== "string" || !id || !isSupabaseConfigured || !supabase) {
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
     return;
   }
 
@@ -68,7 +92,13 @@ export async function makeProfessionalFeatured(formData: FormData) {
   const id = formData.get("professionalId");
   const featuredUntil = formData.get("featuredUntil");
 
-  if (typeof id !== "string" || !id || !isSupabaseConfigured || !supabase) {
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
     return;
   }
 
@@ -100,7 +130,13 @@ export async function makeProfessionalFeatured(formData: FormData) {
 export async function removeProfessionalFeatured(formData: FormData) {
   const id = formData.get("professionalId");
 
-  if (typeof id !== "string" || !id || !isSupabaseConfigured || !supabase) {
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
     return;
   }
 
@@ -119,4 +155,39 @@ export async function removeProfessionalFeatured(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/professionals");
+}
+
+export async function deleteProfessional(formData: FormData) {
+  const id = formData.get("professionalId");
+  const confirmation = formData.get("confirmDelete");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    confirmation !== "DELETE" ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { error } = await supabase.from("professionals").delete().eq("id", id);
+
+  if (error) {
+    console.error("Failed to delete professional", error);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/professionals");
+}
+
+export async function updateAutoApprovalMode(formData: FormData) {
+  if (!(await canMutateAdmin())) {
+    return;
+  }
+
+  await setAutoApproveProfessionals(formData.get("autoApprove") === "on");
+  revalidatePath("/admin");
 }

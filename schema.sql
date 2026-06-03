@@ -23,6 +23,9 @@ create table if not exists professionals (
   city_id bigint references cities(id),
   area text,
   category_id bigint references categories(id),
+  gender text,
+  availability text,
+  years_experience integer,
   experience text,
   expected_rate text,
   short_bio text,
@@ -86,6 +89,21 @@ create table if not exists requirement_notifications (
 );
 
 create index if not exists categories_parent_idx on categories(parent_id);
+
+create table if not exists admin_settings (
+  key text primary key,
+  value text not null,
+  updated_at timestamptz not null default now()
+);
+
+insert into admin_settings (key, value)
+values ('auto_approve_professionals', 'false')
+on conflict (key) do nothing;
+
+alter table professionals add column if not exists gender text;
+alter table professionals add column if not exists availability text;
+alter table professionals add column if not exists years_experience integer;
+
 create index if not exists professionals_city_category_idx on professionals(city_id, category_id);
 create index if not exists professionals_active_idx on professionals(is_active);
 create index if not exists professionals_featured_idx on professionals(is_featured, featured_until);

@@ -23,6 +23,8 @@ const statusMessages = {
   error: "Could not register professional. Please try again.",
 } as const;
 
+const genderOptions = ["Female", "Male"];
+
 type ProfessionalRegisterPageProps = {
   searchParams?: Promise<{
     status?: keyof typeof statusMessages;
@@ -80,7 +82,7 @@ export default async function ProfessionalRegisterPage({
                 name="category"
                 options={categories.map((category) => category.name)}
               />
-              <SelectField label="Gender" name="gender" options={["Female", "Male"]} />
+              <SelectField label="Gender" name="gender" options={genderOptions} />
               <SelectField
                 label="Availability"
                 name="availability"
@@ -92,8 +94,16 @@ export default async function ProfessionalRegisterPage({
                 type="number"
                 placeholder="5"
               />
-              <FormField label="Experience details" name="experience" placeholder="5 years home nursing" />
-              <FormField label="Hourly rate" name="rate" placeholder="Rs. 500/hour" />
+              <FormField
+                label="Hourly Rate"
+                name="rate"
+                placeholder="Rs. 500/hour"
+              />
+              <FormField
+                label="Experience details"
+                name="experience"
+                placeholder="5 years home nursing"
+              />
               <FormField label="CNIC optional" name="cnic" />
               <FormField label="Password" name="password" type="password" />
               <FormField

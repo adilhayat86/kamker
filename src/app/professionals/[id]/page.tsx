@@ -22,6 +22,9 @@ type DbProfessional = {
   phone_number: string;
   whatsapp_number: string | null;
   area: string | null;
+  gender: string | null;
+  availability: string | null;
+  years_experience: number | null;
   experience: string | null;
   expected_rate: string | null;
   short_bio: string | null;
@@ -49,7 +52,7 @@ async function getDbProfessional(id: string) {
   const { data, error } = await supabase
     .from("professionals")
     .select(
-      "id, full_name, phone_number, whatsapp_number, area, experience, expected_rate, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, rating, cities(name), categories(name)",
+      "id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, rating, cities(name), categories(name)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -125,15 +128,27 @@ export default async function ProfessionalProfilePage({
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-lg border p-4">
-                  <p className="text-sm text-muted-foreground">Experience</p>
+                  <p className="text-sm text-muted-foreground">Years Experience</p>
                   <p className="mt-1 font-semibold">
-                    {dbProfessional.experience ?? "Will be updated soon"}
+                    {dbProfessional.years_experience ?? "Will be updated soon"}
                   </p>
                 </div>
                 <div className="rounded-lg border p-4">
-                  <p className="text-sm text-muted-foreground">Rate</p>
+                  <p className="text-sm text-muted-foreground">Hourly Rate</p>
                   <p className="mt-1 font-semibold">
                     {dbProfessional.expected_rate ?? "Contact for rate"}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm text-muted-foreground">Availability</p>
+                  <p className="mt-1 font-semibold">
+                    {dbProfessional.availability ?? "Ask professional"}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm text-muted-foreground">Gender</p>
+                  <p className="mt-1 font-semibold">
+                    {dbProfessional.gender ?? "Not provided"}
                   </p>
                 </div>
                 <div className="rounded-lg border p-4">
@@ -152,7 +167,9 @@ export default async function ProfessionalProfilePage({
               <div className="mt-6">
                 <p className="text-sm text-muted-foreground">Bio</p>
                 <p className="mt-2 leading-7">
-                  {dbProfessional.short_bio ?? "This professional is new on Kamker."}
+                  {dbProfessional.short_bio ??
+                    dbProfessional.experience ??
+                    "This professional is new on Kamker."}
                 </p>
               </div>
 
@@ -227,7 +244,7 @@ export default async function ProfessionalProfilePage({
                 <p className="mt-1 font-semibold">{professional.experience}</p>
               </div>
               <div className="rounded-lg border p-4">
-                <p className="text-sm text-muted-foreground">Rate</p>
+                <p className="text-sm text-muted-foreground">Hourly Rate</p>
                 <p className="mt-1 font-semibold">{professional.rate}</p>
               </div>
               <div className="rounded-lg border p-4">

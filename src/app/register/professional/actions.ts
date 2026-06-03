@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { getAutoApproveProfessionals } from "@/lib/admin-settings";
 import { hashSecret } from "@/lib/auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -68,6 +69,7 @@ export async function registerProfessional(formData: FormData) {
     hashSecret(password),
     hashSecret(secretAnswer.toLowerCase()),
   ]);
+  const autoApprove = await getAutoApproveProfessionals();
 
   const { error } = await supabase.from("professionals").insert({
     full_name: fullName,
@@ -88,6 +90,7 @@ export async function registerProfessional(formData: FormData) {
     secret_answer_hash: secretAnswerHash,
     is_phone_verified: false,
     is_cnic_verified: false,
+    is_active: autoApprove,
   });
 
   if (error) {

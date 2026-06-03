@@ -250,6 +250,12 @@ function DbProfessionalCard({
                 {professional.cities?.name ?? "Pakistan"}
                 {professional.area ? `, ${professional.area}` : ""}
               </span>
+              <span>
+                Hourly Rate: {professional.expected_rate ?? "Contact for rate"}
+              </span>
+              <span>
+                Availability: {professional.availability ?? "Ask professional"}
+              </span>
               <span className="flex items-center gap-1">
                 <Star className="size-4 fill-[#f6c343] text-[#f6c343]" aria-hidden="true" />
                 {professional.rating ?? 0} · {professional.years_experience ?? 0} years experience

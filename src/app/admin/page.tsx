@@ -2,15 +2,23 @@ import {
   BadgeCheck,
   CalendarDays,
   ClipboardList,
+  LogOut,
   Send,
   ShieldAlert,
   Sparkles,
   Users,
 } from "lucide-react";
+import { redirect } from "next/navigation";
 
+import { logoutAdmin } from "@/app/admin/login/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  isAdminAuthenticated,
+  isAdminPasswordConfigured,
+} from "@/lib/admin-auth";
+import { getAutoApproveProfessionals } from "@/lib/admin-settings";
 import {
   isActiveFeaturedProfessional,
   recentProfessionals,
@@ -20,9 +28,11 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 import {
   approveProfessional,
+  deleteProfessional,
   makeProfessionalFeatured,
   rejectProfessional,
   removeProfessionalFeatured,
+  updateAutoApprovalMode,
   verifyCnic,
 } from "./actions";
 
@@ -44,6 +54,9 @@ type PendingProfessional = {
   phone_number: string;
   whatsapp_number: string | null;
   area: string | null;
+  gender: string | null;
+  availability: string | null;
+  years_experience: number | null;
   experience: string | null;
   expected_rate: string | null;
   short_bio: string | null;
@@ -68,6 +81,8 @@ export const metadata = {
   title: "Admin Dashboard | Kamker",
   description: "Kamker admin dashboard for requirements and registrations.",
 };
+
+export const dynamic = "force-dynamic";
 
 function isDbFeatured(professional: AdminProfessional) {
   return (
@@ -107,7 +122,7 @@ async function getPendingProfessionals() {
 
   const { data, error } = await supabase
     .from("professionals")
-    .select("id, full_name, phone_number, whatsapp_number, area, experience, expected_rate, short_bio, cnic, is_cnic_verified, is_active, created_at, cities(name), categories(name)")
+    .select("id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, short_bio, cnic, is_cnic_verified, is_active, created_at, cities(name), categories(name)")
     .eq("is_active", false)
     .order("created_at", { ascending: false })
     .limit(20);
@@ -143,11 +158,24 @@ async function getAdminProfessionals() {
 }
 
 export default async function AdminPage() {
-  const [requirements, pendingProfessionals, adminProfessionals] =
+  const adminPasswordConfigured = isAdminPasswordConfigured();
+  const adminAuthenticated = await isAdminAuthenticated();
+
+  if (adminPasswordConfigured && !adminAuthenticated) {
+    redirect("/admin/login");
+  }
+
+  const [
+    requirements,
+    pendingProfessionals,
+    adminProfessionals,
+    autoApproveProfessionals,
+  ] =
     await Promise.all([
       getRequirements(),
       getPendingProfessionals(),
       getAdminProfessionals(),
+      getAutoApproveProfessionals(),
     ]);
 
   const showDemoFeaturedManagement = adminProfessionals.length === 0;
@@ -170,7 +198,17 @@ export default async function AdminPage() {
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-7xl">
-        <PageNavigation />
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+          <PageNavigation />
+          {adminAuthenticated ? (
+            <form action={logoutAdmin}>
+              <Button variant="outline" size="sm">
+                <LogOut aria-hidden="true" />
+                Logout
+              </Button>
+            </form>
+          ) : null}
+        </div>
         <h1 className="mt-4 text-3xl font-bold tracking-normal">
           Admin Dashboard
         </h1>
@@ -178,18 +216,77 @@ export default async function AdminPage() {
           Review requirements and approve professionals before they appear publicly.
         </p>
 
-        <Card className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm">
-          <CardContent className="flex gap-3 p-4">
-            <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-            <div>
-              <p className="font-semibold">Admin protection needed later</p>
-              <p className="mt-1 text-sm text-amber-900">
-                This dashboard is intentionally visible during Phase 1. Add
-                admin-only authentication before using it with real data.
-              </p>
+        {!adminPasswordConfigured ? (
+          <Card className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm">
+            <CardContent className="flex gap-3 p-4">
+              <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">Admin password is not configured</p>
+                <p className="mt-1 text-sm text-amber-900">
+                  Set KAMKER_ADMIN_PASSWORD in the environment. Admin actions are
+                  disabled until a protected admin session exists.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <Card className="mt-6 bg-white shadow-sm">
+          <CardContent className="p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                  Auto-Approval Mode
+                </p>
+                <h2 className="mt-1 text-xl font-semibold">
+                  {autoApproveProfessionals ? "ON" : "OFF"}
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Control whether new professional registrations appear publicly
+                  without manual review.
+                </p>
+                {autoApproveProfessionals ? (
+                  <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-950">
+                    New profiles will appear publicly without manual review.
+                  </p>
+                ) : null}
+              </div>
+              <form action={updateAutoApprovalMode} className="rounded-lg border p-3">
+                <label className="flex items-center gap-3 text-sm font-medium">
+                  <input
+                    name="autoApprove"
+                    type="checkbox"
+                    defaultChecked={autoApproveProfessionals}
+                    className="size-5 accent-primary"
+                    disabled={!adminAuthenticated}
+                  />
+                  Enable auto-approval
+                </label>
+                <Button
+                  className="mt-3 h-10 w-full"
+                  type="submit"
+                  disabled={!adminAuthenticated}
+                >
+                  Save Mode
+                </Button>
+              </form>
             </div>
           </CardContent>
         </Card>
+
+        {adminPasswordConfigured ? (
+          <Card className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm">
+            <CardContent className="flex gap-3 p-4">
+              <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">Admin protection active</p>
+                <p className="mt-1 text-sm text-amber-900">
+                  Keep KAMKER_ADMIN_PASSWORD private and rotate it if shared.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           {adminStats.map((item) => {
@@ -270,8 +367,14 @@ export default async function AdminPage() {
                         </label>
 
                         <div className="grid gap-2 sm:grid-cols-2 lg:w-72">
-                          <Button className="h-11">Make Featured</Button>
-                          <Button variant="outline" className="h-11">
+                          <Button className="h-11" disabled={!adminAuthenticated}>
+                            Make Featured
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="h-11"
+                            disabled={!adminAuthenticated}
+                          >
                             Remove Featured
                           </Button>
                         </div>
@@ -324,7 +427,11 @@ export default async function AdminPage() {
                               className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             />
                           </label>
-                          <Button className="h-11" type="submit">
+                          <Button
+                            className="h-11"
+                            type="submit"
+                            disabled={!adminAuthenticated}
+                          >
                             Make Featured
                           </Button>
                         </form>
@@ -338,6 +445,7 @@ export default async function AdminPage() {
                             variant="outline"
                             className="h-11 w-full"
                             type="submit"
+                            disabled={!adminAuthenticated}
                           >
                             Remove Featured
                           </Button>
@@ -373,16 +481,21 @@ export default async function AdminPage() {
                         Pending Review
                       </span>
                     </div>
-                    <div className="mt-3 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
+                    <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
+                      <span>Full name: {professional.full_name}</span>
                       <span>Phone: {professional.phone_number}</span>
+                      <span>WhatsApp: {professional.whatsapp_number ?? "Not provided"}</span>
+                      <span>City: {professional.cities?.name ?? "Unknown city"}</span>
+                      <span>Area: {professional.area ?? "Not provided"}</span>
+                      <span>Category: {professional.categories?.name ?? "Professional"}</span>
+                      <span>Gender: {professional.gender ?? "Not provided"}</span>
+                      <span>Availability: {professional.availability ?? "Not provided"}</span>
+                      <span>Years experience: {professional.years_experience ?? "Not provided"}</span>
+                      <span>Hourly Rate: {professional.expected_rate ?? "Not provided"}</span>
+                      <span>Experience: {professional.experience ?? "Not provided"}</span>
+                      <span>CNIC: {professional.cnic ? "Provided" : "Not provided"}</span>
                       <span>
-                        WhatsApp: {professional.whatsapp_number ?? "Not provided"}
-                      </span>
-                      <span>
-                        CNIC: {professional.cnic ? "Provided" : "Not provided"}
-                      </span>
-                      <span>
-                        Rate: {professional.expected_rate ?? "Not provided"}
+                        CNIC status: {professional.is_cnic_verified ? "Verified" : "Pending"}
                       </span>
                     </div>
                     {professional.short_bio ? (
@@ -397,8 +510,12 @@ export default async function AdminPage() {
                           name="professionalId"
                           value={professional.id}
                         />
-                        <Button className="w-full" type="submit">
-                          Approve
+                        <Button
+                          className="w-full"
+                          type="submit"
+                          disabled={!adminAuthenticated}
+                        >
+                          Approve Profile
                         </Button>
                       </form>
                       <form action={rejectProfessional}>
@@ -407,7 +524,12 @@ export default async function AdminPage() {
                           name="professionalId"
                           value={professional.id}
                         />
-                        <Button className="w-full" type="submit" variant="outline">
+                        <Button
+                          className="w-full"
+                          type="submit"
+                          variant="outline"
+                          disabled={!adminAuthenticated}
+                        >
                           Keep Pending
                         </Button>
                       </form>
@@ -417,13 +539,46 @@ export default async function AdminPage() {
                           name="professionalId"
                           value={professional.id}
                         />
-                        <Button className="w-full" type="submit" variant="outline">
+                        <Button
+                          className="w-full"
+                          type="submit"
+                          variant="outline"
+                          disabled={!adminAuthenticated}
+                        >
                           {professional.is_cnic_verified
                             ? "CNIC Verified"
                             : "Verify CNIC"}
                         </Button>
                       </form>
                     </div>
+                    <form
+                      action={deleteProfessional}
+                      className="mt-4 grid gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 sm:grid-cols-[1fr_auto]"
+                    >
+                      <input
+                        type="hidden"
+                        name="professionalId"
+                        value={professional.id}
+                      />
+                      <label className="grid gap-1 text-sm">
+                        <span className="font-medium">
+                          Reject/Delete Profile
+                        </span>
+                        <input
+                          name="confirmDelete"
+                          placeholder="Type DELETE to confirm"
+                          disabled={!adminAuthenticated}
+                          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        />
+                      </label>
+                      <Button
+                        className="h-10 self-end bg-red-600 text-white hover:bg-red-700"
+                        type="submit"
+                        disabled={!adminAuthenticated}
+                      >
+                        Delete Profile
+                      </Button>
+                    </form>
                   </div>
                 ))}
               </div>
