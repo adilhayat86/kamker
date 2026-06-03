@@ -31,6 +31,7 @@ export async function updateProfessionalProfile(formData: FormData) {
   const yearsExperience = numericField(formData, "yearsExperience");
   const experience = field(formData, "experience");
   const expectedRate = field(formData, "rate");
+  const tagline = field(formData, "tagline");
   const shortBio = field(formData, "bio");
 
   if (
@@ -40,7 +41,9 @@ export async function updateProfessionalProfile(formData: FormData) {
     !categoryName ||
     !gender ||
     !availability ||
-    !expectedRate
+    !expectedRate ||
+    !tagline ||
+    tagline.length > 30
   ) {
     redirect("/account/edit?status=missing");
   }
@@ -90,6 +93,7 @@ export async function updateProfessionalProfile(formData: FormData) {
     years_experience: yearsExperience,
     experience: experience || null,
     expected_rate: expectedRate || null,
+    tagline,
     short_bio: shortBio || null,
   };
 

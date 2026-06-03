@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, MapPin, MessageCircle, Phone, Sparkles, Star } from "lucide-react";
+import { BadgeCheck, Clock, MapPin, MessageCircle, Phone, Sparkles, Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,12 +20,12 @@ export function ProfessionalCard({
     <Card
       className={
         featured
-          ? "border-primary/30 bg-white shadow-md"
-          : "bg-white shadow-sm"
+          ? "flex h-full flex-col border-primary/30 bg-white shadow-md"
+          : "flex h-full flex-col bg-white shadow-sm"
       }
     >
-      <CardContent className="p-5">
-        <div className="flex items-start gap-5">
+      <CardContent className="flex h-full flex-col p-4">
+        <div className="flex items-start gap-4">
           <Image
             src={professional.image}
             alt={`${professional.name} profile photo`}
@@ -36,11 +36,11 @@ export function ProfessionalCard({
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <h3 className="font-semibold leading-tight">
+              <div className="min-w-0">
+                <h3 className="truncate text-base font-semibold leading-tight">
                   {professional.name}
                 </h3>
-                <p className="mt-1 text-sm font-medium text-primary">
+                <p className="text-sm font-medium text-primary">
                   {professional.role}
                 </p>
               </div>
@@ -57,28 +57,34 @@ export function ProfessionalCard({
                 </Badge>
               </div>
             </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              {professional.experience}
+            <p className="mt-3 text-2xl font-bold leading-tight text-primary">
+              {professional.rate}
             </p>
-            <Badge variant="outline" className="mt-2 bg-white">
-              CNIC Verification Badge
-            </Badge>
+            <p className="mt-1 truncate text-sm font-medium text-foreground">
+              {professional.tagline}
+            </p>
             <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <MapPin className="size-4" aria-hidden="true" />
                 {professional.city}, {professional.area}
               </span>
               <span className="flex items-center gap-1">
-                <Star className="size-4 fill-[#f6c343] text-[#f6c343]" aria-hidden="true" />
-                {professional.rating} ({professional.ratingCount})
+                <Clock className="size-4" aria-hidden="true" />
+                {professional.availability}
               </span>
-              <span className="font-medium text-primary">
-                {professional.responseTime}
+              <span className="flex items-center gap-1">
+                <Star className="size-4 fill-[#f6c343] text-[#f6c343]" aria-hidden="true" />
+                {professional.experience}
               </span>
             </div>
           </div>
         </div>
-        <div className="mt-5 grid grid-cols-2 gap-2">
+        <div className="mt-4 flex min-h-6 flex-wrap gap-2">
+          <Badge variant="secondary">{professional.gender}</Badge>
+          <Badge variant="outline">CNIC Verified</Badge>
+          <Badge variant="outline">Phone Verified</Badge>
+        </div>
+        <div className="mt-auto grid grid-cols-3 gap-2 pt-4">
           <Button variant="outline" className="h-11">
             <Phone aria-hidden="true" />
             Call
@@ -87,10 +93,10 @@ export function ProfessionalCard({
             <MessageCircle aria-hidden="true" />
             WhatsApp
           </Button>
+          <Button asChild className="h-11 px-2" variant="outline">
+            <Link href={`/professionals/${professional.id}`}>View Profile</Link>
+          </Button>
         </div>
-        <Button asChild className="mt-2 h-11 w-full" variant="outline">
-          <Link href={`/professionals/${professional.id}`}>View Profile</Link>
-        </Button>
       </CardContent>
     </Card>
   );

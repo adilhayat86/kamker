@@ -27,6 +27,7 @@ type DbProfessional = {
   years_experience: number | null;
   experience: string | null;
   expected_rate: string | null;
+  tagline: string | null;
   short_bio: string | null;
   profile_photo_url: string | null;
   is_cnic_verified: boolean;
@@ -52,7 +53,7 @@ async function getDbProfessional(id: string) {
   const { data, error } = await supabase
     .from("professionals")
     .select(
-      "id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, rating, cities(name), categories(name)",
+      "id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, rating, cities(name), categories(name)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -118,6 +119,9 @@ export default async function ProfessionalProfilePage({
                   </h1>
                   <p className="mt-1 text-lg font-semibold text-primary">
                     {dbProfessional.categories?.name ?? "Professional"}
+                  </p>
+                  <p className="mt-1 max-w-md truncate text-base font-medium">
+                    {dbProfessional.tagline ?? "Trusted local professional"}
                   </p>
                   <p className="mt-3 flex items-center gap-2 text-muted-foreground">
                     <MapPin className="size-4" aria-hidden="true" />
@@ -230,6 +234,9 @@ export default async function ProfessionalProfilePage({
                 </h1>
                 <p className="mt-1 text-lg font-semibold text-primary">
                   {professional.role}
+                </p>
+                <p className="mt-1 max-w-md truncate text-base font-medium">
+                  {professional.tagline}
                 </p>
                 <p className="mt-3 flex items-center gap-2 text-muted-foreground">
                   <MapPin className="size-4" aria-hidden="true" />

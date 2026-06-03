@@ -18,7 +18,7 @@ const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evenin
 const genderOptions = ["Female", "Male"];
 
 const statusMessages = {
-  missing: "Please fill name, phone, city, profession, gender, availability, and hourly rate.",
+  missing: "Please fill name, phone, city, profession, gender, availability, hourly rate, and tagline. Tagline must be 30 characters or less.",
   "not-configured": "Supabase is not configured yet.",
   "invalid-photo": "Upload a jpg, png, or webp image under 2MB.",
   "photo-error": "Could not upload profile photo. Please try again.",
@@ -37,6 +37,7 @@ function TextInput({
   value,
   type = "text",
   placeholder,
+  maxLength,
   disabled = false,
 }: {
   label: string;
@@ -44,6 +45,7 @@ function TextInput({
   value?: string | number | null;
   type?: string;
   placeholder?: string;
+  maxLength?: number;
   disabled?: boolean;
 }) {
   return (
@@ -54,6 +56,7 @@ function TextInput({
         type={type}
         defaultValue={value ?? ""}
         placeholder={placeholder ?? label}
+        maxLength={maxLength}
         disabled={disabled}
         className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
       />
@@ -124,6 +127,7 @@ export default async function EditAccountPage({
   const yearsExperience = dbProfessional?.years_experience ?? 0;
   const experience = dbProfessional?.experience ?? demoProfessional?.experience;
   const expectedRate = dbProfessional?.expected_rate ?? demoProfessional?.rate;
+  const tagline = dbProfessional?.tagline ?? demoProfessional?.tagline ?? "";
   const bio = dbProfessional?.short_bio ?? demoProfessional?.bio;
 
   return (
@@ -245,6 +249,14 @@ export default async function EditAccountPage({
                 name="rate"
                 value={expectedRate}
                 placeholder="Rs. 500/hour"
+                disabled={isDemo}
+              />
+              <TextInput
+                label="Profile Tagline"
+                name="tagline"
+                value={tagline}
+                placeholder="Trusted elderly caregiver"
+                maxLength={30}
                 disabled={isDemo}
               />
               <TextInput

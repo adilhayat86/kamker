@@ -6,6 +6,7 @@ type FormFieldProps = {
   placeholder?: string;
   type?: string;
   defaultValue?: string;
+  maxLength?: number;
 };
 
 export function FormField({
@@ -14,6 +15,7 @@ export function FormField({
   placeholder,
   type = "text",
   defaultValue,
+  maxLength,
 }: FormFieldProps) {
   return (
     <label className="grid gap-2">
@@ -23,6 +25,7 @@ export function FormField({
         placeholder={placeholder ?? label}
         type={type}
         defaultValue={defaultValue}
+        maxLength={maxLength}
       />
     </label>
   );

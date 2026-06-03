@@ -28,6 +28,7 @@ create table if not exists professionals (
   years_experience integer,
   experience text,
   expected_rate text,
+  tagline text,
   short_bio text,
   cnic text,
   profile_photo_url text,
@@ -151,7 +152,20 @@ on conflict (key) do nothing;
 alter table professionals add column if not exists gender text;
 alter table professionals add column if not exists availability text;
 alter table professionals add column if not exists years_experience integer;
+alter table professionals add column if not exists tagline text;
 alter table requirements add column if not exists availability text;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'professionals_tagline_length'
+  ) then
+    alter table professionals
+      add constraint professionals_tagline_length
+      check (tagline is null or char_length(tagline) <= 30);
+  end if;
+end $$;
 
 create index if not exists professionals_city_category_idx on professionals(city_id, category_id);
 create index if not exists professionals_active_idx on professionals(is_active);

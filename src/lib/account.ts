@@ -17,6 +17,7 @@ export type AccountProfessional = {
   years_experience: number | null;
   experience: string | null;
   expected_rate: string | null;
+  tagline: string | null;
   short_bio: string | null;
   cnic: string | null;
   profile_photo_url: string | null;

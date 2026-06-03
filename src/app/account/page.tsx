@@ -83,6 +83,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const yearsExperience = dbProfessional?.years_experience;
   const experience = dbProfessional?.experience ?? demoProfessional?.experience;
   const expectedRate = dbProfessional?.expected_rate ?? demoProfessional?.rate;
+  const tagline = dbProfessional?.tagline ?? demoProfessional?.tagline;
   const bio = dbProfessional?.short_bio ?? demoProfessional?.bio;
   const profilePhotoUrl =
     dbProfessional?.profile_photo_url ?? demoProfessional?.image ?? fallbackProfessionalImage();
@@ -192,6 +193,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                 <DetailCard label="Years Experience" value={yearsExperience} />
                 <DetailCard label="Experience" value={experience} />
                 <DetailCard label="Hourly Rate" value={expectedRate} />
+                <DetailCard label="Profile Tagline" value={tagline} />
                 <DetailCard
                   label="Featured Status"
                   value={isFeatured ? "Active" : "Inactive"}

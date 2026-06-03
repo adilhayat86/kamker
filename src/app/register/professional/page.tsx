@@ -18,7 +18,7 @@ const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evenin
 const statusMessages = {
   success: "Professional profile submitted successfully. Kamker will review it before it appears publicly.",
   missing:
-    "Please fill name, phone, city, profession, gender, availability, hourly rate, password, secret question, and secret answer.",
+    "Please fill name, phone, city, profession, gender, availability, hourly rate, tagline, password, secret question, and secret answer. Tagline must be 30 characters or less.",
   "not-configured": "Supabase is not configured yet.",
   "invalid-photo": "Upload a jpg, png, or webp image under 2MB.",
   "photo-error": "Could not upload profile photo. Please try again.",
@@ -109,6 +109,12 @@ export default async function ProfessionalRegisterPage({
                 label="Hourly Rate"
                 name="rate"
                 placeholder="Rs. 500/hour"
+              />
+              <FormField
+                label="Profile Tagline"
+                name="tagline"
+                placeholder="Trusted elderly caregiver"
+                maxLength={30}
               />
               <FormField
                 label="Experience details"

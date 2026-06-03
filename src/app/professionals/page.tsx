@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BadgeCheck,
+  Clock,
   MapPin,
   MessageCircle,
   Phone,
@@ -41,6 +42,7 @@ type DbProfessional = {
   years_experience?: number | null;
   experience: string | null;
   expected_rate: string | null;
+  tagline: string | null;
   short_bio: string | null;
   profile_photo_url: string | null;
   is_cnic_verified: boolean;
@@ -160,7 +162,7 @@ async function getDbProfessionals() {
   const { data, error } = await supabase
     .from("professionals")
     .select(
-      "id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, is_featured, featured_until, rating, created_at, cities(name), categories(name)",
+      "id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, is_featured, featured_until, rating, created_at, cities(name), categories(name)",
     )
     .eq("is_active", true)
     .order("is_featured", { ascending: false })
@@ -280,6 +282,112 @@ function DbProfessionalCard({
         <Button asChild className="mt-2 h-11 w-full" variant="outline">
           <Link href={`/professionals/${professional.id}`}>View Profile</Link>
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+void DbProfessionalCard;
+
+function ConversionProfessionalCard({
+  professional,
+  featured = false,
+}: {
+  professional: DbProfessional;
+  featured?: boolean;
+}) {
+  const whatsappNumber = professional.whatsapp_number ?? professional.phone_number;
+  const tagline = professional.tagline ?? "Trusted local professional";
+
+  return (
+    <Card
+      className={
+        featured
+          ? "flex h-full flex-col border-primary/30 bg-white shadow-md"
+          : "flex h-full flex-col bg-white shadow-sm"
+      }
+    >
+      <CardContent className="flex h-full flex-col p-4">
+        <div className="flex gap-4">
+          <Image
+            src={professional.profile_photo_url || "/kamker-professionals.png"}
+            alt={`${professional.full_name} profile photo`}
+            width={88}
+            height={88}
+            loading="lazy"
+            className="size-20 shrink-0 rounded-full bg-accent object-cover"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="truncate text-base font-semibold leading-tight">
+                  {professional.full_name}
+                </h2>
+                <p className="text-sm font-medium text-primary">
+                  {professional.categories?.name ?? "Professional"}
+                </p>
+              </div>
+              {featured ? (
+                <Badge className="gap-1 bg-[#f6c343] text-[#241a04] hover:bg-[#f6c343]">
+                  <Sparkles className="size-3" aria-hidden="true" />
+                  Featured
+                </Badge>
+              ) : null}
+            </div>
+
+            <p className="mt-3 text-2xl font-bold leading-tight text-primary">
+              {formatHourlyRate(professional.expected_rate)}
+            </p>
+            <p className="mt-1 truncate text-sm font-medium text-foreground">
+              {tagline}
+            </p>
+
+            <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <MapPin className="size-4" aria-hidden="true" />
+                {professional.cities?.name ?? "Pakistan"}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="size-4" aria-hidden="true" />
+                {professional.availability ?? "Ask professional"}
+              </span>
+              <span className="flex items-center gap-1">
+                <Star className="size-4 fill-[#f6c343] text-[#f6c343]" aria-hidden="true" />
+                {professional.years_experience ?? 0} Years Experience
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex min-h-6 flex-wrap gap-2">
+          {professional.gender ? (
+            <Badge variant="secondary">{professional.gender}</Badge>
+          ) : null}
+          {professional.is_cnic_verified ? (
+            <Badge variant="outline">CNIC Verified</Badge>
+          ) : null}
+          {professional.is_phone_verified ? (
+            <Badge variant="outline">Phone Verified</Badge>
+          ) : null}
+        </div>
+
+        <div className="mt-auto grid grid-cols-3 gap-2 pt-4">
+          <Button asChild variant="outline" className="h-11">
+            <a href={`tel:${professional.phone_number}`}>
+              <Phone aria-hidden="true" />
+              Call
+            </a>
+          </Button>
+          <Button asChild className="h-11 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
+            <a href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}>
+              <MessageCircle aria-hidden="true" />
+              WhatsApp
+            </a>
+          </Button>
+          <Button asChild className="h-11 px-2" variant="outline">
+            <Link href={`/professionals/${professional.id}`}>View Profile</Link>
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
@@ -529,7 +637,7 @@ export default async function ProfessionalsPage({
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {hasDbProfessionals
               ? featuredDbProfessionals.map((professional) => (
-                  <DbProfessionalCard
+                  <ConversionProfessionalCard
                     key={professional.id}
                     professional={professional}
                     featured
@@ -555,7 +663,7 @@ export default async function ProfessionalsPage({
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {hasDbProfessionals
               ? regularDbProfessionals.map((professional) => (
-                  <DbProfessionalCard
+                  <ConversionProfessionalCard
                     key={professional.id}
                     professional={professional}
                   />

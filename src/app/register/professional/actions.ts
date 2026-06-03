@@ -29,6 +29,7 @@ export async function registerProfessional(formData: FormData) {
   const yearsExperience = numericField(formData, "yearsExperience");
   const experience = field(formData, "experience");
   const expectedRate = field(formData, "rate");
+  const tagline = field(formData, "tagline");
   const cnic = field(formData, "cnic");
   const shortBio = field(formData, "bio");
   const password = field(formData, "password");
@@ -43,6 +44,8 @@ export async function registerProfessional(formData: FormData) {
     !gender ||
     !availability ||
     !expectedRate ||
+    !tagline ||
+    tagline.length > 30 ||
     !password ||
     !secretQuestion ||
     !secretAnswer
@@ -95,6 +98,7 @@ export async function registerProfessional(formData: FormData) {
     years_experience: yearsExperience,
     experience: experience || null,
     expected_rate: expectedRate || null,
+    tagline,
     short_bio: shortBio || null,
     cnic: cnic || null,
     profile_photo_url: profilePhotoUrl,
