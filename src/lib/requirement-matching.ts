@@ -100,5 +100,20 @@ export async function createRequirementMatches(requirement: RequirementForMatchi
     return 0;
   }
 
+  const notifications = matches.map((match) => ({
+    requirement_id: match.requirement_id,
+    professional_id: match.professional_id,
+    channel: "app",
+    status: "unread",
+  }));
+
+  const { error: notificationError } = await supabase
+    .from("requirement_notifications")
+    .upsert(notifications, { onConflict: "requirement_id,professional_id,channel" });
+
+  if (notificationError) {
+    console.error("Failed to create requirement notifications", notificationError);
+  }
+
   return matches.length;
 }
