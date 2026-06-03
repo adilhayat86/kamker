@@ -60,6 +60,7 @@ type ProfessionalsPageProps = {
     category?: string;
     gender?: string;
     availability?: string;
+    rate?: string;
     verified?: string;
     sort?: string;
     page?: string;
@@ -67,6 +68,13 @@ type ProfessionalsPageProps = {
 };
 
 const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evening"];
+const hourlyRateOptions = [
+  { value: "under-300", label: "Under Rs. 300/hour", min: 0, max: 299 },
+  { value: "300-500", label: "Rs. 300-500/hour", min: 300, max: 500 },
+  { value: "500-1000", label: "Rs. 500-1,000/hour", min: 500, max: 1000 },
+  { value: "1000-2000", label: "Rs. 1,000-2,000/hour", min: 1000, max: 2000 },
+  { value: "2000-plus", label: "Rs. 2,000+/hour", min: 2000, max: Number.POSITIVE_INFINITY },
+];
 const pageSize = 20;
 
 function matches(value: string | null | undefined, query: string) {
@@ -75,6 +83,44 @@ function matches(value: string | null | undefined, query: string) {
 
 function normalise(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? "";
+}
+
+function parseHourlyRate(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const compactValue = value.replace(/,/g, "");
+  const match = compactValue.match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
+
+function formatHourlyRate(value: string | null | undefined) {
+  if (!value) {
+    return "Rate not added";
+  }
+
+  const lowerValue = value.toLowerCase();
+  if (lowerValue.includes("hour") || lowerValue.includes("hr")) {
+    return value;
+  }
+
+  return `${value}/hour`;
+}
+
+function matchesHourlyRate(value: string | null | undefined, rateFilter: string) {
+  if (!rateFilter) {
+    return true;
+  }
+
+  const hourlyRate = parseHourlyRate(value);
+  const selectedRange = hourlyRateOptions.find((option) => option.value === rateFilter);
+
+  if (!selectedRange || hourlyRate === null) {
+    return false;
+  }
+
+  return hourlyRate >= selectedRange.min && hourlyRate <= selectedRange.max;
 }
 
 function isVerified(professional: DbProfessional) {
@@ -190,6 +236,7 @@ function DbProfessionalCard({
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <Badge variant="outline">{verifiedLabel}</Badge>
+              <Badge variant="secondary">{formatHourlyRate(professional.expected_rate)}</Badge>
               {professional.availability ? (
                 <Badge variant="secondary">{professional.availability}</Badge>
               ) : null}
@@ -241,6 +288,7 @@ export default async function ProfessionalsPage({
   const category = params?.category?.trim() ?? "";
   const gender = params?.gender?.trim() ?? "";
   const availability = params?.availability?.trim() ?? "";
+  const rate = params?.rate?.trim() ?? "";
   const verified = params?.verified === "true";
   const sort = params?.sort?.trim() || "featured";
   const currentPage = Math.max(Number(params?.page ?? "1") || 1, 1);
@@ -263,6 +311,7 @@ export default async function ProfessionalsPage({
       const availabilityMatch = availability
         ? normalise(professional.availability) === normalise(availability)
         : true;
+      const hourlyRateMatch = matchesHourlyRate(professional.expected_rate, rate);
       const verifiedMatch = verified ? isVerified(professional) : true;
 
       return (
@@ -271,12 +320,21 @@ export default async function ProfessionalsPage({
         categoryMatch &&
         genderMatch &&
         availabilityMatch &&
+        hourlyRateMatch &&
         verifiedMatch
       );
     })
     .sort((a, b) => {
       if (sort === "experienced") {
         return (b.years_experience ?? 0) - (a.years_experience ?? 0);
+      }
+
+      if (sort === "rate-low") {
+        return (parseHourlyRate(a.expected_rate) ?? Number.POSITIVE_INFINITY) - (parseHourlyRate(b.expected_rate) ?? Number.POSITIVE_INFINITY);
+      }
+
+      if (sort === "rate-high") {
+        return (parseHourlyRate(b.expected_rate) ?? 0) - (parseHourlyRate(a.expected_rate) ?? 0);
       }
 
       if (sort === "newest") {
@@ -310,7 +368,7 @@ export default async function ProfessionalsPage({
   const activeProfessionals = hasDbProfessionals
     ? paginatedDbProfessionals
     : recentProfessionals;
-  const pageHrefParams = { q, city, category, gender, availability, verified: verified ? "true" : "", sort };
+  const pageHrefParams = { q, city, category, gender, availability, rate, verified: verified ? "true" : "", sort };
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -320,7 +378,7 @@ export default async function ProfessionalsPage({
           Professionals
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Browse approved local professionals and contact them directly without a middleman.
+          Browse approved local professionals by hourly rate and contact them directly without a middleman.
         </p>
         {!hasDbProfessionals ? (
           <p className="mt-2 text-sm text-muted-foreground">
@@ -328,7 +386,7 @@ export default async function ProfessionalsPage({
           </p>
         ) : null}
 
-        <form className="sticky top-16 z-20 mt-6 grid gap-3 rounded-lg bg-white p-3 shadow-sm lg:grid-cols-[1.2fr_1fr_1fr_0.8fr_0.9fr_1fr_auto]">
+        <form className="sticky top-16 z-20 mt-6 grid gap-3 rounded-lg bg-white p-3 shadow-sm lg:grid-cols-[1.2fr_1fr_1fr_0.8fr_0.9fr_1fr_1fr_auto]">
           <label className="grid gap-2">
             <span className="text-sm font-medium">Search</span>
             <Input name="q" placeholder="Nurse, driver, area, name" defaultValue={q} />
@@ -391,6 +449,21 @@ export default async function ProfessionalsPage({
             </select>
           </label>
           <label className="grid gap-2">
+            <span className="text-sm font-medium">Hourly Rate</span>
+            <select
+              name="rate"
+              defaultValue={rate}
+              className="h-11 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">Any rate</option>
+              {hourlyRateOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2">
             <span className="text-sm font-medium">Sort</span>
             <select
               name="sort"
@@ -400,6 +473,8 @@ export default async function ProfessionalsPage({
               <option value="featured">Featured first</option>
               <option value="newest">Recently added</option>
               <option value="experienced">Most experienced</option>
+              <option value="rate-low">Lowest hourly rate</option>
+              <option value="rate-high">Highest hourly rate</option>
             </select>
           </label>
           <div className="flex flex-col justify-end gap-2">
