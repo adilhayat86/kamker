@@ -1,0 +1,57 @@
+"use server";
+
+import { randomUUID } from "crypto";
+import { redirect } from "next/navigation";
+
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+
+function field(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export async function registerCompany(formData: FormData) {
+  const companyName = field(formData, "companyName");
+  const category = field(formData, "category");
+  const city = field(formData, "city");
+  const area = field(formData, "area");
+  const contactPerson = field(formData, "contactPerson");
+  const phone = field(formData, "phone");
+  const whatsapp = field(formData, "whatsapp");
+  const licenseNumber = field(formData, "licenseNumber");
+  const description = field(formData, "description");
+
+  if (!companyName || !category || !city || !contactPerson || !phone || !description) {
+    redirect("/register/company?status=missing");
+  }
+
+  if (!isSupabaseConfigured || !supabase) {
+    redirect("/register/company?status=not-configured");
+  }
+
+  const { data, error } = await supabase
+    .from("companies")
+    .insert({
+      owner_user_id: randomUUID(),
+      company_name: companyName,
+      category,
+      city,
+      area: area || null,
+      contact_person: contactPerson,
+      phone,
+      whatsapp: whatsapp || null,
+      description,
+      license_number: licenseNumber || null,
+      verification_status: "pending",
+      payment_status: "unpaid",
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("Failed to register company", error);
+    redirect("/register/company?status=error");
+  }
+
+  redirect(`/register/company?status=success&companyId=${data.id}`);
+}
