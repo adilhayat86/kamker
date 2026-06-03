@@ -45,7 +45,7 @@ const steps = [
 export default function HomePage() {
   return (
     <main className="min-h-screen overflow-hidden pb-24 md:pb-0">
-      <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
+      <header className="border-b bg-background/95">
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <a href="#" className="flex items-center gap-2" aria-label="Kamker home">
             <span className="flex size-9 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">K</span>
@@ -55,9 +55,8 @@ export default function HomePage() {
             <a href="#categories" className="hover:text-foreground">Categories</a>
             <a href="#how-it-works" className="hover:text-foreground">How it works</a>
             <Link href="/register" className="hover:text-foreground">Register</Link>
-            <Link href="/account" className="hover:text-foreground">My Account</Link>
           </div>
-          <Button asChild size="sm"><Link href="/account">My Account</Link></Button>
+          <Button asChild size="sm"><Link href="/account">Account</Link></Button>
         </nav>
       </header>
 
@@ -76,7 +75,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="sticky top-16 z-30 border-b bg-background/95 px-4 py-3 shadow-sm backdrop-blur sm:px-6 lg:px-8">
+      <section className="border-b bg-background px-4 py-4 shadow-sm sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <SearchPanel />
           <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">

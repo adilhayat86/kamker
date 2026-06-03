@@ -61,19 +61,25 @@ export default async function SendRequirementPage({
     : null;
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-background px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <section className="mx-auto max-w-3xl">
         <PageNavigation backHref="/categories" backLabel="Categories" />
-        <h1 className="mt-4 text-3xl font-bold tracking-normal">
-          Send Requirement
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          Describe your need and receive responses from matching professionals.
-        </p>
+        <div className="mt-6 rounded-xl bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+            Customer request
+          </p>
+          <h1 className="mt-1 text-3xl font-bold tracking-normal">
+            Send Requirement
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
+            Describe your need once. Kamker will match it with relevant
+            professionals by service, city, area, and availability.
+          </p>
+        </div>
 
         {hasBroadcastContext ? (
           <Card className="mt-5 border-primary/20 bg-accent text-accent-foreground shadow-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-5">
               <p className="font-semibold">
                 Your requirement will be sent to matching professionals in this
                 category.
@@ -89,13 +95,13 @@ export default async function SendRequirementPage({
         ) : null}
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-lg border bg-white p-4 text-sm shadow-sm">
+          <div className="rounded-lg border bg-white p-5 text-sm shadow-sm">
             <p className="font-semibold text-primary">Free mode</p>
             <p className="mt-1 text-muted-foreground">
               Your requirement is saved so Kamker can review and organize it.
             </p>
           </div>
-          <div className="rounded-lg border bg-white p-4 text-sm shadow-sm">
+          <div className="rounded-lg border bg-white p-5 text-sm shadow-sm">
             <p className="font-semibold text-primary">Paid broadcast later</p>
             <p className="mt-1 text-muted-foreground">
               Message all matching professionals by service, city, and area.
@@ -110,7 +116,7 @@ export default async function SendRequirementPage({
         ) : null}
 
         <Card className="mt-6 bg-white shadow-sm">
-          <CardContent className="p-5">
+          <CardContent className="p-5 sm:p-6">
             <form action={submitRequirement} className="grid gap-4 sm:grid-cols-2">
               <SelectField
                 label="Required service"
@@ -141,7 +147,9 @@ export default async function SendRequirementPage({
                   placeholder="Explain the service, timing, location, and any preferences."
                 />
               </div>
-              <Button className="h-12 sm:col-span-2">Send Requirement</Button>
+              <Button className="h-12 text-base sm:col-span-2">
+                Send Requirement
+              </Button>
             </form>
           </CardContent>
         </Card>

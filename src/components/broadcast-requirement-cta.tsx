@@ -31,7 +31,7 @@ export function BroadcastRequirementCta({
   });
 
   return (
-    <Card className="sticky top-3 z-20 mt-6 border-primary/20 bg-primary text-primary-foreground shadow-lg sm:static">
+    <Card className="mt-6 border-primary/20 bg-primary text-primary-foreground shadow-lg">
       <CardContent className="p-4 sm:p-5">
         <p className="text-sm font-semibold text-white/80">
           Broadcast requirement
