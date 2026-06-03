@@ -10,6 +10,11 @@ function field(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function numericField(formData: FormData, key: string) {
+  const value = Number(field(formData, key));
+  return Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
 export async function registerProfessional(formData: FormData) {
   const fullName = field(formData, "fullName");
   const phoneNumber = field(formData, "phone");
@@ -17,6 +22,9 @@ export async function registerProfessional(formData: FormData) {
   const cityName = field(formData, "city");
   const area = field(formData, "area");
   const categoryName = field(formData, "category");
+  const gender = field(formData, "gender");
+  const availability = field(formData, "availability");
+  const yearsExperience = numericField(formData, "yearsExperience");
   const experience = field(formData, "experience");
   const expectedRate = field(formData, "rate");
   const cnic = field(formData, "cnic");
@@ -30,6 +38,9 @@ export async function registerProfessional(formData: FormData) {
     !phoneNumber ||
     !cityName ||
     !categoryName ||
+    !gender ||
+    !availability ||
+    !expectedRate ||
     !password ||
     !secretQuestion ||
     !secretAnswer
@@ -65,6 +76,9 @@ export async function registerProfessional(formData: FormData) {
     city_id: city?.id ?? null,
     area: area || null,
     category_id: category?.id ?? null,
+    gender,
+    availability,
+    years_experience: yearsExperience,
     experience: experience || null,
     expected_rate: expectedRate || null,
     short_bio: shortBio || null,
