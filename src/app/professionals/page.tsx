@@ -66,7 +66,7 @@ type ProfessionalsPageProps = {
   }>;
 };
 
-const availabilityOptions = ["Full-time", "Part-time", "Night Shift", "Live-in"];
+const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evening"];
 const pageSize = 20;
 
 function matches(value: string | null | undefined, query: string) {
