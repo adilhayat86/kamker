@@ -13,10 +13,12 @@ export const metadata = {
   title: "Register as Professional | Kamker",
 };
 
+const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evening"];
+
 const statusMessages = {
-  success: "Professional profile submitted successfully. You can now log in.",
+  success: "Professional profile submitted successfully. Kamker will review it before it appears publicly.",
   missing:
-    "Please fill name, phone, city, profession, password, secret question, and secret answer.",
+    "Please fill name, phone, city, profession, gender, availability, hourly rate, password, secret question, and secret answer.",
   "not-configured": "Supabase is not configured yet.",
   error: "Could not register professional. Please try again.",
 } as const;
@@ -41,6 +43,9 @@ export default async function ProfessionalRegisterPage({
         <h1 className="mt-4 text-3xl font-bold tracking-normal">
           Register as Professional
         </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Create an hourly-rate profile so customers can find and contact you directly.
+        </p>
         {statusMessage ? (
           <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
             {statusMessage}
@@ -69,14 +74,26 @@ export default async function ProfessionalRegisterPage({
               <FormField label="Phone number" name="phone" type="tel" />
               <FormField label="WhatsApp number" name="whatsapp" type="tel" />
               <SelectField label="City" name="city" options={cities} />
-              <FormField label="Area" name="area" />
+              <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" />
               <SelectField
                 label="Profession/category"
                 name="category"
                 options={categories.map((category) => category.name)}
               />
-              <FormField label="Experience" name="experience" placeholder="5 years" />
-              <FormField label="Expected rate" name="rate" placeholder="Rs. 2,000/day" />
+              <SelectField label="Gender" name="gender" options={["Female", "Male"]} />
+              <SelectField
+                label="Availability"
+                name="availability"
+                options={availabilityOptions}
+              />
+              <FormField
+                label="Years of experience"
+                name="yearsExperience"
+                type="number"
+                placeholder="5"
+              />
+              <FormField label="Experience details" name="experience" placeholder="5 years home nursing" />
+              <FormField label="Hourly rate" name="rate" placeholder="Rs. 500/hour" />
               <FormField label="CNIC optional" name="cnic" />
               <FormField label="Password" name="password" type="password" />
               <FormField
@@ -91,9 +108,13 @@ export default async function ProfessionalRegisterPage({
                 placeholder="Answer"
               />
               <div className="sm:col-span-2">
-                <TextAreaField label="Short bio" name="bio" />
+                <TextAreaField
+                  label="Short bio"
+                  name="bio"
+                  placeholder="Tell customers what services you offer, your timing, and your preferred work areas."
+                />
               </div>
-              <Button className="h-12 sm:col-span-2">Register</Button>
+              <Button className="h-12 sm:col-span-2">Register for Hourly Work</Button>
             </form>
           </CardContent>
         </Card>
