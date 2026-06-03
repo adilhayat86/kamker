@@ -14,8 +14,11 @@ export const metadata = {
   description: "Update your Kamker professional profile.",
 };
 
+const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evening"];
+const genderOptions = ["Female", "Male"];
+
 const statusMessages = {
-  missing: "Please fill name, phone, city, and profession.",
+  missing: "Please fill name, phone, city, profession, gender, availability, and hourly rate.",
   "not-configured": "Supabase is not configured yet.",
   error: "Could not update profile. Please try again.",
 } as const;
@@ -36,7 +39,7 @@ function TextInput({
 }: {
   label: string;
   name: string;
-  value?: string | null;
+  value?: string | number | null;
   type?: string;
   placeholder?: string;
   disabled?: boolean;
@@ -114,6 +117,9 @@ export default async function EditAccountPage({
   const phoneNumber = dbProfessional?.phone_number ?? demoProfessional?.phone_number;
   const whatsappNumber =
     dbProfessional?.whatsapp_number ?? demoProfessional?.whatsapp_number;
+  const gender = dbProfessional?.gender ?? "";
+  const availability = dbProfessional?.availability ?? "";
+  const yearsExperience = dbProfessional?.years_experience ?? 0;
   const experience = dbProfessional?.experience ?? demoProfessional?.experience;
   const expectedRate = dbProfessional?.expected_rate ?? demoProfessional?.rate;
   const bio = dbProfessional?.short_bio ?? demoProfessional?.bio;
@@ -136,8 +142,8 @@ export default async function EditAccountPage({
             </div>
           </div>
           <p className="mt-3 text-muted-foreground">
-            Update profile details, service area, contact info, rate, experience,
-            and bio.
+            Update your hourly rate, availability, service area, contact info,
+            experience, and bio.
           </p>
         </div>
 
@@ -197,18 +203,40 @@ export default async function EditAccountPage({
                 options={categories.map((category) => category.name)}
                 disabled={isDemo}
               />
-              <TextInput
-                label="Experience"
-                name="experience"
-                value={experience}
-                placeholder="5 years"
+              <SelectInput
+                label="Gender"
+                name="gender"
+                value={gender}
+                options={genderOptions}
+                disabled={isDemo}
+              />
+              <SelectInput
+                label="Availability"
+                name="availability"
+                value={availability}
+                options={availabilityOptions}
                 disabled={isDemo}
               />
               <TextInput
-                label="Expected rate"
+                label="Years of experience"
+                name="yearsExperience"
+                type="number"
+                value={yearsExperience}
+                placeholder="5"
+                disabled={isDemo}
+              />
+              <TextInput
+                label="Experience details"
+                name="experience"
+                value={experience}
+                placeholder="5 years home nursing"
+                disabled={isDemo}
+              />
+              <TextInput
+                label="Hourly rate"
                 name="rate"
                 value={expectedRate}
-                placeholder="Rs. 2,000/day"
+                placeholder="Rs. 500/hour"
                 disabled={isDemo}
               />
               <label className="grid gap-2 sm:col-span-2">
@@ -218,7 +246,7 @@ export default async function EditAccountPage({
                   defaultValue={bio ?? ""}
                   disabled={isDemo}
                   className="min-h-32 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
-                  placeholder="Write a short profile bio."
+                  placeholder="Write a short profile bio. Mention services, timing, hourly rate, and preferred work areas."
                 />
               </label>
               <Button className="h-12 sm:col-span-2" disabled={isDemo}>
