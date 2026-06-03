@@ -1,0 +1,162 @@
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+
+type SendWhatsappTextInput = {
+  to: string;
+  body: string;
+  relatedType?: string;
+  relatedId?: string;
+};
+
+function cleanPhoneNumber(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function whatsappConfig() {
+  return {
+    accessToken: process.env.WHATSAPP_ACCESS_TOKEN || "",
+    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || "",
+    apiVersion: process.env.WHATSAPP_API_VERSION || "v20.0",
+  };
+}
+
+async function logWhatsappMessage(input: {
+  recipientPhone: string;
+  body: string;
+  status: "pending" | "sent" | "failed" | "skipped";
+  providerMessageId?: string | null;
+  errorMessage?: string | null;
+  relatedType?: string | null;
+  relatedId?: string | null;
+  requestPayload?: Record<string, unknown> | null;
+  responsePayload?: Record<string, unknown> | null;
+}) {
+  if (!isSupabaseConfigured || !supabase) {
+    return;
+  }
+
+  const { error } = await supabase.from("whatsapp_messages").insert({
+    recipient_phone: input.recipientPhone,
+    message_type: "text",
+    body: input.body,
+    status: input.status,
+    provider_message_id: input.providerMessageId ?? null,
+    error_message: input.errorMessage ?? null,
+    related_type: input.relatedType ?? null,
+    related_id: input.relatedId ?? null,
+    request_payload: input.requestPayload ?? null,
+    response_payload: input.responsePayload ?? null,
+    sent_at: input.status === "sent" ? new Date().toISOString() : null,
+  });
+
+  if (error) {
+    console.error("Failed to log WhatsApp message", error);
+  }
+}
+
+export function isWhatsappConfigured() {
+  const config = whatsappConfig();
+
+  return Boolean(config.accessToken && config.phoneNumberId);
+}
+
+export async function sendWhatsappText({
+  to,
+  body,
+  relatedType,
+  relatedId,
+}: SendWhatsappTextInput) {
+  const config = whatsappConfig();
+  const recipientPhone = cleanPhoneNumber(to);
+
+  if (!recipientPhone || !body.trim()) {
+    return { ok: false, error: "Missing recipient or message body." };
+  }
+
+  if (!config.accessToken || !config.phoneNumberId) {
+    await logWhatsappMessage({
+      recipientPhone,
+      body,
+      status: "skipped",
+      errorMessage: "WhatsApp API is not configured.",
+      relatedType,
+      relatedId,
+    });
+
+    return { ok: false, error: "WhatsApp API is not configured." };
+  }
+
+  const payload = {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: recipientPhone,
+    type: "text",
+    text: {
+      preview_url: false,
+      body,
+    },
+  };
+
+  const response = await fetch(
+    `https://graph.facebook.com/${config.apiVersion}/${config.phoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  const responsePayload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+  const providerMessageId =
+    Array.isArray(responsePayload?.messages) &&
+    typeof responsePayload.messages[0]?.id === "string"
+      ? responsePayload.messages[0].id
+      : null;
+
+  if (!response.ok) {
+    const errorMessage = JSON.stringify(responsePayload ?? { status: response.status });
+
+    await logWhatsappMessage({
+      recipientPhone,
+      body,
+      status: "failed",
+      errorMessage,
+      relatedType,
+      relatedId,
+      requestPayload: payload,
+      responsePayload,
+    });
+
+    return { ok: false, error: errorMessage };
+  }
+
+  await logWhatsappMessage({
+    recipientPhone,
+    body,
+    status: "sent",
+    providerMessageId,
+    relatedType,
+    relatedId,
+    requestPayload: payload,
+    responsePayload,
+  });
+
+  return { ok: true, providerMessageId };
+}
+
+export async function sendAdminWhatsappAlert(body: string, relatedType?: string, relatedId?: string) {
+  const adminPhone = process.env.KAMKER_ADMIN_WHATSAPP;
+
+  if (!adminPhone) {
+    return { ok: false, error: "KAMKER_ADMIN_WHATSAPP is not configured." };
+  }
+
+  return sendWhatsappText({
+    to: adminPhone,
+    body,
+    relatedType,
+    relatedId,
+  });
+}
