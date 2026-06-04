@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShieldAlert, Sparkles } from "lucide-react";
 
+import { DismissibleCard } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -109,15 +110,18 @@ export default async function RequirementDetailPage({
         <PageNavigation backHref="/admin" backLabel="Admin" />
 
         {!adminPasswordConfigured ? (
-          <Card className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm">
-            <CardContent className="flex gap-3 p-4">
-              <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-              <p className="text-sm">
-                Set KAMKER_ADMIN_PASSWORD and KAMKER_AUTH_SECRET before using
-                requirement matches with real customer data.
-              </p>
-            </CardContent>
-          </Card>
+          <DismissibleCard
+            className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm"
+            cardContentClassName="p-4"
+            contentClassName="flex gap-3"
+            closeLabel="Close admin setup warning"
+          >
+                <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                <p className="text-sm">
+                  Set KAMKER_ADMIN_PASSWORD and KAMKER_AUTH_SECRET before using
+                  requirement matches with real customer data.
+                </p>
+          </DismissibleCard>
         ) : null}
 
         <div className="mt-6">

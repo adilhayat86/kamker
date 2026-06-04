@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2, Crown, ListChecks, Star } from "lucide-react";
 
+import { DismissibleCard } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -237,14 +238,16 @@ export default async function CompanyPackagesPage({ params }: CompanyPackagesPag
           </div>
         )}
 
-        <Card className="mt-6 border-amber-200 bg-amber-50 shadow-sm">
-          <CardContent className="p-5 text-sm leading-6 text-amber-950">
-            <p className="font-semibold">Manual payment next</p>
-            <p className="mt-1">
-              Package benefits activate only after Kamker admin approval. After activation, the company dashboard allows adding professionals until the published package limit is reached.
-            </p>
-          </CardContent>
-        </Card>
+        <DismissibleCard
+          className="mt-6 border-amber-200 bg-amber-50 shadow-sm"
+          cardContentClassName="p-5 text-sm leading-6 text-amber-950"
+          closeLabel="Close payment notice"
+        >
+          <p className="font-semibold">Manual payment next</p>
+          <p className="mt-1">
+            Package benefits activate only after Kamker admin approval. After activation, the company dashboard allows adding professionals until the published package limit is reached.
+          </p>
+        </DismissibleCard>
       </section>
     </main>
   );

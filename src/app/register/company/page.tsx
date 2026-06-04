@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Building2, ShieldCheck } from "lucide-react";
 
+import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
@@ -75,19 +76,17 @@ export default async function CompanyRegisterPage({
           Register your agency or business as a company account. After package activation, your company can add multiple professionals in any category and city according to the selected package limit.
         </p>
 
-        <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-          <div className="flex gap-3">
+        <DismissibleNotice className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950" contentClassName="flex gap-3" closeLabel="Close directory warning">
             <ShieldCheck className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
             <p>
               Kamker is a directory only. Security, bodyguard, and firearm
               training related companies must be legal/licensed providers. Weapon
               or ammunition sales are not allowed.
             </p>
-          </div>
-        </div>
+        </DismissibleNotice>
 
         {statusMessage ? (
-          <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
+          <DismissibleNotice className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close company registration message">
             <p>{statusMessage}</p>
             {status === "success" ? (
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -101,7 +100,7 @@ export default async function CompanyRegisterPage({
                 </Button>
               </div>
             ) : null}
-          </div>
+          </DismissibleNotice>
         ) : null}
 
         <Card className="mt-6 bg-white shadow-sm">

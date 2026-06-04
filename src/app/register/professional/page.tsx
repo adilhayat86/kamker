@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Camera } from "lucide-react";
 
+import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
@@ -55,7 +56,7 @@ export default async function ProfessionalRegisterPage({
           Create an hourly-rate profile so customers can find and contact you directly.
         </p>
         {statusMessage ? (
-          <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
+          <DismissibleNotice className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close registration message">
             {statusMessage}
             {status === "success" ? (
               <Button asChild className="mt-3 w-full sm:w-auto">
@@ -67,7 +68,7 @@ export default async function ProfessionalRegisterPage({
                 <Link href="/professionals">View Local Test Profiles</Link>
               </Button>
             ) : null}
-          </div>
+          </DismissibleNotice>
         ) : null}
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5 sm:p-6">

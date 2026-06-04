@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MessageCircle, ReceiptText, ShieldCheck } from "lucide-react";
 
+import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -192,12 +193,12 @@ export default async function CompanyPaymentPage({
                 </div>
               </div>
 
-              <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+              <DismissibleNotice className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950" closeLabel="Close directory warning">
                 <p className="font-semibold">Directory only</p>
                 <p className="mt-1">
                   Kamker is not an agency and does not sell weapons or ammunition. Customers should verify licenses and provider details before hiring.
                 </p>
-              </div>
+              </DismissibleNotice>
             </CardContent>
           </Card>
         </div>

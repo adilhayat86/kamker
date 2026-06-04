@@ -1,3 +1,4 @@
+import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
@@ -106,9 +107,9 @@ export default async function SendRequirementPage({
         </Card>
 
         {statusMessage ? (
-          <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
+          <DismissibleNotice className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close status message">
             {statusMessage}
-          </div>
+          </DismissibleNotice>
         ) : null}
 
         <Card className="mt-6 bg-white shadow-sm">

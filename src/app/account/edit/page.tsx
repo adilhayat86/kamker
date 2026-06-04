@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Save, UserCog } from "lucide-react";
 
+import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -154,16 +155,16 @@ export default async function EditAccountPage({
         </div>
 
         {statusMessage ? (
-          <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
+          <DismissibleNotice className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close profile update message">
             {statusMessage}
-          </div>
+          </DismissibleNotice>
         ) : null}
 
         {isDemo ? (
-          <div className="mt-5 rounded-lg border border-dashed bg-secondary/60 p-4 text-sm text-muted-foreground">
+          <DismissibleNotice className="mt-5 rounded-lg border border-dashed bg-secondary/60 p-4 text-sm text-muted-foreground" closeLabel="Close demo profile notice">
             Demo profile is shown because Supabase has no professional account
             available. Register or configure Supabase to enable updates.
-          </div>
+          </DismissibleNotice>
         ) : null}
 
         <Card className="mt-6 bg-white shadow-sm">

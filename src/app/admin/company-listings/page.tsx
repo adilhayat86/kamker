@@ -8,6 +8,7 @@ import {
   rejectCompanyListing,
   removeCompanyListingFeatured,
 } from "@/app/admin/actions";
+import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -167,13 +168,13 @@ export default async function AdminCompanyListingsPage() {
                     ) : null}
 
                     {!subscription ? (
-                      <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                      <DismissibleNotice className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950" closeLabel="Close package warning">
                         Activate a company package before approving this professional.
-                      </div>
+                      </DismissibleNotice>
                     ) : approvalWouldExceedQuota ? (
-                      <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                      <DismissibleNotice className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950" closeLabel="Close quota warning">
                         Approval would exceed the published listing limit for {subscription.package_title}.
-                      </div>
+                      </DismissibleNotice>
                     ) : null}
 
                     <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">

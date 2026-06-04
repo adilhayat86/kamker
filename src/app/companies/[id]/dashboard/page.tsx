@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Building2, ListChecks, PackageCheck, PlusCircle, Sparkles } from "lucide-react";
 
 import { PageNavigation } from "@/components/page-navigation";
+import { DismissibleNotice } from "@/components/dismissible-notice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -199,13 +200,13 @@ export default async function CompanyDashboardPage({ params }: CompanyDashboardP
                 <span>Expires: {new Date(activeSubscription.expires_at).toLocaleDateString("en-PK")}</span>
               </div>
             ) : (
-              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+              <DismissibleNotice className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950" closeLabel="Close package warning">
                 <p className="font-semibold">No active package</p>
                 <p className="mt-1">Choose and activate a package before adding company-managed professionals.</p>
                 <Button asChild className="mt-4 h-11 w-full sm:w-auto">
                   <Link href={`/companies/${company.id}/packages`}>Choose Package</Link>
                 </Button>
-              </div>
+              </DismissibleNotice>
             )}
           </CardContent>
         </Card>

@@ -1,5 +1,6 @@
 import { Bot, UploadCloud } from "lucide-react";
 
+import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
@@ -47,9 +48,9 @@ export default async function ProofUploadPage({ searchParams }: ProofUploadPageP
         </div>
 
         {statusMessage ? (
-          <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
+          <DismissibleNotice className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close proof upload message">
             {statusMessage}
-          </div>
+          </DismissibleNotice>
         ) : null}
 
         <Card className="mt-6 bg-white shadow-sm">
@@ -71,12 +72,12 @@ export default async function ProofUploadPage({ searchParams }: ProofUploadPageP
                   className="h-12 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </label>
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 sm:col-span-2">
+              <DismissibleNotice className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 sm:col-span-2" closeLabel="Close audit note">
                 <p className="font-semibold">Audit note</p>
                 <p className="mt-1">
                   AI review is saved for Kamker records. Automatic activation can be connected later after this upload flow is tested.
                 </p>
-              </div>
+              </DismissibleNotice>
               <Button className="h-12 sm:col-span-2">
                 <UploadCloud className="size-4" aria-hidden="true" />
                 Upload and Review

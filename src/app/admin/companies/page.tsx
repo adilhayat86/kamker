@@ -7,6 +7,7 @@ import {
   approveCompanyVerification,
   rejectCompanyVerification,
 } from "@/app/admin/actions";
+import { DismissibleCard, DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -137,15 +138,18 @@ export default async function AdminCompaniesPage() {
         </div>
 
         {!isSupabaseConfigured ? (
-          <Card className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm">
-            <CardContent className="flex gap-3 p-4">
-              <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-              <div>
-                <p className="font-semibold">Supabase is not configured</p>
-                <p className="mt-1 text-sm text-amber-900">Company records will appear here after Supabase is configured.</p>
-              </div>
-            </CardContent>
-          </Card>
+          <DismissibleCard
+            className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm"
+            cardContentClassName="p-4"
+            contentClassName="flex gap-3"
+            closeLabel="Close Supabase warning"
+          >
+                <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="font-semibold">Supabase is not configured</p>
+                  <p className="mt-1 text-sm text-amber-900">Company records will appear here after Supabase is configured.</p>
+                </div>
+          </DismissibleCard>
         ) : null}
 
         <div className="mt-6 grid gap-4">
@@ -175,10 +179,10 @@ export default async function AdminCompaniesPage() {
                   </div>
 
                   {isSensitiveCategory(company.category) ? (
-                    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
+                    <DismissibleNotice className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950" closeLabel="Close verification warning">
                       <p className="font-semibold">Extra verification needed</p>
                       <p>Kamker is a directory only. Approve only legal/licensed providers. Do not approve weapon or ammunition sales.</p>
-                    </div>
+                    </DismissibleNotice>
                   ) : null}
 
                   <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">

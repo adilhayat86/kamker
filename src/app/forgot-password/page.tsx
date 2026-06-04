@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { HelpCircle, KeyRound, Phone } from "lucide-react";
 
+import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -69,9 +70,9 @@ export default async function ForgotPasswordPage({
         </p>
 
         {statusMessage ? (
-          <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
+          <DismissibleNotice className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close password reset message">
             {statusMessage}
-          </div>
+          </DismissibleNotice>
         ) : null}
 
         <Card className="mt-6 bg-white shadow-sm">

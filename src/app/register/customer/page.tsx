@@ -1,3 +1,4 @@
+import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
@@ -38,9 +39,9 @@ export default async function CustomerRegisterPage({
           Register as Customer
         </h1>
         {statusMessage ? (
-          <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
+          <DismissibleNotice className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close registration message">
             {statusMessage}
-          </div>
+          </DismissibleNotice>
         ) : null}
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">

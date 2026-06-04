@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { LockKeyhole, ShieldAlert } from "lucide-react";
 
+import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,22 +61,20 @@ export default async function AdminLoginPage({
             </div>
 
             {!passwordConfigured ? (
-              <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                <div className="flex gap-2">
+              <DismissibleNotice className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950" contentClassName="flex gap-2" closeLabel="Close admin setup warning">
                   <ShieldAlert className="size-5 shrink-0" aria-hidden="true" />
                   <p>
                     Set <span className="font-semibold">KAMKER_ADMIN_PASSWORD</span>{" "}
                     and <span className="font-semibold">KAMKER_AUTH_SECRET</span>{" "}
                     in the deployment environment to enable admin login.
                   </p>
-                </div>
-              </div>
+              </DismissibleNotice>
             ) : (
               <form action={loginAdmin} className="mt-5 grid gap-4">
                 {statusMessage ? (
-                  <div className="rounded-lg border bg-secondary/60 p-4 text-sm font-medium">
+                  <DismissibleNotice className="rounded-lg border bg-secondary/60 p-4 text-sm font-medium" closeLabel="Close login message">
                     {statusMessage}
-                  </div>
+                  </DismissibleNotice>
                 ) : null}
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Admin Password</span>

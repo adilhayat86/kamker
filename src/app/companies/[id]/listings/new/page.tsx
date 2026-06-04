@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BriefcaseBusiness, LockKeyhole, PackageCheck } from "lucide-react";
 
+import { DismissibleCard, DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
@@ -86,15 +87,18 @@ export default async function CompanyListingNewPage({
         </div>
 
         {statusMessage ? (
-          <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
+          <DismissibleNotice className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close listing message">
             {statusMessage}
-          </div>
+          </DismissibleNotice>
         ) : null}
 
         {!activeSubscription ? (
-          <Card className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm">
-            <CardContent className="p-5">
-              <div className="flex gap-3">
+          <DismissibleCard
+            className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm"
+            cardContentClassName="p-5"
+            contentClassName="flex gap-3"
+            closeLabel="Close package warning"
+          >
                 <LockKeyhole className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
                 <div>
                   <h2 className="text-xl font-bold">Activate a package first</h2>
@@ -105,13 +109,14 @@ export default async function CompanyListingNewPage({
                     <Link href={`/companies/${id}/packages`}>Choose Package</Link>
                   </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+          </DismissibleCard>
         ) : quotaFull ? (
-          <Card className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm">
-            <CardContent className="p-5">
-              <div className="flex gap-3">
+          <DismissibleCard
+            className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm"
+            cardContentClassName="p-5"
+            contentClassName="flex gap-3"
+            closeLabel="Close quota warning"
+          >
                 <PackageCheck className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
                 <div>
                   <h2 className="text-xl font-bold">Published listing limit reached</h2>
@@ -122,9 +127,7 @@ export default async function CompanyListingNewPage({
                     <Link href={`/companies/${id}/dashboard`}>Back to Dashboard</Link>
                   </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+          </DismissibleCard>
         ) : (
           <Card className="mt-6 bg-white shadow-sm">
             <CardContent className="p-5 sm:p-6">

@@ -13,6 +13,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { logoutAdmin } from "@/app/admin/login/actions";
+import { DismissibleCard, DismissibleNotice } from "@/components/dismissible-notice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -251,19 +252,22 @@ export default async function AdminPage() {
         </p>
 
         {!adminPasswordConfigured ? (
-          <Card className="sticky top-3 z-20 mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-md">
-            <CardContent className="flex gap-3 p-4">
-              <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-              <div>
-                <p className="font-semibold">Admin protection is not configured</p>
-                <p className="mt-1 text-sm text-amber-900">
-                  Set KAMKER_ADMIN_PASSWORD and KAMKER_AUTH_SECRET in the
-                  environment. Admin actions are disabled until a protected
-                  admin session exists.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <DismissibleCard
+            className="sticky top-3 z-20 mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-md"
+            cardContentClassName="p-4"
+            contentClassName="flex gap-3"
+            closeLabel="Close admin setup warning"
+          >
+                <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="font-semibold">Admin protection is not configured</p>
+                  <p className="mt-1 text-sm text-amber-900">
+                    Set KAMKER_ADMIN_PASSWORD and KAMKER_AUTH_SECRET in the
+                    environment. Admin actions are disabled until a protected
+                    admin session exists.
+                  </p>
+                </div>
+          </DismissibleCard>
         ) : null}
 
         <Card className={!adminAuthenticated ? "mt-6 bg-white shadow-sm opacity-80" : "mt-6 bg-white shadow-sm"}>
@@ -281,9 +285,9 @@ export default async function AdminPage() {
                   without manual review.
                 </p>
                 {autoApproveProfessionals ? (
-                  <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-950">
+                  <DismissibleNotice className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-950" closeLabel="Close auto approval warning">
                     New profiles will appear publicly without manual review.
-                  </p>
+                  </DismissibleNotice>
                 ) : null}
               </div>
               <form action={updateAutoApprovalMode} className={!adminAuthenticated ? "rounded-lg border bg-muted/40 p-3" : "rounded-lg border p-3"}>
@@ -310,18 +314,21 @@ export default async function AdminPage() {
         </Card>
 
         {adminPasswordConfigured ? (
-          <Card className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm">
-            <CardContent className="flex gap-3 p-4">
-              <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-              <div>
-                <p className="font-semibold">Admin protection active</p>
-                <p className="mt-1 text-sm text-amber-900">
-                  Keep KAMKER_ADMIN_PASSWORD and KAMKER_AUTH_SECRET private and
-                  rotate them if shared.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <DismissibleCard
+            className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm"
+            cardContentClassName="p-4"
+            contentClassName="flex gap-3"
+            closeLabel="Close admin protection notice"
+          >
+                <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="font-semibold">Admin protection active</p>
+                  <p className="mt-1 text-sm text-amber-900">
+                    Keep KAMKER_ADMIN_PASSWORD and KAMKER_AUTH_SECRET private and
+                    rotate them if shared.
+                  </p>
+                </div>
+          </DismissibleCard>
         ) : null}
 
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
