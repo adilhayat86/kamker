@@ -307,15 +307,15 @@ function ConversionProfessionalCard({
           : "flex h-full flex-col bg-white shadow-sm"
       }
     >
-      <CardContent className="flex h-full flex-col p-4">
-        <div className="flex gap-4">
+      <CardContent className="flex h-full flex-col p-3.5 sm:p-4">
+        <div className="flex gap-3.5">
           <Image
             src={professional.profile_photo_url || "/kamker-professionals.png"}
             alt={`${professional.full_name} profile photo`}
             width={88}
             height={88}
             loading="lazy"
-            className="size-20 shrink-0 rounded-full bg-accent object-cover"
+            className="size-18 shrink-0 rounded-full bg-accent object-cover sm:size-20"
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -335,14 +335,14 @@ function ConversionProfessionalCard({
               ) : null}
             </div>
 
-            <p className="mt-3 text-2xl font-bold leading-tight text-primary">
+            <p className="mt-2 text-2xl font-bold leading-tight text-primary sm:text-3xl">
               {formatHourlyRate(professional.expected_rate)}
             </p>
             <p className="mt-1 truncate text-sm font-medium text-foreground">
               {tagline}
             </p>
 
-            <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+            <div className="mt-3 grid gap-1.5 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <MapPin className="size-4" aria-hidden="true" />
                 {professional.cities?.name ?? "Pakistan"}
@@ -359,7 +359,7 @@ function ConversionProfessionalCard({
           </div>
         </div>
 
-        <div className="mt-4 flex min-h-6 flex-wrap gap-2">
+        <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
           {professional.gender ? (
             <Badge variant="secondary">{professional.gender}</Badge>
           ) : null}
@@ -371,20 +371,20 @@ function ConversionProfessionalCard({
           ) : null}
         </div>
 
-        <div className="mt-auto grid grid-cols-3 gap-2 pt-4">
-          <Button asChild variant="outline" className="h-11">
+        <div className="mt-auto grid grid-cols-3 gap-2 pt-3">
+          <Button asChild variant="outline" className="h-10 px-2">
             <a href={`tel:${professional.phone_number}`}>
               <Phone aria-hidden="true" />
               Call
             </a>
           </Button>
-          <Button asChild className="h-11 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
+          <Button asChild className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
             <a href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}>
               <MessageCircle aria-hidden="true" />
               WhatsApp
             </a>
           </Button>
-          <Button asChild className="h-11 px-2" variant="outline">
+          <Button asChild className="h-10 px-2" variant="outline">
             <Link href={`/professionals/${professional.id}`}>View Profile</Link>
           </Button>
         </div>
@@ -500,7 +500,7 @@ export default async function ProfessionalsPage({
           </p>
         ) : null}
 
-        <form className="mt-6 rounded-lg bg-white p-3 shadow-sm">
+        <form className="mt-6 rounded-lg border bg-white p-3 shadow-sm">
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
             <label className="grid gap-1">
               <span className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
@@ -522,7 +522,7 @@ export default async function ProfessionalsPage({
             </Button>
           </div>
 
-          <details className="mt-2 rounded-md border border-border bg-muted/30 px-3 py-2">
+          <details className="mt-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
             <summary className="cursor-pointer text-sm font-semibold text-primary">
               Advanced filters
             </summary>

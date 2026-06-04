@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 
 import { BroadcastRequirementCta } from "@/components/broadcast-requirement-cta";
 import { CategoryGrid } from "@/components/category-grid";
 import { Button } from "@/components/ui/button";
 import { getBroadcastRecipientCount } from "@/lib/broadcast";
-import { parentCategories } from "@/lib/marketplace-data";
+import { cities, parentCategories } from "@/lib/marketplace-data";
 
 export const metadata = {
   title: "All Categories | Kamker",
@@ -16,6 +16,7 @@ type CategoriesPageProps = {
   searchParams?: Promise<{
     city?: string;
     area?: string;
+    q?: string;
   }>;
 };
 
@@ -25,7 +26,13 @@ export default async function CategoriesPage({
   const params = await searchParams;
   const city = params?.city?.trim() || undefined;
   const area = params?.area?.trim() || undefined;
+  const q = params?.q?.trim() || "";
   const recipientCount = await getBroadcastRecipientCount({ city, area });
+  const visibleCategories = q
+    ? parentCategories.filter((category) =>
+        category.name.toLowerCase().includes(q.toLowerCase()),
+      )
+    : parentCategories;
 
   return (
     <main className="min-h-screen bg-background">
@@ -64,7 +71,44 @@ export default async function CategoriesPage({
           area={area}
         />
 
-        <CategoryGrid categories={parentCategories} />
+        <form className="mt-6 rounded-lg border bg-white p-3 shadow-sm">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
+            <label className="grid gap-1">
+              <span className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+                Find service group
+              </span>
+              <input
+                name="q"
+                defaultValue={q}
+                placeholder="Healthcare, Education, Repairs"
+                className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </label>
+            <label className="grid gap-1">
+              <span className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+                City
+              </span>
+              <select
+                name="city"
+                defaultValue={city ?? ""}
+                className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">All cities</option>
+                {cities.map((cityOption) => (
+                  <option key={cityOption} value={cityOption}>
+                    {cityOption}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Button className="h-11 self-end" type="submit">
+              <Search aria-hidden="true" />
+              Search
+            </Button>
+          </div>
+        </form>
+
+        <CategoryGrid categories={visibleCategories} />
       </section>
     </main>
   );

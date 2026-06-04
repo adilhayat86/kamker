@@ -76,16 +76,16 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
             className="block h-full"
           >
             <Card className="h-full bg-white/95 shadow-sm transition-colors hover:border-primary/40 hover:bg-white">
-              <CardContent className="flex min-h-36 flex-col justify-between p-4 sm:min-h-40 sm:p-5">
+              <CardContent className="flex min-h-32 flex-col justify-between p-3.5 sm:min-h-40 sm:p-5">
                 <div>
-                  <div className="flex size-12 items-center justify-center rounded-md bg-accent text-accent-foreground sm:size-14">
+                  <div className="flex size-11 items-center justify-center rounded-md bg-accent text-accent-foreground sm:size-14">
                     <Icon className="size-6 sm:size-7" aria-hidden="true" />
                   </div>
-                  <h3 className="mt-4 min-h-10 text-sm font-semibold leading-tight sm:text-base">
+                  <h3 className="mt-3 min-h-9 text-sm font-semibold leading-tight sm:mt-4 sm:text-base">
                     {category.name}
                   </h3>
                 </div>
-                <p className="mt-3 text-xs text-muted-foreground sm:text-sm">
+                <p className="mt-2 text-xs text-muted-foreground sm:mt-3 sm:text-sm">
                   {category.count} available
                 </p>
               </CardContent>

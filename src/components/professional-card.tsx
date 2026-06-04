@@ -24,15 +24,15 @@ export function ProfessionalCard({
           : "flex h-full flex-col bg-white shadow-sm"
       }
     >
-      <CardContent className="flex h-full flex-col p-4">
-        <div className="flex items-start gap-4">
+      <CardContent className="flex h-full flex-col p-3.5 sm:p-4">
+        <div className="flex items-start gap-3.5">
           <Image
             src={professional.image}
             alt={`${professional.name} profile photo`}
             width={96}
             height={96}
             loading="lazy"
-            className="size-20 shrink-0 rounded-full bg-accent object-cover sm:size-24"
+            className="size-18 shrink-0 rounded-full bg-accent object-cover sm:size-24"
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -57,13 +57,13 @@ export function ProfessionalCard({
                 </Badge>
               </div>
             </div>
-            <p className="mt-3 text-2xl font-bold leading-tight text-primary">
+            <p className="mt-2 text-2xl font-bold leading-tight text-primary sm:text-3xl">
               {professional.rate}
             </p>
             <p className="mt-1 truncate text-sm font-medium text-foreground">
               {professional.tagline}
             </p>
-            <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+            <div className="mt-3 grid gap-1.5 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <MapPin className="size-4" aria-hidden="true" />
                 {professional.city}, {professional.area}
@@ -79,21 +79,21 @@ export function ProfessionalCard({
             </div>
           </div>
         </div>
-        <div className="mt-4 flex min-h-6 flex-wrap gap-2">
+        <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
           <Badge variant="secondary">{professional.gender}</Badge>
           <Badge variant="outline">CNIC Verified</Badge>
           <Badge variant="outline">Phone Verified</Badge>
         </div>
-        <div className="mt-auto grid grid-cols-3 gap-2 pt-4">
-          <Button variant="outline" className="h-11">
+        <div className="mt-auto grid grid-cols-3 gap-2 pt-3">
+          <Button variant="outline" className="h-10 px-2">
             <Phone aria-hidden="true" />
             Call
           </Button>
-          <Button className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]">
+          <Button className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
             <MessageCircle aria-hidden="true" />
             WhatsApp
           </Button>
-          <Button asChild className="h-11 px-2" variant="outline">
+          <Button asChild className="h-10 px-2" variant="outline">
             <Link href={`/professionals/${professional.id}`}>View Profile</Link>
           </Button>
         </div>

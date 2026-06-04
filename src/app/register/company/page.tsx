@@ -106,25 +106,43 @@ export default async function CompanyRegisterPage({
         ) : null}
 
         <Card className="mt-6 bg-white shadow-sm">
-          <CardContent className="p-5">
-            <form action={registerCompany} className="grid gap-4 sm:grid-cols-2">
-              <FormField label="Company name" name="companyName" />
-              <SelectField
-                label="Company category"
-                name="category"
-                options={companyCategories}
-              />
-              <SelectField label="City" name="city" options={cities} />
-              <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" />
-              <FormField label="Contact person" name="contactPerson" />
-              <FormField label="Phone number" name="phone" type="tel" />
-              <FormField label="WhatsApp number" name="whatsapp" type="tel" />
-              <FormField
-                label="License number optional"
-                name="licenseNumber"
-                placeholder="For security/bodyguard/fire safety companies"
-              />
-              <div className="sm:col-span-2">
+          <CardContent className="p-5 sm:p-6">
+            <form action={registerCompany} className="grid gap-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">Basic info</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Company identity and service category.</p>
+                </div>
+                <FormField label="Company name" name="companyName" />
+                <SelectField
+                  label="Company category"
+                  name="category"
+                  options={companyCategories}
+                />
+                <SelectField label="City" name="city" options={cities} />
+                <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" />
+              </div>
+
+              <div className="grid gap-4 border-t pt-5 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">Contact</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Customer-facing phone and WhatsApp details.</p>
+                </div>
+                <FormField label="Contact person" name="contactPerson" />
+                <FormField label="Phone number" name="phone" type="tel" />
+                <FormField label="WhatsApp number" name="whatsapp" type="tel" />
+                <FormField
+                  label="License number optional"
+                  name="licenseNumber"
+                  placeholder="For security/bodyguard/fire safety companies"
+                />
+              </div>
+
+              <div className="grid gap-4 border-t pt-5">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">Service details</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Explain staff types, areas covered, and verification details.</p>
+                </div>
                 <TextAreaField
                   label="Company description"
                   name="description"

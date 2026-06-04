@@ -20,44 +20,50 @@ export default function RegisterPage() {
           Choose how you want to use Kamker.
         </p>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <Card className="bg-white shadow-sm">
+          <Card className="border-primary/20 bg-white shadow-md md:scale-[1.02]">
             <CardContent className="p-5">
-              <BriefcaseBusiness className="size-8 text-primary" aria-hidden="true" />
+              <div className="flex size-12 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                <BriefcaseBusiness className="size-7" aria-hidden="true" />
+              </div>
               <h2 className="mt-4 text-xl font-semibold">
-                Register as Professional
+                Register as Worker
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Create a professional profile so customers can contact you.
               </p>
-              <Button asChild className="mt-5 w-full">
+              <Button asChild className="mt-5 h-12 w-full">
                 <Link href="/register/professional">Continue</Link>
               </Button>
             </CardContent>
           </Card>
           <Card className="bg-white shadow-sm">
             <CardContent className="p-5">
-              <Building2 className="size-8 text-primary" aria-hidden="true" />
+              <div className="flex size-12 items-center justify-center rounded-md bg-accent text-accent-foreground">
+                <Building2 className="size-7" aria-hidden="true" />
+              </div>
               <h2 className="mt-4 text-xl font-semibold">
                 Register Company
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Agencies can prepare for paid packages with multiple listings.
               </p>
-              <Button asChild className="mt-5 w-full" variant="outline">
+              <Button asChild className="mt-5 h-12 w-full" variant="outline">
                 <Link href="/register/company">Continue</Link>
               </Button>
             </CardContent>
           </Card>
           <Card className="bg-white shadow-sm">
             <CardContent className="p-5">
-              <User className="size-8 text-primary" aria-hidden="true" />
+              <div className="flex size-12 items-center justify-center rounded-md bg-accent text-accent-foreground">
+                <User className="size-7" aria-hidden="true" />
+              </div>
               <h2 className="mt-4 text-xl font-semibold">
                 Register as Customer
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Save your details and send requirements faster.
               </p>
-              <Button asChild className="mt-5 w-full" variant="outline">
+              <Button asChild className="mt-5 h-12 w-full" variant="outline">
                 <Link href="/register/customer">Continue</Link>
               </Button>
             </CardContent>

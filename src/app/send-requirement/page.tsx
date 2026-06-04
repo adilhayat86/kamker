@@ -117,30 +117,48 @@ export default async function SendRequirementPage({
 
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5 sm:p-6">
-            <form action={submitRequirement} className="grid gap-4 sm:grid-cols-2">
-              <SelectField
-                label="Required service"
-                name="service"
-                options={categories.map((category) => category.name)}
-                defaultValue={selectedService?.name}
-              />
-              <SelectField
-                label="City"
-                name="city"
-                options={cities}
-                defaultValue={selectedCity}
-              />
-              <FormField label="Area" name="area" defaultValue={area} />
-              <SelectField
-                label="Availability"
-                name="availability"
-                options={availabilityOptions}
-              />
-              <FormField label="Budget optional" name="budget" placeholder="Rs. 5,000" />
-              <FormField label="Phone number" name="phone" type="tel" />
-              <FormField label="WhatsApp number" name="whatsapp" type="tel" />
-              <SelectField label="Urgency" name="urgency" options={urgencyOptions} />
-              <div className="sm:col-span-2">
+            <form action={submitRequirement} className="grid gap-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">Service details</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Tell Kamker what you need and where.</p>
+                </div>
+                <SelectField
+                  label="Required service"
+                  name="service"
+                  options={categories.map((category) => category.name)}
+                  defaultValue={selectedService?.name}
+                />
+                <SelectField
+                  label="City"
+                  name="city"
+                  options={cities}
+                  defaultValue={selectedCity}
+                />
+                <FormField label="Area" name="area" defaultValue={area} />
+                <SelectField
+                  label="Availability"
+                  name="availability"
+                  options={availabilityOptions}
+                />
+                <FormField label="Budget optional" name="budget" placeholder="Rs. 5,000" />
+                <SelectField label="Urgency" name="urgency" options={urgencyOptions} />
+              </div>
+
+              <div className="grid gap-4 border-t pt-5 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">Contact</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Professionals use this to respond directly.</p>
+                </div>
+                <FormField label="Phone number" name="phone" type="tel" />
+                <FormField label="WhatsApp number" name="whatsapp" type="tel" />
+              </div>
+
+              <div className="grid gap-4 border-t pt-5">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">Requirement note</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Add timing, location, and any preferences.</p>
+                </div>
                 <TextAreaField
                   label="Details"
                   name="details"

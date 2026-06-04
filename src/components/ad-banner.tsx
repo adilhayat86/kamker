@@ -12,7 +12,7 @@ export function AdBanner({ label, className }: AdBannerProps) {
     <aside
       aria-label={label}
       className={cn(
-        "flex min-h-20 items-center justify-center rounded-lg border border-dashed bg-white/70 px-4 py-5 text-center text-sm text-muted-foreground shadow-sm",
+        "flex min-h-16 items-center justify-center rounded-lg border border-dashed border-border/70 bg-muted/30 px-4 py-4 text-center text-xs text-muted-foreground/80",
         className,
       )}
     >

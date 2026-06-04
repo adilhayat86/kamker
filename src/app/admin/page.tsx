@@ -251,7 +251,7 @@ export default async function AdminPage() {
         </p>
 
         {!adminPasswordConfigured ? (
-          <Card className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm">
+          <Card className="sticky top-3 z-20 mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-md">
             <CardContent className="flex gap-3 p-4">
               <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
               <div>
@@ -266,7 +266,7 @@ export default async function AdminPage() {
           </Card>
         ) : null}
 
-        <Card className="mt-6 bg-white shadow-sm">
+        <Card className={!adminAuthenticated ? "mt-6 bg-white shadow-sm opacity-80" : "mt-6 bg-white shadow-sm"}>
           <CardContent className="p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -286,7 +286,7 @@ export default async function AdminPage() {
                   </p>
                 ) : null}
               </div>
-              <form action={updateAutoApprovalMode} className="rounded-lg border p-3">
+              <form action={updateAutoApprovalMode} className={!adminAuthenticated ? "rounded-lg border bg-muted/40 p-3" : "rounded-lg border p-3"}>
                 <label className="flex items-center gap-3 text-sm font-medium">
                   <input
                     name="autoApprove"
@@ -302,7 +302,7 @@ export default async function AdminPage() {
                   type="submit"
                   disabled={!adminAuthenticated}
                 >
-                  Save Mode
+                  {adminAuthenticated ? "Save Mode" : "Login required"}
                 </Button>
               </form>
             </div>
@@ -342,7 +342,7 @@ export default async function AdminPage() {
           })}
         </div>
 
-        <Card className="mt-6 bg-white shadow-sm">
+        <Card className={!adminAuthenticated ? "mt-6 bg-white shadow-sm opacity-80" : "mt-6 bg-white shadow-sm"}>
           <CardContent className="p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
@@ -398,17 +398,18 @@ export default async function AdminPage() {
                             name="featuredUntil"
                             type="date"
                             defaultValue={professional.featured_until ?? ""}
-                            className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            disabled={!adminAuthenticated}
+                            className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                           />
                         </label>
 
                         <div className="grid gap-2 sm:grid-cols-2 lg:w-72">
-                          <Button className="h-11" disabled={!adminAuthenticated}>
+                          <Button className="h-10" disabled={!adminAuthenticated}>
                             Make Featured
                           </Button>
                           <Button
                             variant="outline"
-                            className="h-11"
+                            className="h-10"
                             disabled={!adminAuthenticated}
                           >
                             Remove Featured
@@ -460,11 +461,12 @@ export default async function AdminPage() {
                               name="featuredUntil"
                               type="date"
                               defaultValue={dateInputValue(professional.featured_until)}
-                              className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              disabled={!adminAuthenticated}
+                              className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                             />
                           </label>
                           <Button
-                            className="h-11"
+                            className="h-10"
                             type="submit"
                             disabled={!adminAuthenticated}
                           >
@@ -479,7 +481,7 @@ export default async function AdminPage() {
                           />
                           <Button
                             variant="outline"
-                            className="h-11 w-full"
+                            className="h-10 w-full"
                             type="submit"
                             disabled={!adminAuthenticated}
                           >
@@ -493,7 +495,7 @@ export default async function AdminPage() {
           </CardContent>
         </Card>
 
-        <Card className="mt-6 bg-white shadow-sm">
+        <Card className={!adminAuthenticated ? "mt-6 bg-white shadow-sm opacity-80" : "mt-6 bg-white shadow-sm"}>
           <CardContent className="p-5">
             <div className="flex items-center gap-2">
               <ClipboardList className="size-5 text-primary" aria-hidden="true" />
@@ -557,7 +559,7 @@ export default async function AdminPage() {
                           value={professional.id}
                         />
                         <Button
-                          className="w-full"
+                          className="h-10 w-full"
                           type="submit"
                           disabled={!adminAuthenticated}
                         >
@@ -571,7 +573,7 @@ export default async function AdminPage() {
                           value={professional.id}
                         />
                         <Button
-                          className="w-full"
+                          className="h-10 w-full"
                           type="submit"
                           variant="outline"
                           disabled={!adminAuthenticated}
@@ -586,7 +588,7 @@ export default async function AdminPage() {
                           value={professional.id}
                         />
                         <Button
-                          className="w-full"
+                          className="h-10 w-full"
                           type="submit"
                           variant="outline"
                           disabled={!adminAuthenticated}
@@ -636,7 +638,7 @@ export default async function AdminPage() {
           </CardContent>
         </Card>
 
-        <Card className="mt-6 bg-white shadow-sm">
+        <Card className={!adminAuthenticated ? "mt-6 bg-white shadow-sm opacity-80" : "mt-6 bg-white shadow-sm"}>
           <CardContent className="p-5">
             <div className="flex items-center gap-2">
               <Send className="size-5 text-primary" aria-hidden="true" />

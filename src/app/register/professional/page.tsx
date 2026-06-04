@@ -61,7 +61,7 @@ export default async function ProfessionalRegisterPage({
           </div>
         ) : null}
         <Card className="mt-6 bg-white shadow-sm">
-          <CardContent className="p-5">
+          <CardContent className="p-5 sm:p-6">
             <div className="mb-5 flex items-center gap-4 rounded-lg border border-dashed p-4">
               <div className="flex size-16 items-center justify-center rounded-full bg-accent text-accent-foreground">
                 <Camera className="size-7" aria-hidden="true" />
@@ -73,72 +73,92 @@ export default async function ProfessionalRegisterPage({
                 </p>
               </div>
             </div>
-            <form action={registerProfessional} className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2 sm:col-span-2">
-                <span className="text-sm font-medium">Profile photo</span>
-                <input
-                  name="photo"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+            <form action={registerProfessional} className="grid gap-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">Basic info</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Your name, contact, and work location.</p>
+                </div>
+                <label className="grid gap-2 sm:col-span-2">
+                  <span className="text-sm font-medium">Profile photo</span>
+                  <input
+                    name="photo"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                  />
+                </label>
+                <FormField label="Full name" name="fullName" />
+                <FormField label="Phone number" name="phone" type="tel" />
+                <FormField label="WhatsApp number" name="whatsapp" type="tel" />
+                <SelectField label="City" name="city" options={cities} />
+                <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" />
+                <SelectField label="Gender" name="gender" options={genderOptions} />
+              </div>
+
+              <div className="grid gap-4 border-t pt-5 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">Service details</p>
+                  <p className="mt-1 text-sm text-muted-foreground">This is what customers scan first.</p>
+                </div>
+                <SelectField
+                  label="Profession/category"
+                  name="category"
+                  options={categories.map((category) => category.name)}
                 />
-              </label>
-              <FormField label="Full name" name="fullName" />
-              <FormField label="Phone number" name="phone" type="tel" />
-              <FormField label="WhatsApp number" name="whatsapp" type="tel" />
-              <SelectField label="City" name="city" options={cities} />
-              <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" />
-              <SelectField
-                label="Profession/category"
-                name="category"
-                options={categories.map((category) => category.name)}
-              />
-              <SelectField label="Gender" name="gender" options={genderOptions} />
-              <SelectField
-                label="Availability"
-                name="availability"
-                options={availabilityOptions}
-              />
-              <FormField
-                label="Years of experience"
-                name="yearsExperience"
-                type="number"
-                placeholder="5"
-              />
-              <FormField
-                label="Hourly Rate"
-                name="rate"
-                placeholder="Rs. 500/hour"
-              />
-              <FormField
-                label="Profile Tagline"
-                name="tagline"
-                placeholder="Trusted elderly caregiver"
-                maxLength={30}
-              />
-              <FormField
-                label="Experience details"
-                name="experience"
-                placeholder="5 years home nursing"
-              />
-              <FormField label="CNIC optional" name="cnic" />
-              <FormField label="Password" name="password" type="password" />
-              <FormField
-                label="Secret question"
-                name="secretQuestion"
-                placeholder="What is your first school name?"
-              />
-              <FormField
-                label="Secret answer"
-                name="secretAnswer"
-                type="password"
-                placeholder="Answer"
-              />
-              <div className="sm:col-span-2">
-                <TextAreaField
-                  label="Short bio"
-                  name="bio"
-                  placeholder="Tell customers what services you offer, your timing, and your preferred work areas."
+                <SelectField
+                  label="Availability"
+                  name="availability"
+                  options={availabilityOptions}
+                />
+                <FormField
+                  label="Years of experience"
+                  name="yearsExperience"
+                  type="number"
+                  placeholder="5"
+                />
+                <FormField
+                  label="Hourly Rate"
+                  name="rate"
+                  placeholder="Rs. 500/hour"
+                />
+                <FormField
+                  label="Profile Tagline"
+                  name="tagline"
+                  placeholder="Trusted elderly caregiver"
+                  maxLength={30}
+                />
+                <FormField
+                  label="Experience details"
+                  name="experience"
+                  placeholder="5 years home nursing"
+                />
+                <div className="sm:col-span-2">
+                  <TextAreaField
+                    label="Short bio"
+                    name="bio"
+                    placeholder="Tell customers what services you offer, your timing, and your preferred work areas."
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 border-t pt-5 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">Security</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Used for login, review, and account recovery.</p>
+                </div>
+                <FormField label="CNIC optional" name="cnic" />
+                <FormField label="Password" name="password" type="password" />
+                <FormField
+                  label="Secret question"
+                  name="secretQuestion"
+                  placeholder="What is your first school name?"
+                />
+                <FormField
+                  label="Secret answer"
+                  name="secretAnswer"
+                  type="password"
+                  placeholder="Answer"
                 />
               </div>
               <Button className="h-12 sm:col-span-2">Register for Hourly Work</Button>

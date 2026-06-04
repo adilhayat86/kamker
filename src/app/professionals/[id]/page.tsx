@@ -92,7 +92,7 @@ export default async function ProfessionalProfilePage({
     const whatsappNumber = dbProfessional.whatsapp_number ?? dbProfessional.phone_number;
 
     return (
-      <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
+      <main className="min-h-screen bg-background px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
         <section className="mx-auto max-w-3xl">
           <PageNavigation backHref="/professionals" backLabel="Professionals" />
           <Card className="mt-6 bg-white shadow-sm">
@@ -177,7 +177,7 @@ export default async function ProfessionalProfilePage({
                 </p>
               </div>
 
-              <div className="mt-6 grid gap-2 sm:grid-cols-3">
+              <div className="mt-6 hidden gap-2 sm:grid sm:grid-cols-3">
                 <Button asChild variant="outline" className="h-12">
                   <a href={`tel:${dbProfessional.phone_number}`}>
                     <Phone aria-hidden="true" />
@@ -200,6 +200,26 @@ export default async function ProfessionalProfilePage({
             </CardContent>
           </Card>
         </section>
+        <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 gap-2 border-t bg-white/95 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
+          <Button asChild variant="outline" className="h-12">
+            <a href={`tel:${dbProfessional.phone_number}`}>
+              <Phone aria-hidden="true" />
+              Call
+            </a>
+          </Button>
+          <Button asChild className="h-12 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
+            <a href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}>
+              <MessageCircle aria-hidden="true" />
+              WhatsApp
+            </a>
+          </Button>
+          <Button asChild className="h-12 px-2">
+            <Link href="/send-requirement">
+              <Send aria-hidden="true" />
+              Send
+            </Link>
+          </Button>
+        </div>
       </main>
     );
   }
@@ -207,7 +227,7 @@ export default async function ProfessionalProfilePage({
   const professional = demoProfessional!;
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-background px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
       <section className="mx-auto max-w-3xl">
         <PageNavigation backHref="/professionals" backLabel="Professionals" />
         <Card className="mt-6 bg-white shadow-sm">
@@ -272,7 +292,7 @@ export default async function ProfessionalProfilePage({
               <p className="mt-2 leading-7">{professional.bio}</p>
             </div>
 
-            <div className="mt-6 grid gap-2 sm:grid-cols-3">
+            <div className="mt-6 hidden gap-2 sm:grid sm:grid-cols-3">
               <Button variant="outline" className="h-12">
                 <Phone aria-hidden="true" />
                 Call
@@ -291,6 +311,22 @@ export default async function ProfessionalProfilePage({
           </CardContent>
         </Card>
       </section>
+      <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 gap-2 border-t bg-white/95 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
+        <Button variant="outline" className="h-12">
+          <Phone aria-hidden="true" />
+          Call
+        </Button>
+        <Button className="h-12 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
+          <MessageCircle aria-hidden="true" />
+          WhatsApp
+        </Button>
+        <Button asChild className="h-12 px-2">
+          <Link href="/send-requirement">
+            <Send aria-hidden="true" />
+            Send
+          </Link>
+        </Button>
+      </div>
     </main>
   );
 }

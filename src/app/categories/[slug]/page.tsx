@@ -267,37 +267,7 @@ export default async function CategoryDetailPage({
           area={area}
         />
 
-        {serviceGroup ? (
-          <Card className="mt-6 bg-white shadow-sm">
-            <CardContent className="p-5">
-              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-                Choose a specific service
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Message the full {serviceGroup.name} group, or choose one professional type for a more targeted requirement.
-              </p>
-              <CategoryGrid categories={subcategoryCards} />
-            </CardContent>
-          </Card>
-        ) : parentGroup ? (
-          <Card className="mt-6 bg-white shadow-sm">
-            <CardContent className="p-5">
-              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-                Parent service group
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {category?.name} belongs to {parentGroup.name}. You can also send one broader requirement to every approved professional in this group.
-              </p>
-              <Button asChild className="mt-4 h-11 w-full sm:w-auto" variant="outline">
-                <Link href={`/categories/${categorySlug(parentGroup.name)}`}>
-                  View {parentGroup.name}
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        <section className="mt-8">
+        <section className="mt-7">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-normal text-primary">
@@ -308,10 +278,6 @@ export default async function CategoryDetailPage({
                   ? `${serviceGroup.name} professionals`
                   : `${category?.name} professionals`}
               </h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Showing matching profiles for this service. Use Send Requirement
-                to reach all matching professionals in one request.
-              </p>
             </div>
             <Button asChild variant="outline" className="h-11 w-full sm:w-auto">
               <Link
@@ -344,6 +310,36 @@ export default async function CategoryDetailPage({
             </Card>
           )}
         </section>
+
+        {serviceGroup ? (
+          <Card className="mt-8 bg-white shadow-sm">
+            <CardContent className="p-5">
+              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                Choose a specific service
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Message the full {serviceGroup.name} group, or choose one professional type for a more targeted requirement.
+              </p>
+              <CategoryGrid categories={subcategoryCards} />
+            </CardContent>
+          </Card>
+        ) : parentGroup ? (
+          <Card className="mt-8 bg-white shadow-sm">
+            <CardContent className="p-5">
+              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                Parent service group
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {category?.name} belongs to {parentGroup.name}. You can also send one broader requirement to every approved professional in this group.
+              </p>
+              <Button asChild className="mt-4 h-11 w-full sm:w-auto" variant="outline">
+                <Link href={`/categories/${categorySlug(parentGroup.name)}`}>
+                  View {parentGroup.name}
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
