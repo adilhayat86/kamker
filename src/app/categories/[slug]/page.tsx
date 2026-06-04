@@ -320,7 +320,7 @@ export default async function CategoryDetailPage({
               <p className="mt-2 text-sm text-muted-foreground">
                 Message the full {serviceGroup.name} group, or choose one professional type for a more targeted requirement.
               </p>
-              <CategoryGrid categories={subcategoryCards} />
+              <CategoryGrid categories={subcategoryCards} city={city} area={area} />
             </CardContent>
           </Card>
         ) : parentGroup ? (

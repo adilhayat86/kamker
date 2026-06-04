@@ -40,6 +40,8 @@ type Category = {
 
 type CategoryGridProps = {
   categories: Category[];
+  city?: string;
+  area?: string;
 };
 
 const categoryIcons = {
@@ -73,7 +75,23 @@ const categoryIcons = {
   wrench: Wrench,
 };
 
-export function CategoryGrid({ categories }: CategoryGridProps) {
+function categoryHref(categoryName: string, city?: string, area?: string) {
+  const params = new URLSearchParams();
+
+  if (city) {
+    params.set("city", city);
+  }
+
+  if (area) {
+    params.set("area", area);
+  }
+
+  const query = params.toString();
+
+  return `/categories/${categorySlug(categoryName)}${query ? `?${query}` : ""}`;
+}
+
+export function CategoryGrid({ categories, city, area }: CategoryGridProps) {
   return (
     <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-7 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {categories.map((category) => {
@@ -83,7 +101,7 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
         return (
           <Link
             key={category.name}
-            href={`/categories/${categorySlug(category.name)}`}
+            href={categoryHref(category.name, city, area)}
             className="block h-full"
           >
             <Card className="h-full border-sky-100 bg-white shadow-sm transition-colors hover:border-primary/50 hover:bg-sky-50/40">

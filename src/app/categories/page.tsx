@@ -5,7 +5,7 @@ import { BroadcastRequirementCta } from "@/components/broadcast-requirement-cta"
 import { CategoryGrid } from "@/components/category-grid";
 import { Button } from "@/components/ui/button";
 import { getBroadcastRecipientCount } from "@/lib/broadcast";
-import { cities, parentCategories } from "@/lib/marketplace-data";
+import { categories, cities, parentCategories } from "@/lib/marketplace-data";
 
 export const metadata = {
   title: "All Categories | Kamker",
@@ -28,9 +28,11 @@ export default async function CategoriesPage({
   const area = params?.area?.trim() || undefined;
   const q = params?.q?.trim() || "";
   const recipientCount = await getBroadcastRecipientCount({ city, area });
+  const normalizedQuery = q.toLowerCase();
+  const searchableCategories = q ? [...categories, ...parentCategories] : parentCategories;
   const visibleCategories = q
-    ? parentCategories.filter((category) =>
-        category.name.toLowerCase().includes(q.toLowerCase()),
+    ? searchableCategories.filter((category) =>
+        category.name.toLowerCase().includes(normalizedQuery),
       )
     : parentCategories;
 
@@ -80,7 +82,7 @@ export default async function CategoriesPage({
               <input
                 name="q"
                 defaultValue={q}
-                placeholder="Healthcare, Education, Repairs"
+                placeholder="Nurses, tutors, drivers, AC maintenance"
                 className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </label>
@@ -108,7 +110,13 @@ export default async function CategoriesPage({
           </div>
         </form>
 
-        <CategoryGrid categories={visibleCategories} />
+        {visibleCategories.length > 0 ? (
+          <CategoryGrid categories={visibleCategories} city={city} area={area} />
+        ) : (
+          <div className="mt-5 rounded-lg border bg-white p-5 text-sm text-muted-foreground shadow-sm">
+            No services matched &quot;{q}&quot;. Try Nurses, Maids, Drivers, Tutors, or AC Maintenance.
+          </div>
+        )}
       </section>
     </main>
   );
