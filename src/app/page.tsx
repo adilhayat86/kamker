@@ -14,6 +14,7 @@ import {
 
 import { AdBanner } from "@/components/ad-banner";
 import { CategoryGrid } from "@/components/category-grid";
+import { KamkerLogo } from "@/components/kamker-logo";
 import { SearchPanel } from "@/components/search-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,14 +54,7 @@ export default function HomePage() {
     <main className="min-h-screen overflow-hidden pb-24 md:pb-0">
       <header className="border-b bg-background/95">
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <a href="#" className="flex items-center gap-2" aria-label="Kamker home">
-            <span className="relative flex size-9 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-              K
-              <span className="absolute -right-1 -top-1 size-2 rounded-full bg-[#f97316]" />
-              <span className="absolute -bottom-1 -left-1 size-2 rounded-full bg-[#7c3aed]" />
-            </span>
-            <span className="text-xl font-bold tracking-normal">Kamker</span>
-          </a>
+          <KamkerLogo />
           <div className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
             <a href="#categories" className="hover:text-foreground">Categories</a>
             <a href="#how-it-works" className="hover:text-foreground">How it works</a>

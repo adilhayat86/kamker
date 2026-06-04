@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Home } from "lucide-react";
 
+import { KamkerLogo } from "@/components/kamker-logo";
 import { Button } from "@/components/ui/button";
 
 type PageNavigationProps = {
@@ -16,12 +17,7 @@ export function PageNavigation({
 }: PageNavigationProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <Link href={homeHref} className="flex items-center gap-2 font-semibold">
-        <span className="flex size-9 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-          K
-        </span>
-        Kamker
-      </Link>
+      <KamkerLogo href={homeHref} />
       <div className="flex items-center gap-2">
         {backHref ? (
           <Button asChild variant="outline" size="sm">

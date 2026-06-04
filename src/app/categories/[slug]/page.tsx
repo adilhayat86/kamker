@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin } from "lucide-react";
 
 import { BroadcastRequirementCta } from "@/components/broadcast-requirement-cta";
 import { CategoryGrid } from "@/components/category-grid";
+import { KamkerLogo } from "@/components/kamker-logo";
 import { ProfessionalCard } from "@/components/professional-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -226,12 +227,7 @@ export default async function CategoryDetailPage({
     <main className="min-h-screen bg-background">
       <header className="border-b bg-background/90 backdrop-blur">
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <span className="flex size-9 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-              K
-            </span>
-            Kamker
-          </Link>
+          <KamkerLogo />
           <Button asChild variant="outline" size="sm">
             <Link href="/categories">
               <ArrowLeft aria-hidden="true" />

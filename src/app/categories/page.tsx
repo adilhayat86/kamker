@@ -3,6 +3,7 @@ import { ArrowLeft, Search } from "lucide-react";
 
 import { BroadcastRequirementCta } from "@/components/broadcast-requirement-cta";
 import { CategoryGrid } from "@/components/category-grid";
+import { KamkerLogo } from "@/components/kamker-logo";
 import { Button } from "@/components/ui/button";
 import { getBroadcastRecipientCount } from "@/lib/broadcast";
 import { categories, cities, parentCategories } from "@/lib/marketplace-data";
@@ -40,12 +41,7 @@ export default async function CategoriesPage({
     <main className="min-h-screen bg-background">
       <header className="border-b bg-background/90 backdrop-blur">
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <span className="flex size-9 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-              K
-            </span>
-            Kamker
-          </Link>
+          <KamkerLogo />
           <Button asChild variant="outline" size="sm">
             <Link href="/">
               <ArrowLeft aria-hidden="true" />
