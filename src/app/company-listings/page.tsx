@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Building2, MapPin, Phone, Search } from "lucide-react";
 
 import { PageNavigation } from "@/components/page-navigation";
