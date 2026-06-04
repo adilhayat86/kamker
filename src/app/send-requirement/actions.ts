@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { createRequirementMatches } from "@/lib/requirement-matching";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
 function requiredValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -66,6 +67,19 @@ export async function submitRequirement(formData: FormData) {
     area: area || null,
     availability: availability || null,
   });
+
+  await sendAdminWhatsappAlert(
+    [
+      "New requirement submitted:",
+      `Service: ${requiredService}`,
+      `City: ${cityName}`,
+      `Urgency: ${urgency}`,
+      `Phone: ${phoneNumber}`,
+      "Admin review needed.",
+    ].join("\n"),
+    "requirement",
+    requirement.id as string,
+  );
 
   redirect("/send-requirement?status=success");
 }

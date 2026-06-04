@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
 function field(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -45,25 +46,42 @@ export async function createCompanyListing(formData: FormData) {
     redirect(`/companies/${companyId}/listings/new?status=company-missing`);
   }
 
-  const { error } = await supabase.from("company_listings").insert({
-    company_id: companyId,
-    title,
-    category,
-    city,
-    area: area || null,
-    description,
-    hourly_rate: hourlyRate,
-    monthly_rate: monthlyRate,
-    phone: phone || null,
-    whatsapp: whatsapp || null,
-    status: "pending",
-    is_featured: false,
-  });
+  const { data: listing, error } = await supabase
+    .from("company_listings")
+    .insert({
+      company_id: companyId,
+      title,
+      category,
+      city,
+      area: area || null,
+      description,
+      hourly_rate: hourlyRate,
+      monthly_rate: monthlyRate,
+      phone: phone || null,
+      whatsapp: whatsapp || null,
+      status: "pending",
+      is_featured: false,
+    })
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error || !listing) {
     console.error("Failed to create company listing", error);
     redirect(`/companies/${companyId}/listings/new?status=error`);
   }
+
+  await sendAdminWhatsappAlert(
+    [
+      "New company listing submitted:",
+      `Title: ${title}`,
+      `Company ID: ${companyId}`,
+      `Category: ${category}`,
+      `City: ${city}`,
+      "Admin: /admin/company-listings",
+    ].join("\n"),
+    "company_listing",
+    listing.id as string,
+  );
 
   redirect(`/companies/${companyId}/dashboard`);
 }

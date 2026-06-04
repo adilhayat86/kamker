@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { reviewProofWithAi } from "@/lib/ai-proof-review";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
 function field(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -53,26 +54,43 @@ export async function submitProofForReview(formData: FormData) {
   const imageUrl = publicUrlData.publicUrl;
   const review = await reviewProofWithAi({ imageUrl, expectedAmountPkr });
 
-  const { error: insertError } = await supabase.from("proof_reviews").insert({
-    review_type: reviewType,
-    related_id: relatedId || null,
-    expected_amount_pkr: expectedAmountPkr,
-    image_url: imageUrl,
-    ai_readable: review.readable,
-    ai_detected_amount_pkr: review.detectedAmountPkr,
-    ai_detected_reference: review.detectedReference,
-    ai_detected_method: review.detectedMethod,
-    ai_detected_date: review.detectedDate,
-    ai_confidence: review.confidence,
-    ai_decision: review.decision,
-    ai_notes: review.notes,
-    audit_status: "unchecked",
-  });
+  const { data: proofReview, error: insertError } = await supabase
+    .from("proof_reviews")
+    .insert({
+      review_type: reviewType,
+      related_id: relatedId || null,
+      expected_amount_pkr: expectedAmountPkr,
+      image_url: imageUrl,
+      ai_readable: review.readable,
+      ai_detected_amount_pkr: review.detectedAmountPkr,
+      ai_detected_reference: review.detectedReference,
+      ai_detected_method: review.detectedMethod,
+      ai_detected_date: review.detectedDate,
+      ai_confidence: review.confidence,
+      ai_decision: review.decision,
+      ai_notes: review.notes,
+      audit_status: "unchecked",
+    })
+    .select("id")
+    .single();
 
-  if (insertError) {
+  if (insertError || !proofReview) {
     console.error("Failed to save proof review", insertError);
     redirect("/proof-upload?status=save-error");
   }
+
+  await sendAdminWhatsappAlert(
+    [
+      "New proof uploaded on Kamker:",
+      `Type: ${reviewType}`,
+      `Expected amount: Rs ${expectedAmountPkr}`,
+      `AI decision: ${review.decision}`,
+      `AI amount: ${review.detectedAmountPkr ? `Rs ${review.detectedAmountPkr}` : "Not detected"}`,
+      "Admin review needed in proof_reviews.",
+    ].join("\n"),
+    "proof_review",
+    proofReview.id as string,
+  );
 
   redirect(`/proof-upload?status=${review.decision}`);
 }

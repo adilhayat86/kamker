@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
 function field(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -52,6 +53,19 @@ export async function registerCompany(formData: FormData) {
     console.error("Failed to register company", error);
     redirect("/register/company?status=error");
   }
+
+  await sendAdminWhatsappAlert(
+    [
+      "New company registered on Kamker:",
+      `Company: ${companyName}`,
+      `Category: ${category}`,
+      `City: ${city}`,
+      `Phone: ${phone}`,
+      "Admin: /admin/companies",
+    ].join("\n"),
+    "company",
+    data.id as string,
+  );
 
   redirect(`/companies/${data.id}/packages`);
 }

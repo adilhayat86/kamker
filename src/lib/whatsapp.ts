@@ -150,13 +150,22 @@ export async function sendAdminWhatsappAlert(body: string, relatedType?: string,
   const adminPhone = process.env.KAMKER_ADMIN_WHATSAPP;
 
   if (!adminPhone) {
+    console.info("Skipping WhatsApp admin alert because KAMKER_ADMIN_WHATSAPP is not configured.");
     return { ok: false, error: "KAMKER_ADMIN_WHATSAPP is not configured." };
   }
 
-  return sendWhatsappText({
-    to: adminPhone,
-    body,
-    relatedType,
-    relatedId,
-  });
+  try {
+    return await sendWhatsappText({
+      to: adminPhone,
+      body,
+      relatedType,
+      relatedId,
+    });
+  } catch (error) {
+    console.error("Failed to send WhatsApp admin alert", error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Unknown WhatsApp alert error.",
+    };
+  }
 }
