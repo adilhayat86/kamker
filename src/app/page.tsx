@@ -83,7 +83,7 @@ export default function HomePage() {
             <h1 className="max-w-xl text-3xl font-bold leading-tight tracking-normal sm:text-5xl lg:text-6xl">Find part time workers</h1>
             <p className="mt-2 max-w-xl text-sm leading-5 text-muted-foreground sm:mt-4 sm:text-lg sm:leading-7">Coming from a newspaper ad? Search by service and city, browse workers, or register free as a worker.</p>
             <div className="mt-4 grid gap-2 sm:flex sm:max-w-xl">
-              <Button asChild className="h-12 bg-primary text-base font-semibold text-white hover:bg-primary/90"><Link href="/professionals"><Users aria-hidden="true" />Browse Workers</Link></Button>
+              <Button asChild className="h-12 bg-primary text-base font-semibold text-white hover:bg-primary/90"><Link href="/categories"><Users aria-hidden="true" />Browse Workers</Link></Button>
               <Button asChild variant="outline" className="h-12 border-primary/30 bg-white text-base font-semibold text-primary hover:bg-accent"><Link href="/register/professional"><BriefcaseBusiness aria-hidden="true" />Register as Worker</Link></Button>
             </div>
           </div>
