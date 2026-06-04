@@ -69,7 +69,7 @@ export default function HomePage() {
           <aside aria-label="Reserved Google Ads space" className="absolute right-4 top-4 hidden min-h-24 w-64 items-center justify-center rounded-lg border border-dashed bg-white/75 px-4 text-center text-xs text-muted-foreground shadow-sm backdrop-blur lg:flex">Google Ads placeholder</aside>
           <div className="max-w-2xl">
             <Badge variant="secondary" className="mb-2 gap-1.5"><Sparkles className="size-3.5" aria-hidden="true" />Pakistan service marketplace</Badge>
-            <h1 className="max-w-xl text-3xl font-bold leading-tight tracking-normal sm:text-5xl lg:text-6xl">Hire trusted local workers without the guesswork.</h1>
+            <h1 className="max-w-xl text-3xl font-bold leading-tight tracking-normal sm:text-5xl lg:text-6xl">Find part time workers</h1>
             <p className="mt-2 max-w-xl text-sm leading-5 text-muted-foreground sm:mt-4 sm:text-lg sm:leading-7">Find verified nurses, maids, drivers, tutors, technicians, guards, and home service professionals across Pakistan.</p>
           </div>
         </div>

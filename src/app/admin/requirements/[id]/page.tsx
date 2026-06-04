@@ -113,8 +113,8 @@ export default async function RequirementDetailPage({
             <CardContent className="flex gap-3 p-4">
               <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
               <p className="text-sm">
-                Set KAMKER_ADMIN_PASSWORD before using requirement matches with
-                real customer data.
+                Set KAMKER_ADMIN_PASSWORD and KAMKER_AUTH_SECRET before using
+                requirement matches with real customer data.
               </p>
             </CardContent>
           </Card>

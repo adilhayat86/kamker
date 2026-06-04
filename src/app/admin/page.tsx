@@ -255,10 +255,11 @@ export default async function AdminPage() {
             <CardContent className="flex gap-3 p-4">
               <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
               <div>
-                <p className="font-semibold">Admin password is not configured</p>
+                <p className="font-semibold">Admin protection is not configured</p>
                 <p className="mt-1 text-sm text-amber-900">
-                  Set KAMKER_ADMIN_PASSWORD in the environment. Admin actions are
-                  disabled until a protected admin session exists.
+                  Set KAMKER_ADMIN_PASSWORD and KAMKER_AUTH_SECRET in the
+                  environment. Admin actions are disabled until a protected
+                  admin session exists.
                 </p>
               </div>
             </CardContent>
@@ -315,7 +316,8 @@ export default async function AdminPage() {
               <div>
                 <p className="font-semibold">Admin protection active</p>
                 <p className="mt-1 text-sm text-amber-900">
-                  Keep KAMKER_ADMIN_PASSWORD private and rotate it if shared.
+                  Keep KAMKER_ADMIN_PASSWORD and KAMKER_AUTH_SECRET private and
+                  rotate them if shared.
                 </p>
               </div>
             </CardContent>

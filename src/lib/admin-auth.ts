@@ -9,9 +9,25 @@ function adminPassword() {
   return process.env.KAMKER_ADMIN_PASSWORD;
 }
 
-function signingSecret() {
-  return (
+function hasSigningSecret() {
+  return Boolean(
     process.env.KAMKER_AUTH_SECRET ||
+      (process.env.NODE_ENV !== "production" &&
+        (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+          "kamker-local-development-secret")),
+  );
+}
+
+function signingSecret() {
+  if (process.env.KAMKER_AUTH_SECRET) {
+    return process.env.KAMKER_AUTH_SECRET;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return "";
+  }
+
+  return (
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     "kamker-local-development-secret"
   );
@@ -32,13 +48,15 @@ function safeEqual(left: string, right: string) {
 }
 
 export function isAdminPasswordConfigured() {
-  return Boolean(adminPassword());
+  return Boolean(adminPassword() && hasSigningSecret());
 }
 
 export function verifyAdminPassword(password: string) {
   const configuredPassword = adminPassword();
 
-  return Boolean(configuredPassword && safeEqual(password, configuredPassword));
+  return Boolean(
+    configuredPassword && hasSigningSecret() && safeEqual(password, configuredPassword),
+  );
 }
 
 export async function createAdminSession() {

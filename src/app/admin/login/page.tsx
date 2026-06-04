@@ -65,6 +65,7 @@ export default async function AdminLoginPage({
                   <ShieldAlert className="size-5 shrink-0" aria-hidden="true" />
                   <p>
                     Set <span className="font-semibold">KAMKER_ADMIN_PASSWORD</span>{" "}
+                    and <span className="font-semibold">KAMKER_AUTH_SECRET</span>{" "}
                     in the deployment environment to enable admin login.
                   </p>
                 </div>
