@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "description": "Kamker service-directory marketplace for Pakistan.",
   "scripts": {
+    "predev": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "keywords": [],
   "author": "",
