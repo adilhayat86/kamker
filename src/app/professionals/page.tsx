@@ -381,7 +381,7 @@ function ConversionProfessionalCard({
 }) {
   const whatsappNumber = professional.whatsapp_number ?? professional.phone_number;
   const tagline = professional.tagline ?? "Trusted local professional";
-  const { timeLabel, daysLabel, combinedLabel } = availabilityLabels(professional);
+  const { combinedLabel } = availabilityLabels(professional);
 
   return (
     <Card
@@ -446,12 +446,6 @@ function ConversionProfessionalCard({
         <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
           {professional.gender ? (
             <Badge variant="secondary">{professional.gender}</Badge>
-          ) : null}
-          {timeLabel ? (
-            <Badge variant="secondary">{timeLabel}</Badge>
-          ) : null}
-          {daysLabel ? (
-            <Badge variant="secondary">{daysLabel}</Badge>
           ) : null}
           {professional.is_cnic_verified ? (
             <Badge variant="outline">CNIC Verified</Badge>

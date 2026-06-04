@@ -94,7 +94,6 @@ export function ProfessionalCard({
         </div>
         <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
           <Badge variant="secondary">{professional.gender}</Badge>
-          <Badge variant="secondary">{workerAvailabilityLabel(professional.availability)}</Badge>
           {professional.is_company_managed ? (
             <Badge variant="outline">{professional.company_name ?? "Company Managed"}</Badge>
           ) : (
