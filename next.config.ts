@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseHostname = supabaseUrl ? new URL(supabaseUrl).hostname : undefined;
 
-const nextConfig: NextConfig = {
+const sharedConfig: NextConfig = {
   images: {
     remotePatterns: supabaseHostname
       ? [
@@ -27,4 +28,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default function nextConfig(phase: string): NextConfig {
+  return {
+    ...sharedConfig,
+    distDir: phase === PHASE_DEVELOPMENT_SERVER ? ".next-dev" : ".next",
+  };
+}
