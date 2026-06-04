@@ -1,5 +1,17 @@
 alter table companies add column if not exists logo_url text;
-alter table company_listings add column if not exists photo_url text;
+
+create table if not exists company_media (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references companies(id) on delete cascade,
+  url text not null,
+  media_type text not null check (media_type in ('image', 'video')),
+  caption text,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists company_media_company_id_idx on company_media(company_id);
+create index if not exists company_media_media_type_idx on company_media(media_type);
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -38,16 +50,3 @@ begin
     with check (bucket_id = 'company-images');
   end if;
 end $$;
-
-create table if not exists analytics_events (
-  id uuid primary key default gen_random_uuid(),
-  event_type text not null,
-  target_type text not null,
-  target_id uuid,
-  metadata jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists analytics_events_event_type_idx on analytics_events(event_type);
-create index if not exists analytics_events_target_idx on analytics_events(target_type, target_id);
-create index if not exists analytics_events_created_at_idx on analytics_events(created_at);

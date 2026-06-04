@@ -98,7 +98,15 @@ export function ProfessionalCard({
         <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
           <Badge variant="secondary">{professional.gender}</Badge>
           {professional.is_company_managed ? (
-            <Badge variant="outline">{professional.company_name ?? "Company Managed"}</Badge>
+            professional.company_id ? (
+              <Badge variant="outline">
+                <Link className="hover:text-primary" href={`/companies/${professional.company_id}`}>
+                  {professional.company_name ?? "Company Managed"}
+                </Link>
+              </Badge>
+            ) : (
+              <Badge variant="outline">{professional.company_name ?? "Company Managed"}</Badge>
+            )
           ) : (
             <>
               <Badge variant="outline">CNIC Verified</Badge>

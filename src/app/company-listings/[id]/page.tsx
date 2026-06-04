@@ -7,12 +7,11 @@ import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { type CompanyListingCardRow } from "@/lib/company-listing-cards";
+import {
+  getMockCompanyListingById,
+  type CompanyListingCardRow,
+} from "@/lib/company-listing-cards";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-
-export const metadata = {
-  title: "Company Professional | Kamker",
-};
 
 export const dynamic = "force-dynamic";
 
@@ -41,13 +40,17 @@ function whatsappHref(value: string | null, title: string) {
 }
 
 async function getListing(id: string) {
+  if (id.startsWith("mock-company-")) {
+    return getMockCompanyListingById(id);
+  }
+
   if (!isSupabaseConfigured || !supabase) {
     return null;
   }
 
   const { data, error } = await supabase
     .from("company_listings")
-    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, availability, years_experience, phone, whatsapp, is_featured, companies(id, company_name, verification_status)")
+    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, availability, years_experience, phone, whatsapp, is_featured, companies(id, company_name, verification_status, logo_url)")
     .eq("id", id)
     .eq("status", "approved")
     .maybeSingle();
@@ -58,6 +61,24 @@ async function getListing(id: string) {
   }
 
   return data as unknown as CompanyListingCardRow | null;
+}
+
+export async function generateMetadata({ params }: CompanyListingDetailPageProps) {
+  const { id } = await params;
+  const listing = await getListing(id);
+
+  if (!listing) {
+    return {
+      title: "Company Professional | Kamker",
+    };
+  }
+
+  const companyName = listing.companies?.company_name ?? "Company";
+
+  return {
+    title: `${listing.title} - ${listing.category} by ${companyName} | Kamker`,
+    description: `${listing.tagline ?? listing.category} in ${listing.city}. Company-managed professional profile on Kamker.`,
+  };
 }
 
 export default async function CompanyListingDetailPage({ params }: CompanyListingDetailPageProps) {
@@ -121,7 +142,16 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
                     {listing.years_experience ?? 0} years experience
                   </span>
                   <span>Availability: {listing.availability ?? "Ask company"}</span>
-                  <span>Managed by: {listing.companies?.company_name ?? "Company"}</span>
+                  <span>
+                    Managed by:{" "}
+                    {listing.companies?.id ? (
+                      <Link className="font-medium text-primary" href={`/companies/${listing.companies.id}`}>
+                        {listing.companies.company_name}
+                      </Link>
+                    ) : (
+                      "Company"
+                    )}
+                  </span>
                 </div>
               </div>
             </div>

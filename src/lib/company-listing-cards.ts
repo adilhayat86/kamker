@@ -28,7 +28,12 @@ export type CompanyListingCardRow = {
   whatsapp: string | null;
   is_featured: boolean;
   created_at?: string | null;
-  companies: { id: string; company_name: string; verification_status: string } | null;
+  companies: {
+    id: string;
+    company_name: string;
+    verification_status: string;
+    logo_url?: string | null;
+  } | null;
 };
 
 function formatCompanyRate(listing: Pick<CompanyListingCardRow, "hourly_rate" | "monthly_rate">) {
@@ -81,7 +86,8 @@ const mockCompanyListingRows: CompanyListingCardRow[] = categories.map((category
   const city = cities[(index + 2) % cities.length];
   const rates = mockCompanyRate(category.name, index);
   const serviceGroup = findServiceGroupForCategory(category.name)?.name ?? inferredServiceGroup(category.name);
-  const companyName = mockCompanyNames[index % mockCompanyNames.length];
+  const companyIndex = index % mockCompanyNames.length;
+  const companyName = mockCompanyNames[companyIndex];
 
   return {
     id: `mock-company-${categorySlug(category.name)}`,
@@ -104,7 +110,7 @@ const mockCompanyListingRows: CompanyListingCardRow[] = categories.map((category
     is_featured: true,
     created_at: "2030-01-01T00:00:00.000Z",
     companies: {
-      id: `mock-company-${index + 1}`,
+      id: `mock-company-${companyIndex + 1}`,
       company_name: companyName,
       verification_status: index % 4 === 0 ? "pending" : "verified",
     },
@@ -139,6 +145,38 @@ function getMockCompanyListingCards(filters?: {
   return typeof filters?.limit === "number" ? cards.slice(0, filters.limit) : cards;
 }
 
+export function getMockCompanyListingById(id: string) {
+  return mockCompanyListingRows.find((listing) => listing.id === id) ?? null;
+}
+
+export function getMockCompanyProfileById(id: string) {
+  const listings = mockCompanyListingRows.filter((listing) => listing.companies?.id === id);
+  const firstListing = listings[0];
+
+  if (!firstListing?.companies) {
+    return null;
+  }
+
+  return {
+    id,
+    company_name: firstListing.companies.company_name,
+    category: "Workforce Company",
+    city: firstListing.city,
+    area: firstListing.area,
+    contact_person: "Operations Manager",
+    phone: firstListing.phone,
+    whatsapp: firstListing.whatsapp,
+    description:
+      `${firstListing.companies.company_name} is a demo company profile showing company-managed professionals across Kamker categories.`,
+    verification_status: firstListing.companies.verification_status,
+    logo_url: firstListing.companies.logo_url ?? null,
+  };
+}
+
+export function getMockCompanyListingsByCompanyId(companyId: string) {
+  return mockCompanyListingRows.filter((listing) => listing.companies?.id === companyId);
+}
+
 export function companyListingToProfessionalCard(listing: CompanyListingCardRow): Professional {
   const companyName = listing.companies?.company_name ?? "Company managed";
 
@@ -164,6 +202,7 @@ export function companyListingToProfessionalCard(listing: CompanyListingCardRow)
     whatsapp: listing.whatsapp,
     profileHref: `/company-listings/${listing.id}`,
     is_company_managed: true,
+    company_id: listing.companies?.id ?? null,
     company_name: companyName,
     company_verified: listing.companies?.verification_status === "verified",
   };
@@ -182,7 +221,7 @@ export async function getApprovedCompanyListingCards(filters?: {
 
   let query = supabase
     .from("company_listings")
-    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, availability, years_experience, phone, whatsapp, is_featured, created_at, companies(id, company_name, verification_status)")
+    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, availability, years_experience, phone, whatsapp, is_featured, created_at, companies(id, company_name, verification_status, logo_url)")
     .eq("status", "approved")
     .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false })

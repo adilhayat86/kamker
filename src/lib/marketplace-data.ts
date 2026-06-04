@@ -171,6 +171,7 @@ export type Professional = {
   whatsapp?: string | null;
   profileHref?: string;
   is_company_managed?: boolean;
+  company_id?: string | null;
   company_name?: string | null;
   company_verified?: boolean;
 };

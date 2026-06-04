@@ -234,6 +234,7 @@ create table if not exists companies (
   whatsapp text,
   description text,
   license_number text,
+  logo_url text,
   verification_status text not null default 'pending' check (verification_status in ('pending', 'verified', 'rejected')),
   payment_status text not null default 'unpaid' check (payment_status in ('unpaid', 'pending_review', 'paid', 'rejected')),
   created_at timestamptz not null default now(),
@@ -367,6 +368,16 @@ create table if not exists company_listings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists company_media (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references companies(id) on delete cascade,
+  url text not null,
+  media_type text not null check (media_type in ('image', 'video')),
+  caption text,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists companies_owner_user_id_idx on companies(owner_user_id);
 create index if not exists companies_category_idx on companies(category);
 create index if not exists companies_city_idx on companies(city);
@@ -389,6 +400,8 @@ create index if not exists company_listings_category_idx on company_listings(cat
 create index if not exists company_listings_city_idx on company_listings(city);
 create index if not exists company_listings_status_idx on company_listings(status);
 create index if not exists company_listings_featured_idx on company_listings(is_featured);
+create index if not exists company_media_company_id_idx on company_media(company_id);
+create index if not exists company_media_media_type_idx on company_media(media_type);
 
 create trigger companies_set_updated_at
 before update on companies

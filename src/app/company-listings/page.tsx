@@ -149,7 +149,13 @@ export default async function CompanyListingsPage({ searchParams }: CompanyListi
                       ) : null}
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {listing.companies?.company_name ?? "Company listing"}
+                      {listing.companies?.id ? (
+                        <Link className="font-medium text-primary" href={`/companies/${listing.companies.id}`}>
+                          {listing.companies.company_name}
+                        </Link>
+                      ) : (
+                        "Company listing"
+                      )}
                     </p>
                     <p className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground">
                       <MapPin className="size-4" aria-hidden="true" />
