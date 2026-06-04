@@ -6,6 +6,7 @@ import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { categories, cities } from "@/lib/marketplace-data";
+import { workerAvailabilityOptions } from "@/lib/worker-availability";
 
 import { registerProfessional } from "./actions";
 
@@ -13,12 +14,11 @@ export const metadata = {
   title: "Register as Professional | Kamker",
 };
 
-const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evening"];
-
 const statusMessages = {
   success: "Professional profile submitted successfully. Kamker will review it before it appears publicly.",
   missing:
-    "Please fill name, phone, city, profession, gender, availability, hourly rate, tagline, password, secret question, and secret answer. Tagline must be 30 characters or less.",
+    "Please fill name, phone, city, profession, gender, work availability, hourly rate, tagline, password, secret question, and secret answer. Tagline must be 30 characters or less.",
+  "invalid-availability": "Please select when you can work: weekdays, weekends, or 7 days a week.",
   "not-configured": "Supabase is not configured yet.",
   "invalid-photo": "Upload a jpg, png, or webp image under 2MB.",
   "photo-error": "Could not upload profile photo. Please try again.",
@@ -107,9 +107,10 @@ export default async function ProfessionalRegisterPage({
                   options={categories.map((category) => category.name)}
                 />
                 <SelectField
-                  label="Availability"
+                  label="When can you work?"
                   name="availability"
-                  options={availabilityOptions}
+                  options={[...workerAvailabilityOptions]}
+                  placeholder="Select availability"
                 />
                 <FormField
                   label="Years of experience"
