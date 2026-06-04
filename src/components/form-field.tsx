@@ -57,11 +57,14 @@ export function TextAreaField({
   );
 }
 
+type SelectOption = string | { value: string; label: string };
+
 type SelectFieldProps = {
   label: string;
   name: string;
-  options: string[];
+  options: SelectOption[];
   defaultValue?: string;
+  placeholder?: string;
 };
 
 export function SelectField({
@@ -69,6 +72,7 @@ export function SelectField({
   name,
   options,
   defaultValue = "",
+  placeholder,
 }: SelectFieldProps) {
   return (
     <label className="grid gap-2">
@@ -79,13 +83,18 @@ export function SelectField({
         className="h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <option value="" disabled>
-          Select {label.toLowerCase()}
+          {placeholder ?? `Select ${label.toLowerCase()}`}
         </option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
+        {options.map((option) => {
+          const value = typeof option === "string" ? option : option.value;
+          const optionLabel = typeof option === "string" ? option : option.label;
+
+          return (
+            <option key={value} value={value}>
+              {optionLabel}
+            </option>
+          );
+        })}
       </select>
     </label>
   );
