@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Professional } from "@/lib/marketplace-data";
+import { workerAvailabilityLabel } from "@/lib/worker-availability";
 
 type ProfessionalCardProps = {
   professional: Professional;
@@ -70,7 +71,7 @@ export function ProfessionalCard({
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="size-4" aria-hidden="true" />
-                {professional.availability}
+                Available: {workerAvailabilityLabel(professional.availability)}
               </span>
               <span className="flex items-center gap-1">
                 <Star className="size-4 fill-[#f6c343] text-[#f6c343]" aria-hidden="true" />
@@ -81,6 +82,7 @@ export function ProfessionalCard({
         </div>
         <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
           <Badge variant="secondary">{professional.gender}</Badge>
+          <Badge variant="secondary">{workerAvailabilityLabel(professional.availability)}</Badge>
           <Badge variant="outline">CNIC Verified</Badge>
           <Badge variant="outline">Phone Verified</Badge>
         </div>
