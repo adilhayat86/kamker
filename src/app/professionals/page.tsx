@@ -24,12 +24,14 @@ import {
   workerTimeAvailabilityLabel,
   workerTimeAvailabilityOptions,
 } from "@/lib/worker-availability";
+import { getApprovedCompanyListingCards } from "@/lib/company-listing-cards";
 import {
   categories,
   cities,
   getActiveFeaturedProfessionals,
   isActiveFeaturedProfessional,
   recentProfessionals,
+  type Professional,
 } from "@/lib/marketplace-data";
 import {
   getLocalProfessionalRecords,
@@ -142,6 +144,34 @@ function matchesHourlyRate(value: string | null | undefined, rateFilter: string)
 
 function isVerified(professional: DirectoryProfessional) {
   return professional.is_cnic_verified || professional.is_phone_verified;
+}
+
+function matchesCompanyProfessionalFilters(
+  professional: Professional,
+  filters: {
+    q: string;
+    city: string;
+    category: string;
+    gender: string;
+    rate: string;
+    verified: boolean;
+  },
+) {
+  const keywordMatch = filters.q
+    ? matches(professional.name, filters.q) ||
+      matches(professional.area, filters.q) ||
+      matches(professional.role, filters.q) ||
+      matches(professional.tagline, filters.q) ||
+      matches(professional.bio, filters.q) ||
+      matches(professional.city, filters.q)
+    : true;
+  const cityMatch = filters.city ? professional.city === filters.city : true;
+  const categoryMatch = filters.category ? professional.role === filters.category : true;
+  const genderMatch = filters.gender ? normalise(professional.gender) === normalise(filters.gender) : true;
+  const hourlyRateMatch = matchesHourlyRate(professional.rate, filters.rate);
+  const verifiedMatch = filters.verified ? Boolean(professional.company_verified) : true;
+
+  return keywordMatch && cityMatch && categoryMatch && genderMatch && hourlyRateMatch && verifiedMatch;
 }
 
 function isDbFeatured(professional: DirectoryProfessional) {
@@ -472,6 +502,17 @@ export default async function ProfessionalsPage({
     availabilityTime,
     availabilityDays,
   });
+  const companyProfessionals = await getApprovedCompanyListingCards({ limit: 200 });
+  const filteredCompanyProfessionals = companyProfessionals.filter((professional) =>
+    matchesCompanyProfessionalFilters(professional, {
+      q,
+      city,
+      category,
+      gender,
+      rate,
+      verified,
+    }),
+  );
   const filteredDbProfessionals = dbProfessionals
     .filter((professional) => {
       const keywordMatch = q
@@ -524,6 +565,7 @@ export default async function ProfessionalsPage({
     });
 
   const hasDbProfessionals = dbProfessionals.length > 0;
+  const hasDirectoryProfessionals = hasDbProfessionals || filteredCompanyProfessionals.length > 0;
   const totalPages = Math.max(Math.ceil(filteredDbProfessionals.length / pageSize), 1);
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (safeCurrentPage - 1) * pageSize;
@@ -535,12 +577,20 @@ export default async function ProfessionalsPage({
   const regularDbProfessionals = paginatedDbProfessionals.filter(
     (professional) => !isDbFeatured(professional),
   );
+  const featuredCompanyProfessionals = filteredCompanyProfessionals.filter(
+    (professional) => professional.is_featured,
+  );
+  const regularCompanyProfessionals = filteredCompanyProfessionals.filter(
+    (professional) => !professional.is_featured,
+  );
   const featuredDemoProfessionals = getActiveFeaturedProfessionals();
   const regularDemoProfessionals = recentProfessionals.filter(
     (professional) => !isActiveFeaturedProfessional(professional),
   );
   const activeProfessionals = hasDbProfessionals
-    ? paginatedDbProfessionals
+    ? [...featuredCompanyProfessionals, ...regularCompanyProfessionals, ...paginatedDbProfessionals]
+    : filteredCompanyProfessionals.length > 0
+      ? [...featuredCompanyProfessionals, ...regularCompanyProfessionals]
     : recentProfessionals;
   const pageHrefParams = {
     q,
@@ -564,7 +614,7 @@ export default async function ProfessionalsPage({
         <p className="mt-2 text-muted-foreground">
           Browse approved local professionals by hourly rate and contact them directly without a middleman.
         </p>
-        {!hasDbProfessionals ? (
+        {!hasDirectoryProfessionals ? (
           <p className="mt-2 text-sm text-muted-foreground">
             Demo listings are shown until approved professionals are added in Supabase.
           </p>
@@ -712,14 +762,14 @@ export default async function ProfessionalsPage({
           </details>
         </form>
 
-        {hasDbProfessionals ? (
+        {hasDirectoryProfessionals ? (
           <p className="mt-4 text-sm text-muted-foreground">
-            Showing {activeProfessionals.length} of {filteredDbProfessionals.length} approved professional
-            {filteredDbProfessionals.length === 1 ? "" : "s"}.
+            Showing {activeProfessionals.length} of {filteredDbProfessionals.length + filteredCompanyProfessionals.length} approved professional
+            {filteredDbProfessionals.length + filteredCompanyProfessionals.length === 1 ? "" : "s"}.
           </p>
         ) : null}
 
-        {hasDbProfessionals && activeProfessionals.length === 0 ? (
+        {hasDirectoryProfessionals && activeProfessionals.length === 0 ? (
           <div className="mt-6 rounded-lg border border-dashed bg-white p-6 text-sm text-muted-foreground">
             No professionals found. Try changing filters.
           </div>
@@ -733,14 +783,25 @@ export default async function ProfessionalsPage({
             Active featured profiles
           </h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {hasDbProfessionals
-              ? featuredDbProfessionals.map((professional) => (
+            {hasDirectoryProfessionals
+              ? (
+                <>
+                  {featuredCompanyProfessionals.map((professional) => (
+                    <ProfessionalCard
+                      key={professional.id}
+                      professional={professional}
+                      featured
+                    />
+                  ))}
+                  {featuredDbProfessionals.map((professional) => (
                   <ConversionProfessionalCard
                     key={professional.id}
                     professional={professional}
                     featured
                   />
-                ))
+                  ))}
+                </>
+              )
               : featuredDemoProfessionals.map((professional) => (
                   <ProfessionalCard
                     key={professional.id}
@@ -759,13 +820,23 @@ export default async function ProfessionalsPage({
             Regular profiles
           </h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {hasDbProfessionals
-              ? regularDbProfessionals.map((professional) => (
+            {hasDirectoryProfessionals
+              ? (
+                <>
+                  {regularCompanyProfessionals.map((professional) => (
+                    <ProfessionalCard
+                      key={professional.id}
+                      professional={professional}
+                    />
+                  ))}
+                  {regularDbProfessionals.map((professional) => (
                   <ConversionProfessionalCard
                     key={professional.id}
                     professional={professional}
                   />
-                ))
+                  ))}
+                </>
+              )
               : regularDemoProfessionals.map((professional) => (
                   <ProfessionalCard
                     key={professional.id}

@@ -17,6 +17,12 @@ export function ProfessionalCard({
   professional,
   featured = false,
 }: ProfessionalCardProps) {
+  const phoneHref = professional.phone ? `tel:${professional.phone}` : null;
+  const whatsappHref = professional.whatsapp
+    ? `https://wa.me/${professional.whatsapp.replace(/\D/g, "")}`
+    : null;
+  const profileHref = professional.profileHref ?? `/professionals/${professional.id}`;
+
   return (
     <Card
       className={
@@ -56,6 +62,12 @@ export function ProfessionalCard({
                   <BadgeCheck className="size-3" aria-hidden="true" />
                   Verified
                 </Badge>
+                {professional.is_company_managed ? (
+                  <Badge variant="outline">Company Managed</Badge>
+                ) : null}
+                {professional.company_verified ? (
+                  <Badge variant="outline">Verified Company</Badge>
+                ) : null}
               </div>
             </div>
             <p className="mt-2 text-2xl font-bold leading-tight text-primary sm:text-3xl">
@@ -83,20 +95,44 @@ export function ProfessionalCard({
         <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
           <Badge variant="secondary">{professional.gender}</Badge>
           <Badge variant="secondary">{workerAvailabilityLabel(professional.availability)}</Badge>
-          <Badge variant="outline">CNIC Verified</Badge>
-          <Badge variant="outline">Phone Verified</Badge>
+          {professional.is_company_managed ? (
+            <Badge variant="outline">{professional.company_name ?? "Company Managed"}</Badge>
+          ) : (
+            <>
+              <Badge variant="outline">CNIC Verified</Badge>
+              <Badge variant="outline">Phone Verified</Badge>
+            </>
+          )}
         </div>
         <div className="mt-auto grid grid-cols-3 gap-2 pt-3">
-          <Button variant="outline" className="h-10 px-2">
-            <Phone aria-hidden="true" />
-            Call
+          <Button asChild={Boolean(phoneHref)} variant="outline" className="h-10 px-2" disabled={!phoneHref}>
+            {phoneHref ? (
+              <a href={phoneHref}>
+                <Phone aria-hidden="true" />
+                Call
+              </a>
+            ) : (
+              <span>
+                <Phone aria-hidden="true" />
+                Call
+              </span>
+            )}
           </Button>
-          <Button className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
-            <MessageCircle aria-hidden="true" />
-            WhatsApp
+          <Button asChild={Boolean(whatsappHref)} className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!whatsappHref}>
+            {whatsappHref ? (
+              <a href={whatsappHref}>
+                <MessageCircle aria-hidden="true" />
+                WhatsApp
+              </a>
+            ) : (
+              <span>
+                <MessageCircle aria-hidden="true" />
+                WhatsApp
+              </span>
+            )}
           </Button>
           <Button asChild className="h-10 px-2" variant="outline">
-            <Link href={`/professionals/${professional.id}`}>View Profile</Link>
+            <Link href={profileHref}>View Profile</Link>
           </Button>
         </div>
       </CardContent>

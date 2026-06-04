@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Building2, MapPin, Phone, Search } from "lucide-react";
 
 import { PageNavigation } from "@/components/page-navigation";
@@ -8,8 +9,8 @@ import { categories, cities } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
-  title: "Company Listings | Kamker",
-  description: "Browse approved company staff and service listings on Kamker.",
+  title: "Company Professionals | Kamker",
+  description: "Browse approved company-managed professionals on Kamker.",
 };
 
 export const dynamic = "force-dynamic";
@@ -17,10 +18,14 @@ export const dynamic = "force-dynamic";
 type CompanyListing = {
   id: string;
   title: string;
+  service_group: string | null;
   category: string;
   city: string;
   area: string | null;
   description: string | null;
+  tagline: string | null;
+  availability: string | null;
+  years_experience: number | null;
   hourly_rate: number | null;
   monthly_rate: number | null;
   phone: string | null;
@@ -43,7 +48,7 @@ async function getListings(category?: string, city?: string) {
 
   let query = supabase
     .from("company_listings")
-    .select("id, title, category, city, area, description, hourly_rate, monthly_rate, phone, whatsapp, is_featured, companies(id, company_name, verification_status)")
+    .select("id, title, service_group, category, city, area, description, tagline, availability, years_experience, hourly_rate, monthly_rate, phone, whatsapp, is_featured, companies(id, company_name, verification_status)")
     .eq("status", "approved")
     .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false })
@@ -73,7 +78,7 @@ function whatsappHref(value: string | null, title: string) {
   }
 
   const clean = value.replace(/\D/g, "");
-  return `https://wa.me/${clean}?text=${encodeURIComponent(`Hello, I found your ${title} listing on Kamker.`)}`;
+  return `https://wa.me/${clean}?text=${encodeURIComponent(`Hello, I found your ${title} profile on Kamker.`)}`;
 }
 
 export default async function CompanyListingsPage({ searchParams }: CompanyListingsPageProps) {
@@ -90,11 +95,11 @@ export default async function CompanyListingsPage({ searchParams }: CompanyListi
         <div className="mt-5 rounded-xl bg-white p-5 shadow-sm">
           <Badge variant="secondary" className="gap-1.5">
             <Building2 className="size-3.5" aria-hidden="true" />
-            Company services
+            Company managed
           </Badge>
-          <h1 className="mt-3 text-3xl font-bold tracking-normal">Company Listings</h1>
+          <h1 className="mt-3 text-3xl font-bold tracking-normal">Company Professionals</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Browse approved staff and service listings submitted by companies and agencies.
+            Browse approved workers and professionals submitted by companies under active packages.
           </p>
         </div>
 
@@ -138,6 +143,7 @@ export default async function CompanyListingsPage({ searchParams }: CompanyListi
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="text-xl font-semibold">{listing.title}</h2>
                       {listing.is_featured ? <Badge>Featured</Badge> : null}
+                      <Badge variant="secondary">Company Managed</Badge>
                       {listing.companies?.verification_status === "verified" ? (
                         <Badge variant="outline">Verified company</Badge>
                       ) : null}
@@ -147,19 +153,25 @@ export default async function CompanyListingsPage({ searchParams }: CompanyListi
                     </p>
                     <p className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground">
                       <MapPin className="size-4" aria-hidden="true" />
-                      {listing.category} · {listing.city}{listing.area ? ` · ${listing.area}` : ""}
+                      {listing.service_group ?? "Service"} · {listing.category} · {listing.city}{listing.area ? ` · ${listing.area}` : ""}
                     </p>
+
+                    {listing.tagline ? (
+                      <p className="mt-3 truncate text-sm font-medium">{listing.tagline}</p>
+                    ) : null}
 
                     <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
                       <span>Hourly: {listing.hourly_rate ? `Rs ${listing.hourly_rate}` : "Ask company"}</span>
                       <span>Monthly: {listing.monthly_rate ? `Rs ${listing.monthly_rate}` : "Ask company"}</span>
+                      <span>Availability: {listing.availability ?? "Ask company"}</span>
+                      <span>Experience: {listing.years_experience ?? 0} years</span>
                     </div>
 
                     {listing.description ? (
                       <p className="mt-4 text-sm leading-6 text-muted-foreground">{listing.description}</p>
                     ) : null}
 
-                    <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                    <div className="mt-5 grid gap-2 sm:grid-cols-3">
                       {listing.phone ? (
                         <Button asChild variant="outline" className="w-full">
                           <a href={`tel:${listing.phone}`}>
@@ -173,6 +185,9 @@ export default async function CompanyListingsPage({ searchParams }: CompanyListi
                           <a href={whatsapp}>WhatsApp</a>
                         </Button>
                       ) : null}
+                      <Button asChild variant="outline" className="w-full">
+                        <Link href={`/company-listings/${listing.id}`}>View Profile</Link>
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -181,7 +196,7 @@ export default async function CompanyListingsPage({ searchParams }: CompanyListi
           ) : (
             <Card className="bg-white shadow-sm lg:col-span-2">
               <CardContent className="p-5 text-sm text-muted-foreground">
-                No approved company listings found for this search yet.
+                No approved company professionals found for this search yet.
               </CardContent>
             </Card>
           )}

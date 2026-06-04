@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getBroadcastRecipientCount } from "@/lib/broadcast";
+import { getApprovedCompanyListingCards } from "@/lib/company-listing-cards";
 import {
   categories,
   categorySlug,
@@ -219,6 +220,16 @@ export default async function CategoryDetailPage({
     city,
     area,
   );
+  const companyManagedProfessionals = await getApprovedCompanyListingCards({
+    categories: serviceGroup ? undefined : targetCategories,
+    serviceGroup: serviceGroup?.name,
+    city,
+    area,
+    limit: 20,
+  });
+  const visibleProfessionals = [...companyManagedProfessionals, ...matchingProfessionals].sort(
+    (a, b) => Number(b.is_featured) - Number(a.is_featured),
+  );
   const recipientCount = await getBroadcastRecipientCount({
     category: serviceGroup?.name ?? parentGroup?.name ?? category?.name,
     subcategory: category?.name,
@@ -287,9 +298,9 @@ export default async function CategoryDetailPage({
             </Button>
           </div>
 
-          {matchingProfessionals.length > 0 ? (
+          {visibleProfessionals.length > 0 ? (
             <div className="mt-5 grid gap-4 md:grid-cols-2">
-              {matchingProfessionals.slice(0, 6).map((professional) => (
+              {visibleProfessionals.slice(0, 6).map((professional) => (
                 <ProfessionalCard
                   key={professional.id}
                   professional={professional}

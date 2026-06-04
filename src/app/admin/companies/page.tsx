@@ -2,12 +2,20 @@ import Link from "next/link";
 import { Building2, ShieldAlert } from "lucide-react";
 import { redirect } from "next/navigation";
 
-import { approveCompanyVerification, rejectCompanyVerification } from "@/app/admin/actions";
+import {
+  activateCompanyPackage,
+  approveCompanyVerification,
+  rejectCompanyVerification,
+} from "@/app/admin/actions";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { isAdminAuthenticated, isAdminPasswordConfigured } from "@/lib/admin-auth";
+import {
+  getActiveCompanySubscription,
+  getPublishedCompanyListingUsage,
+} from "@/lib/company-packages";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
@@ -33,6 +41,13 @@ type Company = {
   created_at: string;
 };
 
+type CompanyPackage = {
+  package_key: string;
+  title: string;
+  listings_limit: number;
+  featured_limit: number;
+};
+
 async function getCompanies() {
   if (!isSupabaseConfigured || !supabase) {
     return [] as Company[];
@@ -52,6 +67,25 @@ async function getCompanies() {
   return (data ?? []) as Company[];
 }
 
+async function getCompanyPackages() {
+  if (!isSupabaseConfigured || !supabase) {
+    return [] as CompanyPackage[];
+  }
+
+  const { data, error } = await supabase
+    .from("company_packages")
+    .select("package_key, title, listings_limit, featured_limit")
+    .eq("active", true)
+    .order("price_pkr", { ascending: true });
+
+  if (error) {
+    console.error("Failed to load company packages", error);
+    return [] as CompanyPackage[];
+  }
+
+  return (data ?? []) as CompanyPackage[];
+}
+
 function isSensitiveCategory(category: string) {
   const value = category.toLowerCase();
 
@@ -66,7 +100,20 @@ export default async function AdminCompaniesPage() {
     redirect("/admin/login");
   }
 
-  const companies = await getCompanies();
+  const [companies, companyPackages] = await Promise.all([
+    getCompanies(),
+    getCompanyPackages(),
+  ]);
+  const companiesWithUsage = await Promise.all(
+    companies.map(async (company) => {
+      const [subscription, usage] = await Promise.all([
+        getActiveCompanySubscription(company.id),
+        getPublishedCompanyListingUsage(company.id),
+      ]);
+
+      return { company, subscription, usage };
+    }),
+  );
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -103,7 +150,7 @@ export default async function AdminCompaniesPage() {
 
         <div className="mt-6 grid gap-4">
           {companies.length > 0 ? (
-            companies.map((company) => (
+            companiesWithUsage.map(({ company, subscription, usage }) => (
               <Card key={company.id} className="bg-white shadow-sm">
                 <CardContent className="p-5">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -112,6 +159,11 @@ export default async function AdminCompaniesPage() {
                         <h2 className="text-xl font-semibold">{company.company_name}</h2>
                         <Badge variant="outline">Payment: {company.payment_status}</Badge>
                         <Badge variant="outline">Verification: {company.verification_status}</Badge>
+                        {subscription ? (
+                          <Badge>{subscription.package_title}</Badge>
+                        ) : (
+                          <Badge variant="secondary">No active package</Badge>
+                        )}
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">
                         {company.category} · {company.city}{company.area ? ` · ${company.area}` : ""}
@@ -136,11 +188,36 @@ export default async function AdminCompaniesPage() {
                     <span>License: {company.license_number ? "Provided" : "Not provided"}</span>
                     <span>Created: {new Date(company.created_at).toLocaleDateString("en-PK")}</span>
                     <span>ID: {company.id}</span>
+                    <span>Published: {subscription ? `${usage.published}/${subscription.listings_limit}` : `${usage.published}/0`}</span>
+                    <span>Featured: {subscription ? `${usage.featured}/${subscription.featured_limit}` : `${usage.featured}/0`}</span>
+                    <span>Package expires: {subscription ? new Date(subscription.expires_at).toLocaleDateString("en-PK") : "Not active"}</span>
                   </div>
 
                   {company.description ? (
                     <p className="mt-4 text-sm leading-6 text-muted-foreground">{company.description}</p>
                   ) : null}
+
+                  <div className="mt-4 rounded-lg border bg-muted/30 p-4">
+                    <p className="text-sm font-semibold">Package activation</p>
+                    <form action={activateCompanyPackage} className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+                      <input type="hidden" name="companyId" value={company.id} />
+                      <select
+                        name="packageKey"
+                        className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        defaultValue={subscription?.package_key ?? companyPackages[0]?.package_key ?? ""}
+                        disabled={!adminAuthenticated || companyPackages.length === 0}
+                      >
+                        {companyPackages.map((companyPackage) => (
+                          <option key={companyPackage.package_key} value={companyPackage.package_key}>
+                            {companyPackage.title} · {companyPackage.listings_limit} listings · {companyPackage.featured_limit} featured
+                          </option>
+                        ))}
+                      </select>
+                      <Button type="submit" disabled={!adminAuthenticated || companyPackages.length === 0}>
+                        Activate Package
+                      </Button>
+                    </form>
+                  </div>
 
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
                     <form action={approveCompanyVerification}>

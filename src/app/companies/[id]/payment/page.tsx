@@ -9,7 +9,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
   title: "Activate Company Package | Kamker",
-  description: "Contact Kamker to activate a company package.",
+  description: "Contact Kamker to activate a company professional package.",
 };
 
 type Company = {
@@ -187,7 +187,7 @@ export default async function CompanyPaymentPage({
                 <div>
                   <h2 className="text-xl font-bold">Review before activation</h2>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Package benefits start after Kamker confirms the company details and activation request. Security, bodyguard, and firearm training related companies may need extra verification.
+                    Package benefits start after Kamker confirms the company details and activation request. Once active, the company can publish multiple professionals according to the package limit. Security, bodyguard, and firearm training related companies may need extra verification.
                   </p>
                 </div>
               </div>

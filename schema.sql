@@ -347,12 +347,18 @@ create table if not exists company_listings (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references companies(id) on delete cascade,
   title text not null,
+  service_group text,
   category text not null,
   city text not null,
   area text,
   description text,
   hourly_rate integer check (hourly_rate is null or hourly_rate >= 0),
   monthly_rate integer check (monthly_rate is null or monthly_rate >= 0),
+  profile_photo_url text,
+  tagline text,
+  gender text,
+  availability text,
+  years_experience integer check (years_experience is null or years_experience >= 0),
   phone text,
   whatsapp text,
   is_featured boolean not null default false,
@@ -378,6 +384,7 @@ create index if not exists company_package_subscriptions_status_idx on company_p
 create index if not exists company_package_subscriptions_expires_at_idx on company_package_subscriptions(expires_at);
 
 create index if not exists company_listings_company_id_idx on company_listings(company_id);
+create index if not exists company_listings_service_group_idx on company_listings(service_group);
 create index if not exists company_listings_category_idx on company_listings(category);
 create index if not exists company_listings_city_idx on company_listings(city);
 create index if not exists company_listings_status_idx on company_listings(status);

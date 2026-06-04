@@ -2,6 +2,10 @@
 
 import { redirect } from "next/navigation";
 
+import {
+  getActiveCompanySubscription,
+  getPublishedCompanyListingUsage,
+} from "@/lib/company-packages";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
@@ -19,16 +23,22 @@ function optionalNumber(formData: FormData, key: string) {
 export async function createCompanyListing(formData: FormData) {
   const companyId = field(formData, "companyId");
   const title = field(formData, "title");
+  const serviceGroup = field(formData, "serviceGroup");
   const category = field(formData, "category");
   const city = field(formData, "city");
   const area = field(formData, "area");
+  const tagline = field(formData, "tagline");
+  const gender = field(formData, "gender");
+  const availability = field(formData, "availability");
+  const yearsExperience = optionalNumber(formData, "yearsExperience");
   const description = field(formData, "description");
   const hourlyRate = optionalNumber(formData, "hourlyRate");
   const monthlyRate = optionalNumber(formData, "monthlyRate");
+  const profilePhotoUrl = field(formData, "profilePhotoUrl");
   const phone = field(formData, "phone");
   const whatsapp = field(formData, "whatsapp");
 
-  if (!companyId || !title || !category || !city || !description) {
+  if (!companyId || !title || !serviceGroup || !category || !city || !tagline || !description || tagline.length > 30) {
     redirect(`/companies/${companyId || "missing"}/listings/new?status=missing`);
   }
 
@@ -46,17 +56,36 @@ export async function createCompanyListing(formData: FormData) {
     redirect(`/companies/${companyId}/listings/new?status=company-missing`);
   }
 
+  const [activeSubscription, usage] = await Promise.all([
+    getActiveCompanySubscription(companyId),
+    getPublishedCompanyListingUsage(companyId),
+  ]);
+
+  if (!activeSubscription) {
+    redirect(`/companies/${companyId}/listings/new?status=no-package`);
+  }
+
+  if (usage.published >= activeSubscription.listings_limit) {
+    redirect(`/companies/${companyId}/listings/new?status=quota-full`);
+  }
+
   const { data: listing, error } = await supabase
     .from("company_listings")
     .insert({
       company_id: companyId,
       title,
+      service_group: serviceGroup,
       category,
       city,
       area: area || null,
+      tagline,
+      gender: gender || null,
+      availability: availability || null,
+      years_experience: yearsExperience,
       description,
       hourly_rate: hourlyRate,
       monthly_rate: monthlyRate,
+      profile_photo_url: profilePhotoUrl || null,
       phone: phone || null,
       whatsapp: whatsapp || null,
       status: "pending",
@@ -75,6 +104,7 @@ export async function createCompanyListing(formData: FormData) {
       "New company listing submitted:",
       `Title: ${title}`,
       `Company ID: ${companyId}`,
+      `Group: ${serviceGroup}`,
       `Category: ${category}`,
       `City: ${city}`,
       "Admin: /admin/company-listings",

@@ -9,7 +9,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
   title: "Choose Company Package | Kamker",
-  description: "Choose a Kamker company listing package.",
+  description: "Choose a Kamker package for company-managed professionals.",
 };
 
 type Company = {
@@ -146,7 +146,7 @@ export default async function CompanyPackagesPage({ params }: CompanyPackagesPag
               Choose package for {company.company_name}
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Select how many staff or service listings your company needs. Manual payment review will come in the next step.
+              Select how many company-managed professionals your company can publish. Each professional can use any Kamker service group and profession category.
             </p>
           </div>
           <Card className="bg-white shadow-sm sm:w-80">
@@ -208,11 +208,11 @@ export default async function CompanyPackagesPage({ params }: CompanyPackagesPag
                     <div className="mt-5 grid gap-3 text-sm">
                       <div className="flex items-center gap-2">
                         <ListChecks className="size-4 text-primary" aria-hidden="true" />
-                        <span>{companyPackage.listings_limit} total listings</span>
+                        <span>{companyPackage.listings_limit} published professionals</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="size-4 text-primary" aria-hidden="true" />
-                        <span>{companyPackage.featured_limit} featured listings</span>
+                        <span>{companyPackage.featured_limit} featured professionals</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="size-4 text-primary" aria-hidden="true" />
@@ -222,7 +222,7 @@ export default async function CompanyPackagesPage({ params }: CompanyPackagesPag
 
                     <p className="mt-4 text-sm leading-6 text-muted-foreground">
                       {companyPackage.description ??
-                        `${companyPackage.listings_limit} listings with ${companyPackage.featured_limit} featured.`}
+                        `${companyPackage.listings_limit} published professionals with ${companyPackage.featured_limit} featured.`}
                     </p>
 
                     <Button asChild className="mt-auto h-12 w-full">
@@ -241,7 +241,7 @@ export default async function CompanyPackagesPage({ params }: CompanyPackagesPag
           <CardContent className="p-5 text-sm leading-6 text-amber-950">
             <p className="font-semibold">Manual payment next</p>
             <p className="mt-1">
-              In the next phase, selecting a package will open a manual payment form for JazzCash/EasyPaisa/bank reference submission. Package benefits will activate only after admin approval.
+              Package benefits activate only after Kamker admin approval. After activation, the company dashboard allows adding professionals until the published package limit is reached.
             </p>
           </CardContent>
         </Card>

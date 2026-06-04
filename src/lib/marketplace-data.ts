@@ -167,6 +167,12 @@ export type Professional = {
   image: string;
   is_featured: boolean;
   featured_until: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  profileHref?: string;
+  is_company_managed?: boolean;
+  company_name?: string | null;
+  company_verified?: boolean;
 };
 
 export const recentProfessionals: Professional[] = [

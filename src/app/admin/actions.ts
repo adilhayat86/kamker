@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/lib/admin-auth";
 import { setAutoApproveProfessionals } from "@/lib/admin-settings";
+import {
+  getActiveCompanySubscription,
+  getPublishedCompanyListingUsage,
+} from "@/lib/company-packages";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 async function canMutateAdmin() {
@@ -235,6 +239,80 @@ export async function rejectCompanyVerification(formData: FormData) {
   revalidatePath("/admin/companies");
 }
 
+export async function activateCompanyPackage(formData: FormData) {
+  const companyId = formData.get("companyId");
+  const packageKey = formData.get("packageKey");
+
+  if (
+    typeof companyId !== "string" ||
+    !companyId ||
+    typeof packageKey !== "string" ||
+    !packageKey ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data: companyPackage, error: packageError } = await supabase
+    .from("company_packages")
+    .select("id, package_key, duration_days, listings_limit, featured_limit")
+    .eq("package_key", packageKey)
+    .eq("active", true)
+    .maybeSingle();
+
+  if (packageError || !companyPackage) {
+    console.error("Failed to load package for activation", packageError);
+    return;
+  }
+
+  const startsAt = new Date();
+  const expiresAt = new Date(startsAt);
+  expiresAt.setDate(expiresAt.getDate() + Number(companyPackage.duration_days));
+
+  const { error: cancelError } = await supabase
+    .from("company_package_subscriptions")
+    .update({ status: "cancelled" })
+    .eq("company_id", companyId)
+    .eq("status", "active");
+
+  if (cancelError) {
+    console.error("Failed to cancel old company subscription", cancelError);
+  }
+
+  const { error: subscriptionError } = await supabase
+    .from("company_package_subscriptions")
+    .insert({
+      company_id: companyId,
+      package_id: companyPackage.id,
+      package_key: companyPackage.package_key,
+      listings_limit: companyPackage.listings_limit,
+      featured_limit: companyPackage.featured_limit,
+      starts_at: startsAt.toISOString(),
+      expires_at: expiresAt.toISOString(),
+      status: "active",
+    });
+
+  if (subscriptionError) {
+    console.error("Failed to activate company package", subscriptionError);
+    return;
+  }
+
+  const { error: companyError } = await supabase
+    .from("companies")
+    .update({ payment_status: "paid" })
+    .eq("id", companyId);
+
+  if (companyError) {
+    console.error("Failed to update company payment status", companyError);
+  }
+
+  revalidatePath("/admin/companies");
+  revalidatePath(`/companies/${companyId}/dashboard`);
+  revalidatePath(`/companies/${companyId}/packages`);
+}
+
 export async function approveCompanyListing(formData: FormData) {
   const id = formData.get("listingId");
 
@@ -245,6 +323,32 @@ export async function approveCompanyListing(formData: FormData) {
     !supabase ||
     !(await canMutateAdmin())
   ) {
+    return;
+  }
+
+  const { data: existingListing, error: loadError } = await supabase
+    .from("company_listings")
+    .select("company_id, status")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (loadError || !existingListing) {
+    console.error("Failed to load company listing before approval", loadError);
+    return;
+  }
+
+  const [activeSubscription, usage] = await Promise.all([
+    getActiveCompanySubscription(existingListing.company_id as string),
+    getPublishedCompanyListingUsage(existingListing.company_id as string),
+  ]);
+
+  if (!activeSubscription) {
+    console.error("Cannot approve company listing without an active package", id);
+    return;
+  }
+
+  if (existingListing.status !== "approved" && usage.published >= activeSubscription.listings_limit) {
+    console.error("Cannot approve company listing because package quota is full", id);
     return;
   }
 
@@ -261,6 +365,94 @@ export async function approveCompanyListing(formData: FormData) {
 
   revalidatePath("/admin/company-listings");
   revalidatePath("/company-listings");
+  revalidatePath("/professionals");
+  revalidatePath("/categories");
+  if (data?.company_id) {
+    revalidatePath(`/companies/${data.company_id}/dashboard`);
+  }
+}
+
+export async function makeCompanyListingFeatured(formData: FormData) {
+  const id = formData.get("listingId");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data: listing, error: loadError } = await supabase
+    .from("company_listings")
+    .select("company_id, status, is_featured")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (loadError || !listing) {
+    console.error("Failed to load company listing before featuring", loadError);
+    return;
+  }
+
+  const [activeSubscription, usage] = await Promise.all([
+    getActiveCompanySubscription(listing.company_id as string),
+    getPublishedCompanyListingUsage(listing.company_id as string),
+  ]);
+
+  if (!activeSubscription || listing.status !== "approved") {
+    console.error("Only approved listings with active packages can be featured", id);
+    return;
+  }
+
+  if (!listing.is_featured && usage.featured >= activeSubscription.featured_limit) {
+    console.error("Cannot feature company listing because featured quota is full", id);
+    return;
+  }
+
+  const { error } = await supabase
+    .from("company_listings")
+    .update({ is_featured: true })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to feature company listing", error);
+  }
+
+  revalidatePath("/admin/company-listings");
+  revalidatePath("/company-listings");
+  revalidatePath("/professionals");
+  revalidatePath(`/companies/${listing.company_id}/dashboard`);
+}
+
+export async function removeCompanyListingFeatured(formData: FormData) {
+  const id = formData.get("listingId");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("company_listings")
+    .update({ is_featured: false })
+    .eq("id", id)
+    .select("company_id")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to remove featured company listing", error);
+  }
+
+  revalidatePath("/admin/company-listings");
+  revalidatePath("/company-listings");
+  revalidatePath("/professionals");
   if (data?.company_id) {
     revalidatePath(`/companies/${data.company_id}/dashboard`);
   }

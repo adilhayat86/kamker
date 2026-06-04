@@ -1,10 +1,14 @@
 import Link from "next/link";
-import { Building2, ListChecks, PlusCircle } from "lucide-react";
+import { Building2, ListChecks, PackageCheck, PlusCircle, Sparkles } from "lucide-react";
 
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  getActiveCompanySubscription,
+  getPublishedCompanyListingUsage,
+} from "@/lib/company-packages";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
@@ -35,6 +39,7 @@ type CompanyListing = {
   description: string | null;
   hourly_rate: number | null;
   monthly_rate: number | null;
+  is_featured: boolean;
   phone: string | null;
   whatsapp: string | null;
   status: string;
@@ -70,7 +75,7 @@ async function getCompanyListings(companyId: string) {
 
   const { data, error } = await supabase
     .from("company_listings")
-    .select("id, title, category, city, area, description, hourly_rate, monthly_rate, phone, whatsapp, status")
+    .select("id, title, category, city, area, description, hourly_rate, monthly_rate, is_featured, phone, whatsapp, status")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -85,7 +90,12 @@ async function getCompanyListings(companyId: string) {
 
 export default async function CompanyDashboardPage({ params }: CompanyDashboardPageProps) {
   const { id } = await params;
-  const [company, listings] = await Promise.all([getCompany(id), getCompanyListings(id)]);
+  const [company, listings, activeSubscription, usage] = await Promise.all([
+    getCompany(id),
+    getCompanyListings(id),
+    getActiveCompanySubscription(id),
+    getPublishedCompanyListingUsage(id),
+  ]);
 
   if (!company) {
     return (
@@ -106,6 +116,10 @@ export default async function CompanyDashboardPage({ params }: CompanyDashboardP
     );
   }
 
+  const canAddProfessional = Boolean(activeSubscription) && (
+    !activeSubscription || usage.published < activeSubscription.listings_limit
+  );
+
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-7xl">
@@ -122,20 +136,27 @@ export default async function CompanyDashboardPage({ params }: CompanyDashboardP
               Manage company details and staff or service listings from one place.
             </p>
           </div>
-          <Button asChild className="h-12 w-full sm:w-auto">
-            <Link href={`/companies/${company.id}/listings/new`}>
+          <Button asChild={canAddProfessional} className="h-12 w-full sm:w-auto" disabled={!canAddProfessional}>
+            {canAddProfessional ? (
+              <Link href={`/companies/${company.id}/listings/new`}>
+                <PlusCircle className="size-4" aria-hidden="true" />
+                Add Professional
+              </Link>
+            ) : (
+              <span>
               <PlusCircle className="size-4" aria-hidden="true" />
-              Add Listing
-            </Link>
+                Add Professional
+              </span>
+            )}
           </Button>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="bg-white shadow-sm">
             <CardContent className="p-5">
               <ListChecks className="size-6 text-primary" aria-hidden="true" />
-              <p className="mt-4 text-2xl font-bold">{listings.length}</p>
-              <p className="mt-1 text-sm text-muted-foreground">Company listings</p>
+              <p className="mt-4 text-2xl font-bold">{usage.published}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Published professionals</p>
             </CardContent>
           </Card>
           <Card className="bg-white shadow-sm">
@@ -145,7 +166,49 @@ export default async function CompanyDashboardPage({ params }: CompanyDashboardP
               <p className="mt-1 text-sm text-muted-foreground">Verification status</p>
             </CardContent>
           </Card>
+          <Card className="bg-white shadow-sm">
+            <CardContent className="p-5">
+              <PackageCheck className="size-6 text-primary" aria-hidden="true" />
+              <p className="mt-4 text-2xl font-bold">
+                {activeSubscription ? `${usage.published}/${activeSubscription.listings_limit}` : "No package"}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {activeSubscription ? activeSubscription.package_title : "Package needed"}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white shadow-sm">
+            <CardContent className="p-5">
+              <Sparkles className="size-6 text-primary" aria-hidden="true" />
+              <p className="mt-4 text-2xl font-bold">
+                {activeSubscription ? `${usage.featured}/${activeSubscription.featured_limit}` : "0/0"}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">Featured published</p>
+            </CardContent>
+          </Card>
         </div>
+
+        <Card className="mt-6 bg-white shadow-sm">
+          <CardContent className="p-5">
+            <h2 className="text-xl font-semibold">Package access</h2>
+            {activeSubscription ? (
+              <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
+                <span>Package: {activeSubscription.package_title}</span>
+                <span>Published: {usage.published}/{activeSubscription.listings_limit}</span>
+                <span>Featured: {usage.featured}/{activeSubscription.featured_limit}</span>
+                <span>Expires: {new Date(activeSubscription.expires_at).toLocaleDateString("en-PK")}</span>
+              </div>
+            ) : (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                <p className="font-semibold">No active package</p>
+                <p className="mt-1">Choose and activate a package before adding company-managed professionals.</p>
+                <Button asChild className="mt-4 h-11 w-full sm:w-auto">
+                  <Link href={`/companies/${company.id}/packages`}>Choose Package</Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
@@ -166,11 +229,15 @@ export default async function CompanyDashboardPage({ params }: CompanyDashboardP
           <CardContent className="p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-xl font-semibold">Listings</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Add staff or services under this company.</p>
+                <h2 className="text-xl font-semibold">Professionals</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Add workers or professionals under this company package.</p>
               </div>
-              <Button asChild variant="outline" className="w-full sm:w-auto">
-                <Link href={`/companies/${company.id}/listings/new`}>Add Listing</Link>
+              <Button asChild={canAddProfessional} variant="outline" className="w-full sm:w-auto" disabled={!canAddProfessional}>
+                {canAddProfessional ? (
+                  <Link href={`/companies/${company.id}/listings/new`}>Add Professional</Link>
+                ) : (
+                  <span>Add Professional</span>
+                )}
               </Button>
             </div>
 
@@ -181,6 +248,7 @@ export default async function CompanyDashboardPage({ params }: CompanyDashboardP
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-semibold">{listing.title}</p>
                       <Badge variant="outline">{listing.status}</Badge>
+                      {listing.is_featured ? <Badge>Featured</Badge> : null}
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {listing.category} · {listing.city}{listing.area ? ` · ${listing.area}` : ""}
