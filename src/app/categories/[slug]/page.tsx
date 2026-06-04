@@ -354,9 +354,9 @@ export default async function CategoryDetailPage({
                 </p>
               </div>
               <div className="rounded-lg border p-4">
-                <p className="font-semibold">2. Save free</p>
+                <p className="font-semibold">2. Review request</p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Free mode saves the requirement for review.
+                  Kamker reviews submitted requirements before outreach.
                 </p>
               </div>
               <div className="rounded-lg border p-4">

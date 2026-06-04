@@ -7,9 +7,9 @@ import {
   Home,
   Menu,
   PhoneCall,
-  Send,
   Sparkles,
   User,
+  Users,
 } from "lucide-react";
 
 import { AdBanner } from "@/components/ad-banner";
@@ -23,7 +23,7 @@ import { cities, parentCategories } from "@/lib/marketplace-data";
 const bottomNavItems = [
   { label: "Home", icon: Home, href: "#" },
   { label: "Categories", icon: ClipboardList, href: "/categories" },
-  { label: "Send Requirement", icon: Send, href: "/send-requirement" },
+  { label: "Professionals", icon: Users, href: "/professionals" },
   { label: "Register", icon: BriefcaseBusiness, href: "/register" },
   { label: "Account", icon: User, href: "/account" },
 ];
@@ -44,7 +44,7 @@ const trustItems = [
 
 const steps = [
   ["Browse service groups", "Choose Healthcare, Domestic Help, Education, Repairs, Transport, Office, or Beauty."],
-  ["Send your requirement", "Share service, city, area, budget, urgency, and details."],
+  ["Find matching workers", "Use category and city filters to shortlist workers quickly."],
   ["Register as worker", "Workers can create profiles for review before going active."],
 ];
 
@@ -81,9 +81,9 @@ export default function HomePage() {
           <div className="max-w-2xl">
             <Badge variant="secondary" className="mb-2 gap-1.5"><Sparkles className="size-3.5" aria-hidden="true" />Pakistan service marketplace</Badge>
             <h1 className="max-w-xl text-3xl font-bold leading-tight tracking-normal sm:text-5xl lg:text-6xl">Find part time workers</h1>
-            <p className="mt-2 max-w-xl text-sm leading-5 text-muted-foreground sm:mt-4 sm:text-lg sm:leading-7">Coming from a newspaper ad? Search by service and city, send your requirement, or register free as a worker.</p>
+            <p className="mt-2 max-w-xl text-sm leading-5 text-muted-foreground sm:mt-4 sm:text-lg sm:leading-7">Coming from a newspaper ad? Search by service and city, browse workers, or register free as a worker.</p>
             <div className="mt-4 grid gap-2 sm:flex sm:max-w-xl">
-              <Button asChild className="h-12 bg-primary text-base font-semibold text-white hover:bg-primary/90"><Link href="/send-requirement"><Send aria-hidden="true" />Send Requirement</Link></Button>
+              <Button asChild className="h-12 bg-primary text-base font-semibold text-white hover:bg-primary/90"><Link href="/professionals"><Users aria-hidden="true" />Browse Workers</Link></Button>
               <Button asChild variant="outline" className="h-12 border-primary/30 bg-white text-base font-semibold text-primary hover:bg-accent"><Link href="/register/professional"><BriefcaseBusiness aria-hidden="true" />Register as Worker</Link></Button>
             </div>
           </div>
@@ -109,17 +109,6 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8"><AdBanner label="Reserved ad space below hero" /></section>
 
-      <section id="requirements" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <Card className="border-primary/20 bg-primary text-primary-foreground shadow-xl">
-          <CardContent className="p-6 sm:p-7">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div><p className="text-3xl font-bold leading-tight">Need a Worker?</p><p className="mt-2 text-sm text-white/85">Describe your need and receive responses from professionals.</p></div>
-              <Button asChild className="h-14 w-full bg-white text-base font-semibold text-primary hover:bg-white/90 sm:w-64"><Link href="/send-requirement">Send Requirement</Link></Button>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
       <section id="categories" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="flex items-end justify-between gap-4"><div><p className="text-sm font-semibold uppercase tracking-normal text-primary">Popular services</p><h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">Browse by service group</h2></div></div>
         <CategoryGrid categories={parentCategories} />
@@ -140,8 +129,8 @@ export default function HomePage() {
 
       <section id="how-it-works" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <p className="text-sm font-semibold uppercase tracking-normal text-primary">How Kamker works</p>
-        <h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">Search, send requirement, or register</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Kamker guides customers to service groups and clear actions instead of promoting selected workers on the homepage.</p>
+        <h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">Search, browse, or register</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Kamker guides customers to service groups, city filters, and worker profiles without becoming a job board.</p>
         <div className="mt-5 grid gap-4 sm:grid-cols-3">
           {steps.map(([title, description], index) => <Card key={title} className="bg-white shadow-sm"><CardContent className="p-5"><div className="flex size-10 items-center justify-center rounded-md bg-accent text-sm font-bold text-accent-foreground">{index + 1}</div><h3 className="mt-4 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p></CardContent></Card>)}
         </div>
@@ -149,7 +138,7 @@ export default function HomePage() {
 
       <section id="join" className="bg-primary text-white">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:px-8">
-          <div><Badge className="bg-white text-primary">Registration</Badge><h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-normal sm:text-4xl">Join Kamker as a worker or customer.</h2><p className="mt-4 max-w-xl text-base leading-7 text-white/85">Workers register free. Customers send requirements and contact matching workers directly where phone or WhatsApp is available.</p></div>
+          <div><Badge className="bg-white text-primary">Registration</Badge><h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-normal sm:text-4xl">Join Kamker as a worker or customer.</h2><p className="mt-4 max-w-xl text-base leading-7 text-white/85">Workers register free. Customers browse by category and city, then contact workers directly where phone or WhatsApp is available.</p></div>
           <Card className="border-white/15 bg-white/10 text-white shadow-none"><CardContent className="p-5"><div className="flex items-center gap-3"><div className="flex size-12 items-center justify-center rounded-md bg-white text-primary"><PhoneCall className="size-6" aria-hidden="true" /></div><div><h3 className="font-semibold">Register on Kamker</h3><p className="text-sm text-white/80">Choose the path that matches how you use the marketplace.</p></div></div><div className="mt-5 grid gap-3 sm:grid-cols-2"><Button asChild className="h-12 bg-white text-primary hover:bg-white/90"><Link href="/register/professional">Register as Worker</Link></Button><Button asChild className="h-12 bg-white/15 text-white hover:bg-white/25"><Link href="/register/customer">Register as Customer</Link></Button></div></CardContent></Card>
         </div>
       </section>

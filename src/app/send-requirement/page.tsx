@@ -19,7 +19,7 @@ const urgencyOptions = ["Today", "Within 2 days", "This week", "Flexible"];
 const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evening"];
 
 const statusMessages = {
-  success: "Your requirement has been saved.",
+  success: "Your requirement has been submitted for review.",
   missing: "Please fill service, city, phone number, urgency, and details.",
   "not-configured": "Supabase is not configured yet.",
   error: "Could not save requirement. Please try again.",
@@ -94,20 +94,16 @@ export default async function SendRequirementPage({
           </Card>
         ) : null}
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-lg border bg-white p-5 text-sm shadow-sm">
-            <p className="font-semibold text-primary">Free mode</p>
+        <Card className="mt-5 border-primary/20 bg-white shadow-sm">
+          <CardContent className="p-5 text-sm">
+            <p className="font-semibold text-primary">Requirement review</p>
             <p className="mt-1 text-muted-foreground">
-              Your requirement is saved so Kamker can review and organize it.
+              Kamker reviews submitted requirements before any broadcast or
+              matching outreach. Broadcast messaging requires approval and
+              payment setup.
             </p>
-          </div>
-          <div className="rounded-lg border bg-white p-5 text-sm shadow-sm">
-            <p className="font-semibold text-primary">Paid broadcast later</p>
-            <p className="mt-1 text-muted-foreground">
-              Message all matching professionals by service, city, and area.
-            </p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {statusMessage ? (
           <div className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium">
