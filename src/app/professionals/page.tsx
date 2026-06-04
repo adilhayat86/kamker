@@ -266,6 +266,7 @@ function DbProfessionalCard({
 }) {
   const whatsappNumber = professional.whatsapp_number ?? professional.phone_number;
   const { timeLabel, daysLabel, combinedLabel } = availabilityLabels(professional);
+  const tagline = professional.tagline?.trim() || "Trusted local professional";
   const verifiedLabel = professional.is_cnic_verified
     ? "CNIC Verified"
     : professional.is_phone_verified
@@ -297,6 +298,9 @@ function DbProfessionalCard({
                 <p className="text-sm font-medium text-primary">
                   {professional.categories?.name ?? "Professional"}
                 </p>
+                <p className="mt-1 max-w-full truncate text-sm font-semibold text-foreground">
+                  {tagline}
+                </p>
               </div>
               <div className="flex flex-wrap justify-end gap-1.5">
                 {featured ? (
@@ -311,7 +315,7 @@ function DbProfessionalCard({
                 </Badge>
               </div>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-3 text-sm text-muted-foreground">
               {professional.experience ??
                 professional.short_bio ??
                 "Experience will be updated soon."}
@@ -383,7 +387,7 @@ function ConversionProfessionalCard({
   featured?: boolean;
 }) {
   const whatsappNumber = professional.whatsapp_number ?? professional.phone_number;
-  const tagline = professional.tagline ?? "Trusted local professional";
+  const tagline = professional.tagline?.trim() || "Trusted local professional";
   const { combinedLabel } = availabilityLabels(professional);
 
   return (
@@ -413,6 +417,9 @@ function ConversionProfessionalCard({
                 <p className="text-sm font-medium text-primary">
                   {professional.categories?.name ?? "Professional"}
                 </p>
+                <p className="mt-1 max-w-full truncate text-sm font-semibold text-foreground">
+                  {tagline}
+                </p>
               </div>
               {featured ? (
                 <Badge className="gap-1 bg-[#f6c343] text-[#241a04] hover:bg-[#f6c343]">
@@ -424,9 +431,6 @@ function ConversionProfessionalCard({
 
             <p className="mt-2 text-2xl font-bold leading-tight text-primary sm:text-3xl">
               {formatHourlyRate(professional.expected_rate)}
-            </p>
-            <p className="mt-1 truncate text-sm font-medium text-foreground">
-              {tagline}
             </p>
 
             <div className="mt-3 grid gap-1.5 text-sm text-muted-foreground">

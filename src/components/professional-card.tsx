@@ -22,6 +22,9 @@ export function ProfessionalCard({
     ? `https://wa.me/${professional.whatsapp.replace(/\D/g, "")}`
     : null;
   const profileHref = professional.profileHref ?? `/professionals/${professional.id}`;
+  const tagline = professional.tagline?.trim() || (
+    professional.is_company_managed ? "Company managed worker" : "Trusted local professional"
+  );
 
   return (
     <Card
@@ -50,6 +53,9 @@ export function ProfessionalCard({
                 <p className="text-sm font-medium text-primary">
                   {professional.role}
                 </p>
+                <p className="mt-1 max-w-full truncate text-sm font-semibold text-foreground">
+                  {tagline}
+                </p>
               </div>
               <div className="flex flex-wrap justify-end gap-1.5">
                 {featured ? (
@@ -72,9 +78,6 @@ export function ProfessionalCard({
             </div>
             <p className="mt-2 text-2xl font-bold leading-tight text-primary sm:text-3xl">
               {professional.rate}
-            </p>
-            <p className="mt-1 truncate text-sm font-medium text-foreground">
-              {professional.tagline}
             </p>
             <div className="mt-3 grid gap-1.5 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">

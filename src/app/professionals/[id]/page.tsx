@@ -71,9 +71,18 @@ export async function generateMetadata({ params }: ProfessionalProfilePageProps)
   const dbProfessional = await getDbProfessional(id);
   const demoProfessional = recentProfessionals.find((item) => item.id === id);
   const name = dbProfessional?.full_name ?? demoProfessional?.name;
+  const role = dbProfessional?.categories?.name ?? demoProfessional?.role ?? "Professional";
+  const city = dbProfessional?.cities?.name ?? demoProfessional?.city ?? "Pakistan";
+  const tagline =
+    dbProfessional?.tagline?.trim() ||
+    demoProfessional?.tagline?.trim() ||
+    "Trusted local professional";
 
   return {
-    title: name ? `${name} | Kamker Professional Profile` : "Professional Profile | Kamker",
+    title: name
+      ? `${name} - ${tagline} | Kamker`
+      : "Professional Profile | Kamker",
+    description: `${tagline}. ${role} in ${city} on Kamker. Contact directly by call or WhatsApp where available.`,
   };
 }
 
