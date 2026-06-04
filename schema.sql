@@ -25,6 +25,14 @@ create table if not exists professionals (
   category_id bigint references categories(id),
   gender text,
   availability text,
+  availability_time text constraint professionals_availability_time_check check (
+    availability_time is null
+    or availability_time in ('morning', 'evening', 'full_time')
+  ),
+  availability_days text constraint professionals_availability_days_check check (
+    availability_days is null
+    or availability_days in ('weekend', 'weekdays', 'seven_days')
+  ),
   years_experience integer,
   experience text,
   expected_rate text,
@@ -151,6 +159,8 @@ on conflict (key) do nothing;
 
 alter table professionals add column if not exists gender text;
 alter table professionals add column if not exists availability text;
+alter table professionals add column if not exists availability_time text;
+alter table professionals add column if not exists availability_days text;
 alter table professionals add column if not exists years_experience integer;
 alter table professionals add column if not exists tagline text;
 alter table requirements add column if not exists availability text;
@@ -165,12 +175,38 @@ begin
       add constraint professionals_tagline_length
       check (tagline is null or char_length(tagline) <= 30);
   end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'professionals_availability_time_check'
+  ) then
+    alter table professionals
+      add constraint professionals_availability_time_check
+      check (
+        availability_time is null
+        or availability_time in ('morning', 'evening', 'full_time')
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'professionals_availability_days_check'
+  ) then
+    alter table professionals
+      add constraint professionals_availability_days_check
+      check (
+        availability_days is null
+        or availability_days in ('weekend', 'weekdays', 'seven_days')
+      );
+  end if;
 end $$;
 
 create index if not exists professionals_city_category_idx on professionals(city_id, category_id);
 create index if not exists professionals_active_idx on professionals(is_active);
 create index if not exists professionals_featured_idx on professionals(is_featured, featured_until);
 create index if not exists professionals_phone_number_idx on professionals(phone_number);
+create index if not exists professionals_availability_time_idx on professionals(availability_time);
+create index if not exists professionals_availability_days_idx on professionals(availability_days);
 create index if not exists requirements_city_status_idx on requirements(city_id, status);
 create index if not exists requirement_matches_requirement_idx on requirement_matches(requirement_id);
 create index if not exists requirement_matches_professional_idx on requirement_matches(professional_id);

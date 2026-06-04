@@ -21,6 +21,7 @@ import {
   recentProfessionals,
   type Professional,
 } from "@/lib/marketplace-data";
+import { getLocalProfessionalCards } from "@/lib/local-demo-store";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type CategoryDetailPageProps = {
@@ -129,7 +130,9 @@ async function getCategoryProfessionals(
   area?: string,
 ) {
   if (!isSupabaseConfigured || !supabase) {
-    return recentProfessionals.filter((professional) =>
+    const localProfessionals = await getLocalProfessionalCards();
+
+    return [...localProfessionals, ...recentProfessionals].filter((professional) =>
       professionalMatchesTargets(professional, targetCategories, city, area),
     );
   }

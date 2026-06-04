@@ -14,5 +14,6 @@ next-dev*.log
 .codex-remote-attachments/
 .gh-cli/
 gh.zip
+.kamker-local/
 
 .vercel

@@ -5,8 +5,11 @@ import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  workerDayAvailabilityOptions,
+  workerTimeAvailabilityOptions,
+} from "@/lib/worker-availability";
 import { categories, cities } from "@/lib/marketplace-data";
-import { workerAvailabilityOptions } from "@/lib/worker-availability";
 
 import { registerProfessional } from "./actions";
 
@@ -16,9 +19,10 @@ export const metadata = {
 
 const statusMessages = {
   success: "Professional profile submitted successfully. Kamker will review it before it appears publicly.",
+  "local-success":
+    "Test worker saved locally because Supabase is not configured. Configure Supabase for real registrations and login.",
   missing:
-    "Please fill name, phone, city, profession, gender, work availability, hourly rate, tagline, password, secret question, and secret answer. Tagline must be 30 characters or less.",
-  "invalid-availability": "Please select when you can work: weekdays, weekends, or 7 days a week.",
+    "Please fill name, phone, city, profession, gender, work time, work days, hourly rate, tagline, password, secret question, and secret answer. Tagline must be 30 characters or less.",
   "not-configured": "Supabase is not configured yet.",
   "invalid-photo": "Upload a jpg, png, or webp image under 2MB.",
   "photo-error": "Could not upload profile photo. Please try again.",
@@ -56,6 +60,11 @@ export default async function ProfessionalRegisterPage({
             {status === "success" ? (
               <Button asChild className="mt-3 w-full sm:w-auto">
                 <Link href="/login">Go to Login</Link>
+              </Button>
+            ) : null}
+            {status === "local-success" ? (
+              <Button asChild className="mt-3 w-full sm:w-auto">
+                <Link href="/professionals">View Local Test Profiles</Link>
               </Button>
             ) : null}
           </div>
@@ -106,12 +115,40 @@ export default async function ProfessionalRegisterPage({
                   name="category"
                   options={categories.map((category) => category.name)}
                 />
-                <SelectField
-                  label="When can you work?"
-                  name="availability"
-                  options={[...workerAvailabilityOptions]}
-                  placeholder="Select availability"
-                />
+                <label className="grid gap-2">
+                  <span className="text-sm font-medium">Work time</span>
+                  <select
+                    name="availabilityTime"
+                    defaultValue=""
+                    className="h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="" disabled>
+                      Select work time
+                    </option>
+                    {workerTimeAvailabilityOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-2">
+                  <span className="text-sm font-medium">Work days</span>
+                  <select
+                    name="availabilityDays"
+                    defaultValue=""
+                    className="h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="" disabled>
+                      Select work days
+                    </option>
+                    {workerDayAvailabilityOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <FormField
                   label="Years of experience"
                   name="yearsExperience"

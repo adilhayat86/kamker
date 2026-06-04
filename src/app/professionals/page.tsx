@@ -18,12 +18,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  workerAvailabilitySummary,
+  workerDayAvailabilityLabel,
+  workerDayAvailabilityOptions,
+  workerTimeAvailabilityLabel,
+  workerTimeAvailabilityOptions,
+} from "@/lib/worker-availability";
+import {
   categories,
   cities,
   getActiveFeaturedProfessionals,
   isActiveFeaturedProfessional,
   recentProfessionals,
 } from "@/lib/marketplace-data";
+import {
+  getLocalProfessionalRecords,
+  type LocalProfessionalRecord,
+} from "@/lib/local-demo-store";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
@@ -39,6 +50,8 @@ type DbProfessional = {
   area: string | null;
   gender?: string | null;
   availability?: string | null;
+  availability_time?: string | null;
+  availability_days?: string | null;
   years_experience?: number | null;
   experience: string | null;
   expected_rate: string | null;
@@ -55,13 +68,16 @@ type DbProfessional = {
   categories: { name: string } | null;
 };
 
+type DirectoryProfessional = DbProfessional | LocalProfessionalRecord;
+
 type ProfessionalsPageProps = {
   searchParams?: Promise<{
     q?: string;
     city?: string;
     category?: string;
     gender?: string;
-    availability?: string;
+    availabilityTime?: string;
+    availabilityDays?: string;
     rate?: string;
     verified?: string;
     sort?: string;
@@ -69,7 +85,6 @@ type ProfessionalsPageProps = {
   }>;
 };
 
-const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evening"];
 const hourlyRateOptions = [
   { value: "under-300", label: "Under Rs. 300/hour", min: 0, max: 299 },
   { value: "300-500", label: "Rs. 300-500/hour", min: 300, max: 500 },
@@ -125,11 +140,11 @@ function matchesHourlyRate(value: string | null | undefined, rateFilter: string)
   return hourlyRate >= selectedRange.min && hourlyRate <= selectedRange.max;
 }
 
-function isVerified(professional: DbProfessional) {
+function isVerified(professional: DirectoryProfessional) {
   return professional.is_cnic_verified || professional.is_phone_verified;
 }
 
-function isDbFeatured(professional: DbProfessional) {
+function isDbFeatured(professional: DirectoryProfessional) {
   return (
     professional.is_featured &&
     Boolean(professional.featured_until) &&
@@ -154,17 +169,33 @@ function buildPageHref(params: Record<string, string>, page: number) {
   return query ? `/professionals?${query}` : "/professionals";
 }
 
-async function getDbProfessionals() {
+async function getDbProfessionals({
+  availabilityTime,
+  availabilityDays,
+}: {
+  availabilityTime: string;
+  availabilityDays: string;
+}) {
   if (!isSupabaseConfigured || !supabase) {
-    return [] as DbProfessional[];
+    return getLocalProfessionalRecords();
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("professionals")
     .select(
-      "id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, is_featured, featured_until, rating, created_at, cities(name), categories(name)",
+      "id, full_name, phone_number, whatsapp_number, area, gender, availability, availability_time, availability_days, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, is_featured, featured_until, rating, created_at, cities(name), categories(name)",
     )
-    .eq("is_active", true)
+    .eq("is_active", true);
+
+  if (availabilityTime) {
+    query = query.eq("availability_time", availabilityTime);
+  }
+
+  if (availabilityDays) {
+    query = query.eq("availability_days", availabilityDays);
+  }
+
+  const { data, error } = await query
     .order("is_featured", { ascending: false })
     .order("featured_until", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
@@ -178,6 +209,21 @@ async function getDbProfessionals() {
   return (data ?? []) as unknown as DbProfessional[];
 }
 
+function availabilityLabels(professional: DirectoryProfessional) {
+  const timeLabel = workerTimeAvailabilityLabel(professional.availability_time);
+  const daysLabel = workerDayAvailabilityLabel(professional.availability_days);
+  const combinedLabel = workerAvailabilitySummary(
+    professional.availability_time,
+    professional.availability_days,
+  );
+
+  return {
+    timeLabel,
+    daysLabel,
+    combinedLabel: combinedLabel || professional.availability || "Ask professional",
+  };
+}
+
 function DbProfessionalCard({
   professional,
   featured = false,
@@ -186,6 +232,7 @@ function DbProfessionalCard({
   featured?: boolean;
 }) {
   const whatsappNumber = professional.whatsapp_number ?? professional.phone_number;
+  const { timeLabel, daysLabel, combinedLabel } = availabilityLabels(professional);
   const verifiedLabel = professional.is_cnic_verified
     ? "CNIC Verified"
     : professional.is_phone_verified
@@ -239,7 +286,13 @@ function DbProfessionalCard({
             <div className="mt-2 flex flex-wrap gap-2">
               <Badge variant="outline">{verifiedLabel}</Badge>
               <Badge variant="secondary">{formatHourlyRate(professional.expected_rate)}</Badge>
-              {professional.availability ? (
+              {timeLabel ? (
+                <Badge variant="secondary">{timeLabel}</Badge>
+              ) : null}
+              {daysLabel ? (
+                <Badge variant="secondary">{daysLabel}</Badge>
+              ) : null}
+              {!timeLabel && !daysLabel && professional.availability ? (
                 <Badge variant="secondary">{professional.availability}</Badge>
               ) : null}
               {professional.gender ? (
@@ -256,7 +309,7 @@ function DbProfessionalCard({
                 Hourly Rate: {professional.expected_rate ?? "Contact for rate"}
               </span>
               <span>
-                Availability: {professional.availability ?? "Ask professional"}
+                Availability: {combinedLabel}
               </span>
               <span className="flex items-center gap-1">
                 <Star className="size-4 fill-[#f6c343] text-[#f6c343]" aria-hidden="true" />
@@ -293,11 +346,12 @@ function ConversionProfessionalCard({
   professional,
   featured = false,
 }: {
-  professional: DbProfessional;
+  professional: DirectoryProfessional;
   featured?: boolean;
 }) {
   const whatsappNumber = professional.whatsapp_number ?? professional.phone_number;
   const tagline = professional.tagline ?? "Trusted local professional";
+  const { timeLabel, daysLabel, combinedLabel } = availabilityLabels(professional);
 
   return (
     <Card
@@ -349,7 +403,7 @@ function ConversionProfessionalCard({
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="size-4" aria-hidden="true" />
-                {professional.availability ?? "Ask professional"}
+                {combinedLabel}
               </span>
               <span className="flex items-center gap-1">
                 <Star className="size-4 fill-[#f6c343] text-[#f6c343]" aria-hidden="true" />
@@ -362,6 +416,12 @@ function ConversionProfessionalCard({
         <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
           {professional.gender ? (
             <Badge variant="secondary">{professional.gender}</Badge>
+          ) : null}
+          {timeLabel ? (
+            <Badge variant="secondary">{timeLabel}</Badge>
+          ) : null}
+          {daysLabel ? (
+            <Badge variant="secondary">{daysLabel}</Badge>
           ) : null}
           {professional.is_cnic_verified ? (
             <Badge variant="outline">CNIC Verified</Badge>
@@ -401,13 +461,17 @@ export default async function ProfessionalsPage({
   const city = params?.city?.trim() ?? "";
   const category = params?.category?.trim() ?? "";
   const gender = params?.gender?.trim() ?? "";
-  const availability = params?.availability?.trim() ?? "";
+  const availabilityTime = params?.availabilityTime?.trim() ?? "";
+  const availabilityDays = params?.availabilityDays?.trim() ?? "";
   const rate = params?.rate?.trim() ?? "";
   const verified = params?.verified === "true";
   const sort = params?.sort?.trim() || "featured";
   const currentPage = Math.max(Number(params?.page ?? "1") || 1, 1);
 
-  const dbProfessionals = await getDbProfessionals();
+  const dbProfessionals = await getDbProfessionals({
+    availabilityTime,
+    availabilityDays,
+  });
   const filteredDbProfessionals = dbProfessionals
     .filter((professional) => {
       const keywordMatch = q
@@ -422,9 +486,6 @@ export default async function ProfessionalsPage({
       const cityMatch = city ? professional.cities?.name === city : true;
       const categoryMatch = category ? professional.categories?.name === category : true;
       const genderMatch = gender ? normalise(professional.gender) === normalise(gender) : true;
-      const availabilityMatch = availability
-        ? normalise(professional.availability) === normalise(availability)
-        : true;
       const hourlyRateMatch = matchesHourlyRate(professional.expected_rate, rate);
       const verifiedMatch = verified ? isVerified(professional) : true;
 
@@ -433,7 +494,6 @@ export default async function ProfessionalsPage({
         cityMatch &&
         categoryMatch &&
         genderMatch &&
-        availabilityMatch &&
         hourlyRateMatch &&
         verifiedMatch
       );
@@ -482,7 +542,17 @@ export default async function ProfessionalsPage({
   const activeProfessionals = hasDbProfessionals
     ? paginatedDbProfessionals
     : recentProfessionals;
-  const pageHrefParams = { q, city, category, gender, availability, rate, verified: verified ? "true" : "", sort };
+  const pageHrefParams = {
+    q,
+    city,
+    category,
+    gender,
+    availabilityTime,
+    availabilityDays,
+    rate,
+    verified: verified ? "true" : "",
+    sort,
+  };
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -526,7 +596,7 @@ export default async function ProfessionalsPage({
             <summary className="cursor-pointer text-sm font-semibold text-primary">
               Advanced filters
             </summary>
-            <div className="mt-3 grid max-h-[20vh] gap-2 overflow-y-auto pr-1 sm:max-h-none sm:grid-cols-2 lg:grid-cols-7">
+            <div className="mt-3 grid max-h-[20vh] gap-2 overflow-y-auto pr-1 sm:max-h-none sm:grid-cols-2 lg:grid-cols-8">
               <label className="grid gap-1">
                 <span className="text-xs font-medium">City</span>
                 <select
@@ -570,16 +640,31 @@ export default async function ProfessionalsPage({
                 </select>
               </label>
               <label className="grid gap-1">
-                <span className="text-xs font-medium">Availability</span>
+                <span className="text-xs font-medium">Work time</span>
                 <select
-                  name="availability"
-                  defaultValue={availability}
+                  name="availabilityTime"
+                  defaultValue={availabilityTime}
                   className="h-10 rounded-md border border-input bg-background px-3 text-sm"
                 >
                   <option value="">Any time</option>
-                  {availabilityOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
+                  {workerTimeAvailabilityOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1">
+                <span className="text-xs font-medium">Work days</span>
+                <select
+                  name="availabilityDays"
+                  defaultValue={availabilityDays}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Any days</option>
+                  {workerDayAvailabilityOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
                     </option>
                   ))}
                 </select>

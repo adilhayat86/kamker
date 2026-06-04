@@ -3,7 +3,16 @@
 import { redirect } from "next/navigation";
 
 import { getAutoApproveProfessionals } from "@/lib/admin-settings";
+import {
+  isWorkerDayAvailability,
+  isWorkerTimeAvailability,
+  workerAvailabilitySummary,
+} from "@/lib/worker-availability";
 import { hashSecret } from "@/lib/auth";
+import {
+  isLocalDemoStoreEnabled,
+  saveLocalProfessional,
+} from "@/lib/local-demo-store";
 import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -25,7 +34,8 @@ export async function registerProfessional(formData: FormData) {
   const area = field(formData, "area");
   const categoryName = field(formData, "category");
   const gender = field(formData, "gender");
-  const availability = field(formData, "availability");
+  const availabilityTime = field(formData, "availabilityTime");
+  const availabilityDays = field(formData, "availabilityDays");
   const yearsExperience = numericField(formData, "yearsExperience");
   const experience = field(formData, "experience");
   const expectedRate = field(formData, "rate");
@@ -42,7 +52,8 @@ export async function registerProfessional(formData: FormData) {
     !cityName ||
     !categoryName ||
     !gender ||
-    !availability ||
+    !isWorkerTimeAvailability(availabilityTime) ||
+    !isWorkerDayAvailability(availabilityDays) ||
     !expectedRate ||
     !tagline ||
     tagline.length > 30 ||
@@ -54,6 +65,26 @@ export async function registerProfessional(formData: FormData) {
   }
 
   if (!isSupabaseConfigured || !supabase) {
+    if (isLocalDemoStoreEnabled) {
+      await saveLocalProfessional({
+        fullName,
+        phoneNumber,
+        whatsappNumber,
+        cityName,
+        area,
+        categoryName,
+        gender,
+        availabilityTime,
+        availabilityDays,
+        yearsExperience,
+        experience,
+        expectedRate,
+        tagline,
+        shortBio,
+      });
+      redirect("/register/professional?status=local-success");
+    }
+
     redirect("/register/professional?status=not-configured");
   }
 
@@ -75,6 +106,10 @@ export async function registerProfessional(formData: FormData) {
   ]);
   const autoApprove = await getAutoApproveProfessionals();
   let profilePhotoUrl: string | null = null;
+  const availability = workerAvailabilitySummary(
+    availabilityTime,
+    availabilityDays,
+  );
 
   try {
     profilePhotoUrl = await uploadProfessionalPhoto(formData);
@@ -95,6 +130,8 @@ export async function registerProfessional(formData: FormData) {
     category_id: category?.id ?? null,
     gender,
     availability,
+    availability_time: availabilityTime,
+    availability_days: availabilityDays,
     years_experience: yearsExperience,
     experience: experience || null,
     expected_rate: expectedRate || null,
