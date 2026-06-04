@@ -42,7 +42,7 @@ export function BroadcastRequirementCta({
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-normal text-white/75">
+            <p className="text-xs font-semibold uppercase tracking-normal text-white/80">
               Broadcast requirement
             </p>
             <p className="mt-1 text-lg font-bold leading-snug sm:text-xl">
@@ -51,7 +51,7 @@ export function BroadcastRequirementCta({
           </div>
           <Button
             asChild
-            className="h-12 w-full bg-white px-3 text-primary hover:bg-white/90 sm:w-auto sm:min-w-72"
+            className="h-12 w-full bg-white px-3 font-semibold text-primary hover:bg-white/90 sm:w-auto sm:min-w-72"
           >
             <Link href={href}>
               <Send aria-hidden="true" />

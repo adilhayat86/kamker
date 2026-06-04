@@ -2,16 +2,21 @@ import Link from "next/link";
 import {
   Bike,
   BriefcaseBusiness,
+  Calculator,
   Car,
   ChefHat,
+  ClipboardList,
   Contact,
   Drill,
+  FileText,
   GraduationCap,
   Hammer,
   HeartPulse,
   Home,
   Image as ImageIcon,
+  Keyboard,
   Leaf,
+  Monitor,
   Paintbrush,
   Palette,
   PencilRuler,
@@ -40,16 +45,22 @@ type CategoryGridProps = {
 const categoryIcons = {
   bike: Bike,
   briefcase: BriefcaseBusiness,
+  calculator: Calculator,
   car: Car,
   chef: ChefHat,
+  clipboard: ClipboardList,
   contact: Contact,
   drill: Drill,
+  fileText: FileText,
   graduation: GraduationCap,
   hammer: Hammer,
   heart: HeartPulse,
   home: Home,
   image: ImageIcon,
+  keyboard: Keyboard,
   leaf: Leaf,
+  laptop: Monitor,
+  monitor: Monitor,
   paintbrush: Paintbrush,
   palette: Palette,
   pencil: PencilRuler,
@@ -75,10 +86,10 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
             href={`/categories/${categorySlug(category.name)}`}
             className="block h-full"
           >
-            <Card className="h-full bg-white/95 shadow-sm transition-colors hover:border-primary/40 hover:bg-white">
+            <Card className="h-full border-sky-100 bg-white shadow-sm transition-colors hover:border-primary/50 hover:bg-sky-50/40">
               <CardContent className="flex min-h-32 flex-col justify-between p-3.5 sm:min-h-40 sm:p-5">
                 <div>
-                  <div className="flex size-11 items-center justify-center rounded-md bg-accent text-accent-foreground sm:size-14">
+                  <div className="flex size-11 items-center justify-center rounded-md bg-accent text-primary shadow-sm sm:size-14">
                     <Icon className="size-6 sm:size-7" aria-hidden="true" />
                   </div>
                   <h3 className="mt-3 min-h-9 text-sm font-semibold leading-tight sm:mt-4 sm:text-base">

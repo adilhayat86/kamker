@@ -32,7 +32,7 @@ export function ProfessionalCard({
             width={96}
             height={96}
             loading="lazy"
-            className="size-18 shrink-0 rounded-full bg-accent object-cover sm:size-24"
+            className="size-20 shrink-0 rounded-full bg-accent object-cover sm:size-24"
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2">

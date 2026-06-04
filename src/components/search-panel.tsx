@@ -7,7 +7,7 @@ import { cities } from "@/lib/marketplace-data";
 
 export function SearchPanel() {
   return (
-    <Card className="border-0 bg-white/95 shadow-md">
+    <Card className="border border-sky-100 bg-white shadow-md">
       <CardContent className="p-2 sm:p-3">
         <form
           action="/professionals"
@@ -15,7 +15,7 @@ export function SearchPanel() {
         >
           <label className="relative">
             <Search
-              className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground sm:top-3.5"
+              className="pointer-events-none absolute left-3 top-3 size-4 text-primary sm:top-3.5"
               aria-hidden="true"
             />
             <span className="sr-only">Service</span>
@@ -27,7 +27,7 @@ export function SearchPanel() {
           </label>
           <label className="relative">
             <MapPin
-              className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground sm:top-3.5"
+              className="pointer-events-none absolute left-3 top-3 size-4 text-primary sm:top-3.5"
               aria-hidden="true"
             />
             <span className="sr-only">Location</span>
