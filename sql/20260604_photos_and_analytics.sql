@@ -14,6 +14,31 @@ on conflict (id) do update set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'company_images_public_read'
+  ) then
+    create policy company_images_public_read
+    on storage.objects for select
+    using (bucket_id = 'company-images');
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'company_images_insert'
+  ) then
+    create policy company_images_insert
+    on storage.objects for insert
+    with check (bucket_id = 'company-images');
+  end if;
+end $$;
+
 create table if not exists analytics_events (
   id uuid primary key default gen_random_uuid(),
   event_type text not null,

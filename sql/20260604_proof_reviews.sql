@@ -29,6 +29,31 @@ on conflict (id) do update set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'proof_images_public_read'
+  ) then
+    create policy proof_images_public_read
+    on storage.objects for select
+    using (bucket_id = 'proof-images');
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'proof_images_insert'
+  ) then
+    create policy proof_images_insert
+    on storage.objects for insert
+    with check (bucket_id = 'proof-images');
+  end if;
+end $$;
+
 create index if not exists proof_reviews_review_type_idx on proof_reviews(review_type);
 create index if not exists proof_reviews_related_id_idx on proof_reviews(related_id);
 create index if not exists proof_reviews_ai_decision_idx on proof_reviews(ai_decision);
