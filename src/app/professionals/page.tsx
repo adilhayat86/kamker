@@ -28,7 +28,6 @@ import { getApprovedCompanyListingCards } from "@/lib/company-listing-cards";
 import {
   categories,
   cities,
-  getActiveFeaturedProfessionals,
   isActiveFeaturedProfessional,
   recentProfessionals,
   type Professional,
@@ -169,7 +168,11 @@ function matchesCompanyProfessionalFilters(
   const categoryMatch = filters.category ? professional.role === filters.category : true;
   const genderMatch = filters.gender ? normalise(professional.gender) === normalise(filters.gender) : true;
   const hourlyRateMatch = matchesHourlyRate(professional.rate, filters.rate);
-  const verifiedMatch = filters.verified ? Boolean(professional.company_verified) : true;
+  const verifiedMatch = filters.verified
+    ? professional.is_company_managed
+      ? Boolean(professional.company_verified)
+      : true
+    : true;
 
   return keywordMatch && cityMatch && categoryMatch && genderMatch && hourlyRateMatch && verifiedMatch;
 }
@@ -507,6 +510,16 @@ export default async function ProfessionalsPage({
       verified,
     }),
   );
+  const filteredDemoProfessionals = recentProfessionals.filter((professional) =>
+    matchesCompanyProfessionalFilters(professional, {
+      q,
+      city,
+      category,
+      gender,
+      rate,
+      verified,
+    }),
+  );
   const filteredDbProfessionals = dbProfessionals
     .filter((professional) => {
       const keywordMatch = q
@@ -559,7 +572,10 @@ export default async function ProfessionalsPage({
     });
 
   const hasDbProfessionals = dbProfessionals.length > 0;
-  const hasDirectoryProfessionals = hasDbProfessionals || filteredCompanyProfessionals.length > 0;
+  const hasDirectoryProfessionals =
+    hasDbProfessionals ||
+    filteredCompanyProfessionals.length > 0 ||
+    filteredDemoProfessionals.length > 0;
   const totalPages = Math.max(Math.ceil(filteredDbProfessionals.length / pageSize), 1);
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (safeCurrentPage - 1) * pageSize;
@@ -577,15 +593,19 @@ export default async function ProfessionalsPage({
   const regularCompanyProfessionals = filteredCompanyProfessionals.filter(
     (professional) => !professional.is_featured,
   );
-  const featuredDemoProfessionals = getActiveFeaturedProfessionals();
-  const regularDemoProfessionals = recentProfessionals.filter(
+  const featuredDemoProfessionals = filteredDemoProfessionals.filter((professional) =>
+    isActiveFeaturedProfessional(professional),
+  );
+  const regularDemoProfessionals = filteredDemoProfessionals.filter(
     (professional) => !isActiveFeaturedProfessional(professional),
   );
   const activeProfessionals = hasDbProfessionals
     ? [...featuredCompanyProfessionals, ...regularCompanyProfessionals, ...paginatedDbProfessionals]
-    : filteredCompanyProfessionals.length > 0
-      ? [...featuredCompanyProfessionals, ...regularCompanyProfessionals]
-    : recentProfessionals;
+    : [...featuredCompanyProfessionals, ...regularCompanyProfessionals, ...filteredDemoProfessionals];
+  const totalVisibleProfessionals =
+    filteredDbProfessionals.length +
+    filteredCompanyProfessionals.length +
+    (hasDbProfessionals ? 0 : filteredDemoProfessionals.length);
   const pageHrefParams = {
     q,
     city,
@@ -758,8 +778,8 @@ export default async function ProfessionalsPage({
 
         {hasDirectoryProfessionals ? (
           <p className="mt-4 text-sm text-muted-foreground">
-            Showing {activeProfessionals.length} of {filteredDbProfessionals.length + filteredCompanyProfessionals.length} approved professional
-            {filteredDbProfessionals.length + filteredCompanyProfessionals.length === 1 ? "" : "s"}.
+            Showing {activeProfessionals.length} of {totalVisibleProfessionals} approved professional
+            {totalVisibleProfessionals === 1 ? "" : "s"}.
           </p>
         ) : null}
 
@@ -777,32 +797,29 @@ export default async function ProfessionalsPage({
             Active featured profiles
           </h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {hasDirectoryProfessionals
-              ? (
-                <>
-                  {featuredCompanyProfessionals.map((professional) => (
-                    <ProfessionalCard
-                      key={professional.id}
-                      professional={professional}
-                      featured
-                    />
-                  ))}
-                  {featuredDbProfessionals.map((professional) => (
-                  <ConversionProfessionalCard
-                    key={professional.id}
-                    professional={professional}
-                    featured
-                  />
-                  ))}
-                </>
-              )
-              : featuredDemoProfessionals.map((professional) => (
+            {featuredCompanyProfessionals.map((professional) => (
+              <ProfessionalCard
+                key={professional.id}
+                professional={professional}
+                featured
+              />
+            ))}
+            {featuredDbProfessionals.map((professional) => (
+              <ConversionProfessionalCard
+                key={professional.id}
+                professional={professional}
+                featured
+              />
+            ))}
+            {!hasDbProfessionals
+              ? featuredDemoProfessionals.map((professional) => (
                   <ProfessionalCard
                     key={professional.id}
                     professional={professional}
                     featured
                   />
-                ))}
+                ))
+              : null}
           </div>
         </section>
 
@@ -814,29 +831,26 @@ export default async function ProfessionalsPage({
             Regular profiles
           </h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {hasDirectoryProfessionals
-              ? (
-                <>
-                  {regularCompanyProfessionals.map((professional) => (
-                    <ProfessionalCard
-                      key={professional.id}
-                      professional={professional}
-                    />
-                  ))}
-                  {regularDbProfessionals.map((professional) => (
-                  <ConversionProfessionalCard
-                    key={professional.id}
-                    professional={professional}
-                  />
-                  ))}
-                </>
-              )
-              : regularDemoProfessionals.map((professional) => (
+            {regularCompanyProfessionals.map((professional) => (
+              <ProfessionalCard
+                key={professional.id}
+                professional={professional}
+              />
+            ))}
+            {regularDbProfessionals.map((professional) => (
+              <ConversionProfessionalCard
+                key={professional.id}
+                professional={professional}
+              />
+            ))}
+            {!hasDbProfessionals
+              ? regularDemoProfessionals.map((professional) => (
                   <ProfessionalCard
                     key={professional.id}
                     professional={professional}
                   />
-                ))}
+                ))
+              : null}
           </div>
         </section>
 

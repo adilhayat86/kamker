@@ -1,4 +1,8 @@
 import {
+  categories,
+  categorySlug,
+  cities,
+  findServiceGroupForCategory,
   type Professional,
   serviceGroups,
 } from "@/lib/marketplace-data";
@@ -43,6 +47,98 @@ function inferredServiceGroup(category: string) {
   return serviceGroups.find((group) => group.subcategories.includes(category))?.name ?? null;
 }
 
+const mockCompanyNames = [
+  "PakCare Services",
+  "BlueLine Workforce",
+  "CityServe Professionals",
+  "Reliable Hands",
+  "Kamran Agency",
+];
+
+const mockCompanyAreasByCity: Record<string, string[]> = {
+  Karachi: ["Clifton", "Gulshan-e-Iqbal", "North Nazimabad"],
+  Lahore: ["Gulberg", "Johar Town", "Model Town"],
+  Islamabad: ["F-10", "G-11", "I-8"],
+  Rawalpindi: ["Saddar", "Bahria Town", "Satellite Town"],
+  Peshawar: ["Hayatabad", "University Road", "Cantt"],
+};
+
+function mockCompanyRate(categoryName: string, index: number) {
+  const lowerName = categoryName.toLowerCase();
+
+  if (lowerName.includes("teacher") || lowerName.includes("tutor")) {
+    return { hourly_rate: null, monthly_rate: 12000 + index * 750 };
+  }
+
+  if (lowerName.includes("driver") || lowerName.includes("guard") || lowerName.includes("office")) {
+    return { hourly_rate: null, monthly_rate: 35000 + index * 1000 };
+  }
+
+  return { hourly_rate: 600 + index * 30, monthly_rate: null };
+}
+
+const mockCompanyListingRows: CompanyListingCardRow[] = categories.map((category, index) => {
+  const city = cities[(index + 2) % cities.length];
+  const rates = mockCompanyRate(category.name, index);
+  const serviceGroup = findServiceGroupForCategory(category.name)?.name ?? inferredServiceGroup(category.name);
+  const companyName = mockCompanyNames[index % mockCompanyNames.length];
+
+  return {
+    id: `mock-company-${categorySlug(category.name)}`,
+    title: `${category.name} Team Member`,
+    service_group: serviceGroup,
+    category: category.name,
+    city,
+    area: (mockCompanyAreasByCity[city] ?? ["Central Area"])[index % 3],
+    description: `${companyName} mock company-managed ${category.name.toLowerCase()} profile for package, featured, and directory preview testing.`,
+    hourly_rate: rates.hourly_rate,
+    monthly_rate: rates.monthly_rate,
+    profile_photo_url: null,
+    photo_url: null,
+    tagline: `Company ${category.name.toLowerCase()}`.slice(0, 30),
+    gender: index % 2 === 0 ? "Male" : "Female",
+    availability: index % 2 === 0 ? "Full Time" : "On Call",
+    years_experience: 3 + (index % 8),
+    phone: `03${String(200000000 + index * 24681).slice(0, 9)}`,
+    whatsapp: `923${String(200000000 + index * 24681).slice(0, 9)}`,
+    is_featured: true,
+    created_at: "2030-01-01T00:00:00.000Z",
+    companies: {
+      id: `mock-company-${index + 1}`,
+      company_name: companyName,
+      verification_status: index % 4 === 0 ? "pending" : "verified",
+    },
+  };
+});
+
+function getMockCompanyListingCards(filters?: {
+  categories?: string[];
+  serviceGroup?: string;
+  city?: string;
+  area?: string;
+  limit?: number;
+}) {
+  const cards = mockCompanyListingRows
+    .filter((listing) => {
+      const categoryMatch = filters?.categories?.length
+        ? filters.categories.includes(listing.category)
+        : true;
+      const serviceGroupMatch = filters?.serviceGroup
+        ? (listing.service_group ?? inferredServiceGroup(listing.category)) === filters.serviceGroup
+        : true;
+      const cityMatch = filters?.city ? listing.city === filters.city : true;
+      const areaMatch = filters?.area
+        ? (listing.area ?? "").toLowerCase().includes(filters.area.toLowerCase())
+        : true;
+
+      return categoryMatch && serviceGroupMatch && cityMatch && areaMatch;
+    })
+    .map(companyListingToProfessionalCard)
+    .sort((first, second) => Number(second.is_featured) - Number(first.is_featured));
+
+  return typeof filters?.limit === "number" ? cards.slice(0, filters.limit) : cards;
+}
+
 export function companyListingToProfessionalCard(listing: CompanyListingCardRow): Professional {
   const companyName = listing.companies?.company_name ?? "Company managed";
 
@@ -81,7 +177,7 @@ export async function getApprovedCompanyListingCards(filters?: {
   limit?: number;
 }) {
   if (!isSupabaseConfigured || !supabase) {
-    return [] as Professional[];
+    return getMockCompanyListingCards(filters);
   }
 
   let query = supabase
@@ -108,10 +204,14 @@ export async function getApprovedCompanyListingCards(filters?: {
 
   if (error) {
     console.error("Failed to load approved company listings", error);
-    return [] as Professional[];
+    return getMockCompanyListingCards(filters);
   }
 
-  return ((data ?? []) as unknown as CompanyListingCardRow[])
+  if (!data || data.length === 0) {
+    return getMockCompanyListingCards(filters);
+  }
+
+  return (data as unknown as CompanyListingCardRow[])
     .filter((listing) => {
       const groupMatch = filters?.serviceGroup
         ? (listing.service_group ?? inferredServiceGroup(listing.category)) === filters.serviceGroup

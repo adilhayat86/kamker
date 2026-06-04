@@ -175,7 +175,7 @@ export type Professional = {
   company_verified?: boolean;
 };
 
-export const recentProfessionals: Professional[] = [
+const curatedProfessionals: Professional[] = [
   {
     id: "maryam-safdar",
     name: "Maryam Safdar",
@@ -404,6 +404,93 @@ export const recentProfessionals: Professional[] = [
     is_featured: false,
     featured_until: null,
   },
+];
+
+const mockFirstNames = [
+  "Amina",
+  "Bilal",
+  "Sadia",
+  "Usman",
+  "Nadia",
+  "Farhan",
+  "Hina",
+  "Tariq",
+  "Rabia",
+  "Kashif",
+];
+
+const mockLastNames = [
+  "Ahmed",
+  "Khan",
+  "Raza",
+  "Malik",
+  "Sheikh",
+  "Ali",
+  "Iqbal",
+  "Hussain",
+  "Yousaf",
+  "Akhtar",
+];
+
+const mockAreasByCity: Record<string, string[]> = {
+  Karachi: ["Gulshan-e-Iqbal", "North Nazimabad", "DHA"],
+  Lahore: ["Johar Town", "Model Town", "DHA"],
+  Islamabad: ["G-10", "F-8", "I-8"],
+  Rawalpindi: ["Saddar", "Satellite Town", "Bahria Town"],
+  Peshawar: ["Hayatabad", "University Road", "Saddar"],
+};
+
+function mockRateForCategory(categoryName: string, index: number) {
+  const lowerName = categoryName.toLowerCase();
+
+  if (lowerName.includes("teacher") || lowerName.includes("tutor")) {
+    return `From Rs. ${(8000 + index * 500).toLocaleString("en-PK")}/month`;
+  }
+
+  if (lowerName.includes("nurse") || lowerName.includes("caregiver") || lowerName.includes("babysitter")) {
+    return `From Rs. ${(1800 + index * 100).toLocaleString("en-PK")}/day`;
+  }
+
+  if (lowerName.includes("beautician") || lowerName.includes("artist") || lowerName.includes("photographer")) {
+    return `From Rs. ${(2500 + index * 150).toLocaleString("en-PK")}/session`;
+  }
+
+  return `Rs ${(450 + index * 25).toLocaleString("en-PK")}/hour`;
+}
+
+const categoryCoverageProfessionals: Professional[] = categories.map((category, index) => {
+  const city = cities[index % cities.length];
+  const cityAreas = mockAreasByCity[city] ?? ["Central Area"];
+  const years = 2 + (index % 9);
+  const name = `${mockFirstNames[index % mockFirstNames.length]} ${mockLastNames[(index + 3) % mockLastNames.length]}`;
+  const isFeatured = index % 4 === 0;
+
+  return {
+    id: `mock-${categorySlug(category.name)}`,
+    name,
+    role: category.name,
+    city,
+    area: cityAreas[index % cityAreas.length],
+    gender: index % 3 === 0 ? "Female" : "Male",
+    availability: index % 2 === 0 ? "Full Time" : "Part Time Evening",
+    rating: (4.5 + (index % 5) / 10).toFixed(1),
+    ratingCount: `${40 + index * 7} reviews`,
+    experience: `${years} years experience`,
+    rate: mockRateForCategory(category.name, index),
+    tagline: `Trusted ${category.name.toLowerCase()}`.slice(0, 30),
+    bio: `Mock ${category.name.toLowerCase()} profile for Kamker demo browsing, city/category testing, and marketplace layout review.`,
+    responseTime: `Replies in ${10 + (index % 9) * 3} min`,
+    image: `/avatars/pro-${(index % 6) + 1}.svg`,
+    is_featured: isFeatured,
+    featured_until: isFeatured ? "2030-12-31" : null,
+    phone: `03${String(100000000 + index * 13791).slice(0, 9)}`,
+    whatsapp: `923${String(100000000 + index * 13791).slice(0, 9)}`,
+  };
+});
+
+export const recentProfessionals: Professional[] = [
+  ...curatedProfessionals,
+  ...categoryCoverageProfessionals,
 ];
 
 export function isActiveFeaturedProfessional(
