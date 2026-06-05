@@ -46,7 +46,7 @@ const trustItems = [
 const steps = [
   ["Browse service groups", "Choose Healthcare, Domestic Help, Education, Repairs, Transport, Office, or Beauty."],
   ["Find matching workers", "Use category and city filters to shortlist workers quickly."],
-  ["Register as worker", "Workers can create profiles for review before going active."],
+  ["Register", "Workers, companies, and customers choose the right registration path."],
 ];
 
 export default function HomePage() {
@@ -77,7 +77,7 @@ export default function HomePage() {
             <h1 className="max-w-xl text-3xl font-bold leading-tight tracking-normal sm:text-5xl lg:text-6xl">Find part time workers</h1>
             <p className="mt-2 max-w-xl text-sm leading-5 text-muted-foreground sm:mt-4 sm:text-lg sm:leading-7">Coming from a newspaper ad? Search by service and city, choose a category, or register free as a worker.</p>
             <div className="mt-4 grid gap-2 sm:flex sm:max-w-xl">
-              <Button asChild variant="outline" className="h-12 border-primary/30 bg-white text-base font-semibold text-primary hover:bg-accent"><Link href="/register/professional"><BriefcaseBusiness aria-hidden="true" />Register as Worker</Link></Button>
+              <Button asChild variant="outline" className="h-12 border-primary/30 bg-white text-base font-semibold text-primary hover:bg-accent"><Link href="/register"><BriefcaseBusiness aria-hidden="true" />Register</Link></Button>
             </div>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function HomePage() {
       <section id="join" className="bg-primary text-white">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:px-8">
           <div><Badge className="bg-white text-primary">Registration</Badge><h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-normal sm:text-4xl">Join Kamker as a worker or customer.</h2><p className="mt-4 max-w-xl text-base leading-7 text-white/85">Workers register free. Customers browse by category and city, then contact workers directly where phone or WhatsApp is available.</p></div>
-          <Card className="border-white/15 bg-white/10 text-white shadow-none"><CardContent className="p-5"><div className="flex items-center gap-3"><div className="flex size-12 items-center justify-center rounded-md bg-white text-primary"><PhoneCall className="size-6" aria-hidden="true" /></div><div><h3 className="font-semibold">Register on Kamker</h3><p className="text-sm text-white/80">Choose the path that matches how you use the marketplace.</p></div></div><div className="mt-5 grid gap-3 sm:grid-cols-2"><Button asChild className="h-12 bg-white text-primary hover:bg-white/90"><Link href="/register/professional">Register as Worker</Link></Button><Button asChild className="h-12 bg-white/15 text-white hover:bg-white/25"><Link href="/register/customer">Register as Customer</Link></Button></div></CardContent></Card>
+          <Card className="border-white/15 bg-white/10 text-white shadow-none"><CardContent className="p-5"><div className="flex items-center gap-3"><div className="flex size-12 items-center justify-center rounded-md bg-white text-primary"><PhoneCall className="size-6" aria-hidden="true" /></div><div><h3 className="font-semibold">Register on Kamker</h3><p className="text-sm text-white/80">Choose worker, company, or customer registration.</p></div></div><Button asChild className="mt-5 h-12 w-full bg-white text-primary hover:bg-white/90"><Link href="/register">Register</Link></Button></CardContent></Card>
         </div>
       </section>
 
