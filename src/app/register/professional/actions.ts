@@ -8,7 +8,7 @@ import {
   isWorkerTimeAvailability,
   workerAvailabilitySummary,
 } from "@/lib/worker-availability";
-import { hashSecret } from "@/lib/auth";
+import { createProfessionalSession, hashSecret } from "@/lib/auth";
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import {
   isLocalDemoStoreEnabled,
@@ -126,7 +126,7 @@ export async function registerProfessional(formData: FormData) {
 
   if (!isSupabaseConfigured || !supabase) {
     if (isLocalDemoStoreEnabled) {
-      await saveLocalProfessional({
+      const professional = await saveLocalProfessional({
         fullName,
         phoneNumber,
         whatsappNumber,
@@ -146,7 +146,10 @@ export async function registerProfessional(formData: FormData) {
         secretAnswerHash,
       });
       await clearFormDraft("professional");
-      redirect("/register/professional?status=local-success");
+      if (professional) {
+        await createProfessionalSession(professional.id);
+      }
+      redirect("/account?status=registered");
     }
 
     await saveProfessionalDraft(draftInput);
@@ -183,38 +186,43 @@ export async function registerProfessional(formData: FormData) {
     );
   }
 
-  const { error } = await supabase.from("professionals").insert({
-    full_name: fullName,
-    phone_number: phoneNumber,
-    whatsapp_number: whatsappNumber || null,
-    city_id: city?.id ?? null,
-    area: area || null,
-    category_id: category?.id ?? null,
-    gender,
-    availability,
-    availability_time: availabilityTime,
-    availability_days: availabilityDays,
-    years_experience: yearsExperience,
-    experience: experience || null,
-    expected_rate: expectedRate || null,
-    tagline,
-    short_bio: shortBio || null,
-    cnic: cnic || null,
-    profile_photo_url: profilePhotoUrl,
-    password_hash: passwordHash,
-    secret_question: secretQuestion,
-    secret_answer_hash: secretAnswerHash,
-    is_phone_verified: false,
-    is_cnic_verified: false,
-    is_active: autoApprove,
-  });
+  const { data: professional, error } = await supabase
+    .from("professionals")
+    .insert({
+      full_name: fullName,
+      phone_number: phoneNumber,
+      whatsapp_number: whatsappNumber || null,
+      city_id: city?.id ?? null,
+      area: area || null,
+      category_id: category?.id ?? null,
+      gender,
+      availability,
+      availability_time: availabilityTime,
+      availability_days: availabilityDays,
+      years_experience: yearsExperience,
+      experience: experience || null,
+      expected_rate: expectedRate || null,
+      tagline,
+      short_bio: shortBio || null,
+      cnic: cnic || null,
+      profile_photo_url: profilePhotoUrl,
+      password_hash: passwordHash,
+      secret_question: secretQuestion,
+      secret_answer_hash: secretAnswerHash,
+      is_phone_verified: false,
+      is_cnic_verified: false,
+      is_active: autoApprove,
+    })
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error || !professional) {
     console.error("Failed to register professional", error);
     await saveProfessionalDraft(draftInput);
     redirect("/register/professional?status=error");
   }
 
+  await createProfessionalSession(professional.id as string);
   await clearFormDraft("professional");
-  redirect("/register/professional?status=success");
+  redirect("/account?status=registered");
 }

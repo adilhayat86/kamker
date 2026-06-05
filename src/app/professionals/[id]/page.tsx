@@ -9,6 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { recentProfessionals } from "@/lib/marketplace-data";
+import {
+  getLocalProfessionalRecordById,
+  localRecordToProfessional,
+} from "@/lib/local-demo-store";
 
 type ProfessionalProfilePageProps = {
   params: Promise<{
@@ -69,7 +73,12 @@ async function getDbProfessional(id: string) {
 export async function generateMetadata({ params }: ProfessionalProfilePageProps) {
   const { id } = await params;
   const dbProfessional = await getDbProfessional(id);
-  const demoProfessional = recentProfessionals.find((item) => item.id === id);
+  const localProfessional = dbProfessional
+    ? null
+    : await getLocalProfessionalRecordById(id);
+  const demoProfessional = localProfessional
+    ? localRecordToProfessional(localProfessional)
+    : recentProfessionals.find((item) => item.id === id);
   const name = dbProfessional?.full_name ?? demoProfessional?.name;
   const role = dbProfessional?.categories?.name ?? demoProfessional?.role ?? "Professional";
   const city = dbProfessional?.cities?.name ?? demoProfessional?.city ?? "Pakistan";
@@ -91,7 +100,12 @@ export default async function ProfessionalProfilePage({
 }: ProfessionalProfilePageProps) {
   const { id } = await params;
   const dbProfessional = await getDbProfessional(id);
-  const demoProfessional = recentProfessionals.find((item) => item.id === id);
+  const localProfessional = dbProfessional
+    ? null
+    : await getLocalProfessionalRecordById(id);
+  const demoProfessional = localProfessional
+    ? localRecordToProfessional(localProfessional)
+    : recentProfessionals.find((item) => item.id === id);
 
   if (!dbProfessional && !demoProfessional) {
     notFound();

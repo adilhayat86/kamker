@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import {
   BadgeCheck,
   BriefcaseBusiness,
+  CheckCircle2,
   Clock,
   Crown,
   Edit,
@@ -33,6 +34,7 @@ export const metadata = {
 
 const statusMessages = {
   updated: "Profile updated successfully.",
+  registered: "Welcome to Kamker. Your professional profile has been created.",
 } as const;
 
 type AccountPageProps = {
@@ -93,6 +95,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const isFeatured = dbProfessional
     ? isAccountFeatured(dbProfessional)
     : Boolean(demoProfessional?.is_featured);
+  const publicProfileHref = `/professionals/${dbProfessional?.id ?? demoProfessional?.id}`;
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
@@ -148,9 +151,42 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
 
             <div className="p-5 sm:p-7">
               {statusMessage ? (
-                <div className="mb-5 rounded-lg border bg-accent p-4 text-sm font-medium text-accent-foreground">
-                  {statusMessage}
-                </div>
+                status === "registered" ? (
+                  <div className="mb-5 overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-br from-sky-50 via-white to-blue-50 p-5 shadow-sm">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-start gap-3">
+                        <div className="relative flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
+                          <span className="absolute inline-flex size-12 animate-ping rounded-full bg-primary/30" />
+                          <CheckCircle2 className="relative size-6 animate-pulse" aria-hidden="true" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                            Registration complete
+                          </p>
+                          <h2 className="mt-1 text-2xl font-bold tracking-normal">
+                            Welcome, {fullName}
+                          </h2>
+                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                            Your account is ready. Review your public profile,
+                            then edit details anytime from this dashboard.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid gap-2 sm:min-w-44">
+                        <Button asChild className="h-11">
+                          <Link href={publicProfileHref}>View Profile</Link>
+                        </Button>
+                        <Button asChild variant="outline" className="h-11">
+                          <Link href="/account/edit">Edit Profile</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-5 rounded-lg border bg-accent p-4 text-sm font-medium text-accent-foreground">
+                    {statusMessage}
+                  </div>
+                )
               ) : null}
 
               {!dbProfessional ? (
@@ -223,9 +259,9 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                   </a>
                 </Button>
                 <Button asChild className="h-12">
-                  <Link href="/professionals">
+                  <Link href={publicProfileHref}>
                     <BriefcaseBusiness aria-hidden="true" />
-                    View Directory
+                    View Profile
                   </Link>
                 </Button>
               </div>
