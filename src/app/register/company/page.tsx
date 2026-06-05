@@ -6,6 +6,7 @@ import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getFormDraft } from "@/lib/form-draft";
 import { categories, cities } from "@/lib/marketplace-data";
 
 import { registerCompany } from "./actions";
@@ -47,6 +48,18 @@ type CompanyRegisterPageProps = {
   }>;
 };
 
+type CompanyDraft = {
+  companyName: string;
+  category: string;
+  city: string;
+  area: string;
+  contactPerson: string;
+  phone: string;
+  whatsapp: string;
+  licenseNumber: string;
+  description: string;
+};
+
 export default async function CompanyRegisterPage({
   searchParams,
 }: CompanyRegisterPageProps) {
@@ -54,6 +67,7 @@ export default async function CompanyRegisterPage({
   const status = params?.status;
   const companyId = params?.companyId;
   const statusMessage = status ? statusMessages[status] : null;
+  const draft = await getFormDraft<CompanyDraft>("company");
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -111,14 +125,15 @@ export default async function CompanyRegisterPage({
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Basic info</p>
                   <p className="mt-1 text-sm text-muted-foreground">Company identity. Professional categories are selected later for each worker profile.</p>
                 </div>
-                <FormField label="Company name" name="companyName" />
+                <FormField label="Company name" name="companyName" defaultValue={draft.companyName} />
                 <SelectField
                   label="Company category"
                   name="category"
                   options={companyCategories}
+                  defaultValue={draft.category}
                 />
-                <SelectField label="City" name="city" options={cities} />
-                <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" />
+                <SelectField label="City" name="city" options={cities} defaultValue={draft.city} />
+                <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" defaultValue={draft.area} />
               </div>
 
               <div className="grid gap-4 border-t pt-5 sm:grid-cols-2">
@@ -126,13 +141,14 @@ export default async function CompanyRegisterPage({
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Contact</p>
                   <p className="mt-1 text-sm text-muted-foreground">Customer-facing phone and WhatsApp details.</p>
                 </div>
-                <FormField label="Contact person" name="contactPerson" />
-                <FormField label="Phone number" name="phone" type="tel" />
-                <FormField label="WhatsApp number" name="whatsapp" type="tel" />
+                <FormField label="Contact person" name="contactPerson" defaultValue={draft.contactPerson} />
+                <FormField label="Phone number" name="phone" type="tel" defaultValue={draft.phone} />
+                <FormField label="WhatsApp number" name="whatsapp" type="tel" defaultValue={draft.whatsapp} />
                 <FormField
                   label="License number optional"
                   name="licenseNumber"
                   placeholder="For security/bodyguard/fire safety companies"
+                  defaultValue={draft.licenseNumber}
                 />
               </div>
 
@@ -145,6 +161,7 @@ export default async function CompanyRegisterPage({
                   label="Company description"
                   name="description"
                   placeholder="Tell customers what services your company offers, areas covered, staff types, timings, and verification details."
+                  defaultValue={draft.description}
                 />
               </div>
               <Button className="h-12 sm:col-span-2">Save Company Details</Button>

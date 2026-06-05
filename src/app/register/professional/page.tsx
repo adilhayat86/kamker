@@ -11,6 +11,7 @@ import {
   workerTimeAvailabilityOptions,
 } from "@/lib/worker-availability";
 import { categories, cities } from "@/lib/marketplace-data";
+import { getFormDraft } from "@/lib/form-draft";
 
 import { registerProfessional } from "./actions";
 
@@ -32,6 +33,24 @@ const statusMessages = {
 
 const genderOptions = ["Female", "Male"];
 
+type ProfessionalDraft = {
+  fullName: string;
+  phone: string;
+  whatsapp: string;
+  city: string;
+  area: string;
+  category: string;
+  gender: string;
+  availabilityTime: string;
+  availabilityDays: string;
+  yearsExperience: string;
+  experience: string;
+  rate: string;
+  tagline: string;
+  bio: string;
+  secretQuestion: string;
+};
+
 type ProfessionalRegisterPageProps = {
   searchParams?: Promise<{
     status?: keyof typeof statusMessages;
@@ -44,6 +63,7 @@ export default async function ProfessionalRegisterPage({
   const params = await searchParams;
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
+  const draft = await getFormDraft<ProfessionalDraft>("professional");
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -103,12 +123,12 @@ export default async function ProfessionalRegisterPage({
                     className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
                   />
                 </label>
-                <FormField label="Full name" name="fullName" />
-                <FormField label="Phone number" name="phone" type="tel" />
-                <FormField label="WhatsApp number" name="whatsapp" type="tel" />
-                <SelectField label="City" name="city" options={cities} />
-                <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" />
-                <SelectField label="Gender" name="gender" options={genderOptions} />
+                <FormField label="Full name" name="fullName" defaultValue={draft.fullName} />
+                <FormField label="Phone number" name="phone" type="tel" defaultValue={draft.phone} />
+                <FormField label="WhatsApp number" name="whatsapp" type="tel" defaultValue={draft.whatsapp} />
+                <SelectField label="City" name="city" options={cities} defaultValue={draft.city} />
+                <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" defaultValue={draft.area} />
+                <SelectField label="Gender" name="gender" options={genderOptions} defaultValue={draft.gender} />
               </div>
 
               <div className="grid gap-4 border-t pt-5 sm:grid-cols-2">
@@ -120,12 +140,13 @@ export default async function ProfessionalRegisterPage({
                   label="Profession/category"
                   name="category"
                   options={categories.map((category) => category.name)}
+                  defaultValue={draft.category}
                 />
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Work time</span>
                   <select
                     name="availabilityTime"
-                    defaultValue=""
+                    defaultValue={draft.availabilityTime ?? ""}
                     className="h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <option value="" disabled>
@@ -142,7 +163,7 @@ export default async function ProfessionalRegisterPage({
                   <span className="text-sm font-medium">Work days</span>
                   <select
                     name="availabilityDays"
-                    defaultValue=""
+                    defaultValue={draft.availabilityDays ?? ""}
                     className="h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <option value="" disabled>
@@ -160,28 +181,33 @@ export default async function ProfessionalRegisterPage({
                   name="yearsExperience"
                   type="number"
                   placeholder="5"
+                  defaultValue={draft.yearsExperience}
                 />
                 <FormField
                   label="Hourly Rate"
                   name="rate"
                   placeholder="Rs. 500/hour"
+                  defaultValue={draft.rate}
                 />
                 <FormField
                   label="Profile Tagline"
                   name="tagline"
                   placeholder="Trusted elderly caregiver"
                   maxLength={30}
+                  defaultValue={draft.tagline}
                 />
                 <FormField
                   label="Experience details"
                   name="experience"
                   placeholder="5 years home nursing"
+                  defaultValue={draft.experience}
                 />
                 <div className="sm:col-span-2">
                   <TextAreaField
                     label="Short bio"
                     name="bio"
                     placeholder="Tell customers what services you offer, your timing, and your preferred work areas."
+                    defaultValue={draft.bio}
                   />
                 </div>
               </div>
@@ -197,6 +223,7 @@ export default async function ProfessionalRegisterPage({
                   label="Secret question"
                   name="secretQuestion"
                   placeholder="What is your first school name?"
+                  defaultValue={draft.secretQuestion}
                 />
                 <FormField
                   label="Secret answer"

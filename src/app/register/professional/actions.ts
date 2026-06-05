@@ -9,6 +9,7 @@ import {
   workerAvailabilitySummary,
 } from "@/lib/worker-availability";
 import { hashSecret } from "@/lib/auth";
+import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import {
   isLocalDemoStoreEnabled,
   saveLocalProfessional,
@@ -24,6 +25,42 @@ function field(formData: FormData, key: string) {
 function numericField(formData: FormData, key: string) {
   const value = Number(field(formData, key));
   return Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+async function saveProfessionalDraft(input: {
+  fullName: string;
+  phoneNumber: string;
+  whatsappNumber: string;
+  cityName: string;
+  area: string;
+  categoryName: string;
+  gender: string;
+  availabilityTime: string;
+  availabilityDays: string;
+  yearsExperience: number;
+  experience: string;
+  expectedRate: string;
+  tagline: string;
+  shortBio: string;
+  secretQuestion: string;
+}) {
+  await saveFormDraft("professional", {
+    fullName: input.fullName,
+    phone: input.phoneNumber,
+    whatsapp: input.whatsappNumber,
+    city: input.cityName,
+    area: input.area,
+    category: input.categoryName,
+    gender: input.gender,
+    availabilityTime: input.availabilityTime,
+    availabilityDays: input.availabilityDays,
+    yearsExperience: input.yearsExperience,
+    experience: input.experience,
+    rate: input.expectedRate,
+    tagline: input.tagline,
+    bio: input.shortBio,
+    secretQuestion: input.secretQuestion,
+  });
 }
 
 export async function registerProfessional(formData: FormData) {
@@ -45,6 +82,23 @@ export async function registerProfessional(formData: FormData) {
   const password = field(formData, "password");
   const secretQuestion = field(formData, "secretQuestion");
   const secretAnswer = field(formData, "secretAnswer");
+  const draftInput = {
+    fullName,
+    phoneNumber,
+    whatsappNumber,
+    cityName,
+    area,
+    categoryName,
+    gender,
+    availabilityTime,
+    availabilityDays,
+    yearsExperience,
+    experience,
+    expectedRate,
+    tagline,
+    shortBio,
+    secretQuestion,
+  };
 
   if (
     !fullName ||
@@ -61,6 +115,7 @@ export async function registerProfessional(formData: FormData) {
     !secretQuestion ||
     !secretAnswer
   ) {
+    await saveProfessionalDraft(draftInput);
     redirect("/register/professional?status=missing");
   }
 
@@ -90,9 +145,11 @@ export async function registerProfessional(formData: FormData) {
         secretQuestion,
         secretAnswerHash,
       });
+      await clearFormDraft("professional");
       redirect("/register/professional?status=local-success");
     }
 
+    await saveProfessionalDraft(draftInput);
     redirect("/register/professional?status=not-configured");
   }
 
@@ -118,6 +175,7 @@ export async function registerProfessional(formData: FormData) {
   try {
     profilePhotoUrl = await uploadProfessionalPhoto(formData);
   } catch (error) {
+    await saveProfessionalDraft(draftInput);
     redirect(
       error instanceof Error && error.message === "invalid-photo"
         ? "/register/professional?status=invalid-photo"
@@ -153,8 +211,10 @@ export async function registerProfessional(formData: FormData) {
 
   if (error) {
     console.error("Failed to register professional", error);
+    await saveProfessionalDraft(draftInput);
     redirect("/register/professional?status=error");
   }
 
+  await clearFormDraft("professional");
   redirect("/register/professional?status=success");
 }

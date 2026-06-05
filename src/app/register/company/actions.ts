@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 
+import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
@@ -21,12 +22,25 @@ export async function registerCompany(formData: FormData) {
   const whatsapp = field(formData, "whatsapp");
   const licenseNumber = field(formData, "licenseNumber");
   const description = field(formData, "description");
+  const draft = {
+    companyName,
+    category,
+    city,
+    area,
+    contactPerson,
+    phone,
+    whatsapp,
+    licenseNumber,
+    description,
+  };
 
   if (!companyName || !category || !city || !contactPerson || !phone || !description) {
+    await saveFormDraft("company", draft);
     redirect("/register/company?status=missing");
   }
 
   if (!isSupabaseConfigured || !supabase) {
+    await saveFormDraft("company", draft);
     redirect("/register/company?status=not-configured");
   }
 
@@ -51,6 +65,7 @@ export async function registerCompany(formData: FormData) {
 
   if (error || !data) {
     console.error("Failed to register company", error);
+    await saveFormDraft("company", draft);
     redirect("/register/company?status=error");
   }
 
@@ -67,5 +82,6 @@ export async function registerCompany(formData: FormData) {
     data.id as string,
   );
 
+  await clearFormDraft("company");
   redirect(`/companies/${data.id}/packages`);
 }
