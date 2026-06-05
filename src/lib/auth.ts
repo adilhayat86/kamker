@@ -10,6 +10,10 @@ import { promisify } from "node:util";
 import { cookies } from "next/headers";
 
 import type { AccountProfessional } from "@/lib/account";
+import {
+  getLocalProfessionalRecordById,
+  getLocalProfessionalRecords,
+} from "@/lib/local-demo-store";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 const scrypt = promisify(scryptCallback);
@@ -49,6 +53,44 @@ function signRecoveryValue(professionalId: string, expiresAt: number) {
     .digest("base64url");
 }
 
+function signLocalSession(professionalId: string) {
+  return createHmac("sha256", signingSecret())
+    .update(`local:${professionalId}`)
+    .digest("base64url");
+}
+
+function localRecordToAccountProfessional(
+  professional: Awaited<ReturnType<typeof getLocalProfessionalRecordById>>,
+): AccountProfessional | null {
+  if (!professional) {
+    return null;
+  }
+
+  return {
+    id: professional.id,
+    full_name: professional.full_name,
+    phone_number: professional.phone_number,
+    whatsapp_number: professional.whatsapp_number,
+    area: professional.area,
+    gender: professional.gender,
+    availability: professional.availability,
+    years_experience: professional.years_experience,
+    experience: professional.experience,
+    expected_rate: professional.expected_rate,
+    tagline: professional.tagline,
+    short_bio: professional.short_bio,
+    cnic: null,
+    profile_photo_url: professional.profile_photo_url,
+    is_cnic_verified: professional.is_cnic_verified,
+    is_phone_verified: professional.is_phone_verified,
+    is_active: professional.is_active,
+    is_featured: professional.is_featured,
+    featured_until: professional.featured_until,
+    cities: professional.cities,
+    categories: professional.categories,
+  };
+}
+
 export async function hashSecret(value: string) {
   const salt = randomBytes(16).toString("base64url");
   const derivedKey = (await scrypt(value, salt, 64)) as Buffer;
@@ -77,11 +119,19 @@ export async function verifySecret(value: string, storedHash: string | null) {
 }
 
 export async function findProfessionalByPhone(phoneNumber: string) {
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
+
   if (!isSupabaseConfigured || !supabase) {
-    return null;
+    const professionals = await getLocalProfessionalRecords();
+
+    return (
+      professionals.find(
+        (professional) =>
+          normalizePhoneNumber(professional.phone_number) === normalizedPhone,
+      ) ?? null
+    );
   }
 
-  const normalizedPhone = normalizePhoneNumber(phoneNumber);
   const { data, error } = await supabase
     .from("professionals")
     .select(
@@ -104,6 +154,18 @@ export async function findProfessionalByPhone(phoneNumber: string) {
 
 export async function createProfessionalSession(professionalId: string) {
   if (!isSupabaseConfigured || !supabase) {
+    const cookieStore = await cookies();
+    cookieStore.set(
+      SESSION_COOKIE,
+      `local:${professionalId}:${signLocalSession(professionalId)}`,
+      {
+        httpOnly: true,
+        maxAge: SESSION_MAX_AGE_SECONDS,
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      },
+    );
     return;
   }
 
@@ -151,15 +213,29 @@ export async function clearProfessionalSession() {
 }
 
 export async function getSessionProfessional() {
-  if (!isSupabaseConfigured || !supabase) {
-    return null;
-  }
-
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
 
   if (!token) {
     return null;
+  }
+
+  if (!isSupabaseConfigured || !supabase) {
+    const [scope, professionalId, signature] = token.split(":");
+
+    if (
+      scope !== "local" ||
+      !professionalId ||
+      !signature ||
+      signature !== signLocalSession(professionalId)
+    ) {
+      cookieStore.delete(SESSION_COOKIE);
+      return null;
+    }
+
+    return localRecordToAccountProfessional(
+      await getLocalProfessionalRecordById(professionalId),
+    );
   }
 
   const { data: session, error: sessionError } = await supabase

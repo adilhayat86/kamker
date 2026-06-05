@@ -64,9 +64,14 @@ export default async function ProfessionalRegisterPage({
               </Button>
             ) : null}
             {status === "local-success" ? (
-              <Button asChild className="mt-3 w-full sm:w-auto">
-                <Link href="/professionals">View Local Test Profiles</Link>
-              </Button>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <Button asChild className="w-full sm:w-auto">
+                  <Link href="/login">Go to Login</Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full sm:w-auto">
+                  <Link href="/professionals">View Local Test Profiles</Link>
+                </Button>
+              </div>
             ) : null}
           </DismissibleNotice>
         ) : null}

@@ -4,7 +4,6 @@ import {
   type Professional,
 } from "@/lib/marketplace-data";
 import { getSessionProfessional } from "@/lib/auth";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export type AccountProfessional = {
   id: string;
@@ -59,9 +58,5 @@ export function getDemoAccountProfessional(): DemoAccountProfessional {
 }
 
 export async function getAccountProfessional() {
-  if (!isSupabaseConfigured || !supabase) {
-    return null;
-  }
-
   return getSessionProfessional();
 }

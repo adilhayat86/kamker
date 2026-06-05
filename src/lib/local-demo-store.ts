@@ -24,8 +24,12 @@ export type LocalProfessionalRecord = {
   tagline: string | null;
   short_bio: string | null;
   profile_photo_url: string | null;
+  password_hash: string | null;
+  secret_question: string | null;
+  secret_answer_hash: string | null;
   is_cnic_verified: boolean;
   is_phone_verified: boolean;
+  is_active: boolean;
   is_featured: boolean;
   featured_until: string | null;
   rating: number | null;
@@ -49,6 +53,9 @@ type SaveLocalProfessionalInput = {
   expectedRate: string;
   tagline: string;
   shortBio: string;
+  passwordHash?: string | null;
+  secretQuestion?: string | null;
+  secretAnswerHash?: string | null;
 };
 
 const localStoreDir = path.join(process.cwd(), ".kamker-local");
@@ -93,6 +100,12 @@ export async function getLocalProfessionalRecords() {
   return readLocalProfessionals();
 }
 
+export async function getLocalProfessionalRecordById(id: string) {
+  const records = await getLocalProfessionalRecords();
+
+  return records.find((professional) => professional.id === id) ?? null;
+}
+
 export async function saveLocalProfessional(input: SaveLocalProfessionalInput) {
   if (!isLocalDemoStoreEnabled) {
     return null;
@@ -119,8 +132,12 @@ export async function saveLocalProfessional(input: SaveLocalProfessionalInput) {
     tagline: input.tagline,
     short_bio: input.shortBio || null,
     profile_photo_url: null,
+    password_hash: input.passwordHash ?? null,
+    secret_question: input.secretQuestion ?? null,
+    secret_answer_hash: input.secretAnswerHash ?? null,
     is_cnic_verified: false,
     is_phone_verified: false,
+    is_active: true,
     is_featured: false,
     featured_until: null,
     rating: null,

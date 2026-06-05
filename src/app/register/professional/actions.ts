@@ -64,6 +64,11 @@ export async function registerProfessional(formData: FormData) {
     redirect("/register/professional?status=missing");
   }
 
+  const [passwordHash, secretAnswerHash] = await Promise.all([
+    hashSecret(password),
+    hashSecret(secretAnswer.toLowerCase()),
+  ]);
+
   if (!isSupabaseConfigured || !supabase) {
     if (isLocalDemoStoreEnabled) {
       await saveLocalProfessional({
@@ -81,6 +86,9 @@ export async function registerProfessional(formData: FormData) {
         expectedRate,
         tagline,
         shortBio,
+        passwordHash,
+        secretQuestion,
+        secretAnswerHash,
       });
       redirect("/register/professional?status=local-success");
     }
@@ -100,10 +108,6 @@ export async function registerProfessional(formData: FormData) {
     .eq("name", categoryName)
     .maybeSingle();
 
-  const [passwordHash, secretAnswerHash] = await Promise.all([
-    hashSecret(password),
-    hashSecret(secretAnswer.toLowerCase()),
-  ]);
   const autoApprove = await getAutoApproveProfessionals();
   let profilePhotoUrl: string | null = null;
   const availability = workerAvailabilitySummary(

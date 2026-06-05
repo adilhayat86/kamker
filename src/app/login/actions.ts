@@ -7,6 +7,7 @@ import {
   findProfessionalByPhone,
   verifySecret,
 } from "@/lib/auth";
+import { isLocalDemoStoreEnabled } from "@/lib/local-demo-store";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
 function field(formData: FormData, key: string) {
@@ -23,7 +24,7 @@ export async function loginProfessional(formData: FormData) {
     redirect("/login?status=missing");
   }
 
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured && !isLocalDemoStoreEnabled) {
     redirect("/login?status=not-configured");
   }
 
