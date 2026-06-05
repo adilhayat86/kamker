@@ -4,6 +4,7 @@ import { Camera } from "lucide-react";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
+import { PhotoUploadField } from "@/components/photo-upload-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -26,7 +27,7 @@ const statusMessages = {
   missing:
     "Please fill name, phone, city, profession, gender, work time, work days, hourly rate, tagline, password, secret question, and secret answer. Tagline must be 30 characters or less.",
   "not-configured": "Supabase is not configured yet.",
-  "invalid-photo": "Upload a jpg, png, or webp image under 2MB.",
+  "invalid-photo": "Upload a jpg, png, or webp image under 8MB.",
   "photo-error": "Could not upload profile photo. Please try again.",
   error: "Could not register professional. Please try again.",
 } as const;
@@ -104,7 +105,7 @@ export default async function ProfessionalRegisterPage({
               <div>
                 <p className="font-semibold">Profile photo</p>
                 <p className="text-sm text-muted-foreground">
-                  Upload a jpg, png, or webp image under 2MB.
+                  Upload a jpg, png, or webp image from your phone. Large photos will be compressed before upload.
                 </p>
               </div>
             </div>
@@ -114,15 +115,7 @@ export default async function ProfessionalRegisterPage({
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Basic info</p>
                   <p className="mt-1 text-sm text-muted-foreground">Your name, contact, and work location.</p>
                 </div>
-                <label className="grid gap-2 sm:col-span-2">
-                  <span className="text-sm font-medium">Profile photo</span>
-                  <input
-                    name="photo"
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                  />
-                </label>
+                <PhotoUploadField />
                 <FormField label="Full name" name="fullName" defaultValue={draft.fullName} />
                 <FormField label="Phone number" name="phone" type="tel" defaultValue={draft.phone} />
                 <FormField label="WhatsApp number" name="whatsapp" type="tel" defaultValue={draft.whatsapp} />

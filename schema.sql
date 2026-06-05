@@ -112,7 +112,7 @@ values (
   'professional-photos',
   'professional-photos',
   true,
-  2097152,
+  8388608,
   array['image/jpeg', 'image/png', 'image/webp']
 )
 on conflict (id) do update set
