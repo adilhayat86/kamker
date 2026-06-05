@@ -27,6 +27,11 @@ function numericField(formData: FormData, key: string) {
   return Number.isFinite(value) && value >= 0 ? value : 0;
 }
 
+function ageField(formData: FormData) {
+  const value = Number(field(formData, "age"));
+  return Number.isInteger(value) && value >= 16 && value <= 80 ? value : null;
+}
+
 async function saveProfessionalDraft(input: {
   fullName: string;
   phoneNumber: string;
@@ -35,6 +40,7 @@ async function saveProfessionalDraft(input: {
   area: string;
   categoryName: string;
   gender: string;
+  age: number | null;
   availabilityTime: string;
   availabilityDays: string;
   yearsExperience: number;
@@ -52,6 +58,7 @@ async function saveProfessionalDraft(input: {
     area: input.area,
     category: input.categoryName,
     gender: input.gender,
+    age: input.age ? String(input.age) : "",
     availabilityTime: input.availabilityTime,
     availabilityDays: input.availabilityDays,
     yearsExperience: input.yearsExperience,
@@ -71,6 +78,7 @@ export async function registerProfessional(formData: FormData) {
   const area = field(formData, "area");
   const categoryName = field(formData, "category");
   const gender = field(formData, "gender");
+  const age = ageField(formData);
   const availabilityTime = field(formData, "availabilityTime");
   const availabilityDays = field(formData, "availabilityDays");
   const yearsExperience = numericField(formData, "yearsExperience");
@@ -90,6 +98,7 @@ export async function registerProfessional(formData: FormData) {
     area,
     categoryName,
     gender,
+    age,
     availabilityTime,
     availabilityDays,
     yearsExperience,
@@ -106,6 +115,7 @@ export async function registerProfessional(formData: FormData) {
     !cityName ||
     !categoryName ||
     !gender ||
+    age === null ||
     !isWorkerTimeAvailability(availabilityTime) ||
     !isWorkerDayAvailability(availabilityDays) ||
     !expectedRate ||
@@ -134,6 +144,7 @@ export async function registerProfessional(formData: FormData) {
         area,
         categoryName,
         gender,
+        age,
         availabilityTime,
         availabilityDays,
         yearsExperience,
@@ -196,6 +207,7 @@ export async function registerProfessional(formData: FormData) {
       area: area || null,
       category_id: category?.id ?? null,
       gender,
+      age,
       availability,
       availability_time: availabilityTime,
       availability_days: availabilityDays,

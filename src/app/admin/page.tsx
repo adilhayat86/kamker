@@ -60,6 +60,7 @@ type PendingProfessional = {
   whatsapp_number: string | null;
   area: string | null;
   gender: string | null;
+  age: number | null;
   availability: string | null;
   years_experience: number | null;
   experience: string | null;
@@ -157,7 +158,7 @@ async function getPendingProfessionals() {
 
   const { data, error } = await supabase
     .from("professionals")
-    .select("id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_active, created_at, cities(name), categories(name)")
+    .select("id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_active, created_at, cities(name), categories(name)")
     .eq("is_active", false)
     .order("created_at", { ascending: false })
     .limit(20);
@@ -543,6 +544,7 @@ export default async function AdminPage() {
                       <span>Area: {professional.area ?? "Not provided"}</span>
                       <span>Category: {professional.categories?.name ?? "Professional"}</span>
                       <span>Gender: {professional.gender ?? "Not provided"}</span>
+                      <span>Age: {professional.age ?? "Not added"}</span>
                       <span>Availability: {professional.availability ?? "Not provided"}</span>
                       <span>Years experience: {professional.years_experience ?? "Not provided"}</span>
                       <span>Hourly Rate: {professional.expected_rate ?? "Not provided"}</span>

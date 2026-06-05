@@ -22,6 +22,7 @@ export type CompanyListingCardRow = {
   photo_url?: string | null;
   tagline: string | null;
   gender: string | null;
+  age: number | null;
   availability: string | null;
   years_experience: number | null;
   phone: string | null;
@@ -103,6 +104,7 @@ const mockCompanyListingRows: CompanyListingCardRow[] = categories.map((category
     photo_url: null,
     tagline: `Company ${category.name.toLowerCase()}`.slice(0, 30),
     gender: index % 2 === 0 ? "Male" : "Female",
+    age: 23 + (index % 25),
     availability: index % 2 === 0 ? "Full Time" : "On Call",
     years_experience: 3 + (index % 8),
     phone: `03${String(200000000 + index * 24681).slice(0, 9)}`,
@@ -187,6 +189,7 @@ export function companyListingToProfessionalCard(listing: CompanyListingCardRow)
     city: listing.city,
     area: listing.area ?? companyName,
     gender: listing.gender ?? "Company Managed",
+    age: listing.age,
     availability: listing.availability ?? "Ask availability",
     rating: "New",
     ratingCount: "Company managed",
@@ -223,7 +226,7 @@ export async function getApprovedCompanyListingCards(filters?: {
 
   let query = supabase
     .from("company_listings")
-    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, availability, years_experience, phone, whatsapp, is_featured, created_at, companies(id, company_name, verification_status, logo_url)")
+    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, age, availability, years_experience, phone, whatsapp, is_featured, created_at, companies(id, company_name, verification_status, logo_url)")
     .eq("status", "approved")
     .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false })

@@ -19,6 +19,12 @@ function numericField(formData: FormData, key: string) {
   return Number.isFinite(value) && value >= 0 ? value : 0;
 }
 
+function ageField(formData: FormData) {
+  const value = Number(field(formData, "age"));
+
+  return Number.isInteger(value) && value >= 16 && value <= 80 ? value : null;
+}
+
 export async function updateProfessionalProfile(formData: FormData) {
   const fullName = field(formData, "fullName");
   const phoneNumber = field(formData, "phone");
@@ -27,6 +33,7 @@ export async function updateProfessionalProfile(formData: FormData) {
   const area = field(formData, "area");
   const categoryName = field(formData, "category");
   const gender = field(formData, "gender");
+  const age = ageField(formData);
   const availability = field(formData, "availability");
   const yearsExperience = numericField(formData, "yearsExperience");
   const experience = field(formData, "experience");
@@ -40,6 +47,7 @@ export async function updateProfessionalProfile(formData: FormData) {
     !cityName ||
     !categoryName ||
     !gender ||
+    age === null ||
     !availability ||
     !expectedRate ||
     !tagline ||
@@ -89,6 +97,7 @@ export async function updateProfessionalProfile(formData: FormData) {
     area: area || null,
     category_id: category?.id ?? null,
     gender,
+    age,
     availability,
     years_experience: yearsExperience,
     experience: experience || null,

@@ -97,6 +97,9 @@ export function ProfessionalCard({
         </div>
         <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
           <Badge variant="secondary">{professional.gender}</Badge>
+          <Badge variant="secondary">
+            {professional.age ? `Age ${professional.age}` : "Age not added"}
+          </Badge>
           {professional.is_company_managed ? (
             professional.company_id ? (
               <Badge variant="outline">

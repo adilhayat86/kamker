@@ -36,6 +36,7 @@ type CompanyListing = {
   description: string | null;
   tagline: string | null;
   gender: string | null;
+  age: number | null;
   availability: string | null;
   years_experience: number | null;
   hourly_rate: number | null;
@@ -55,7 +56,7 @@ async function getListings() {
 
   const { data, error } = await supabase
     .from("company_listings")
-    .select("id, title, service_group, category, city, area, description, tagline, gender, availability, years_experience, hourly_rate, monthly_rate, is_featured, phone, whatsapp, status, created_at, companies(id, company_name, verification_status)")
+    .select("id, title, service_group, category, city, area, description, tagline, gender, age, availability, years_experience, hourly_rate, monthly_rate, is_featured, phone, whatsapp, status, created_at, companies(id, company_name, verification_status)")
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -151,6 +152,7 @@ export default async function AdminCompanyListingsPage() {
                     <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
                       <span>Tagline: {listing.tagline ?? "Not provided"}</span>
                       <span>Gender: {listing.gender ?? "Not provided"}</span>
+                      <span>Age: {listing.age ?? "Not added"}</span>
                       <span>Availability: {listing.availability ?? "Not provided"}</span>
                       <span>Experience: {listing.years_experience ?? 0} years</span>
                       <span>Hourly: {listing.hourly_rate ? `Rs ${listing.hourly_rate}` : "Not provided"}</span>

@@ -50,6 +50,7 @@ type DbProfessional = {
   whatsapp_number: string | null;
   area: string | null;
   gender?: string | null;
+  age?: number | null;
   availability?: string | null;
   availability_time?: string | null;
   availability_days?: string | null;
@@ -77,6 +78,7 @@ type ProfessionalsPageProps = {
     city?: string;
     category?: string;
     gender?: string;
+    age?: string;
     availabilityTime?: string;
     availabilityDays?: string;
     rate?: string;
@@ -92,6 +94,12 @@ const hourlyRateOptions = [
   { value: "500-1000", label: "Rs. 500-1,000/hour", min: 500, max: 1000 },
   { value: "1000-2000", label: "Rs. 1,000-2,000/hour", min: 1000, max: 2000 },
   { value: "2000-plus", label: "Rs. 2,000+/hour", min: 2000, max: Number.POSITIVE_INFINITY },
+];
+const ageRangeOptions = [
+  { value: "18-25", label: "18-25", min: 18, max: 25 },
+  { value: "26-35", label: "26-35", min: 26, max: 35 },
+  { value: "36-45", label: "36-45", min: 36, max: 45 },
+  { value: "46-plus", label: "46+", min: 46, max: 80 },
 ];
 const pageSize = 20;
 
@@ -145,6 +153,20 @@ function isVerified(professional: DirectoryProfessional) {
   return professional.is_cnic_verified || professional.is_phone_verified;
 }
 
+function matchesAgeRange(value: number | null | undefined, ageFilter: string) {
+  if (!ageFilter) {
+    return true;
+  }
+
+  const selectedRange = ageRangeOptions.find((option) => option.value === ageFilter);
+
+  if (!selectedRange || typeof value !== "number") {
+    return false;
+  }
+
+  return value >= selectedRange.min && value <= selectedRange.max;
+}
+
 function matchesCompanyProfessionalFilters(
   professional: Professional,
   filters: {
@@ -152,6 +174,7 @@ function matchesCompanyProfessionalFilters(
     city: string;
     category: string;
     gender: string;
+    age: string;
     rate: string;
     verified: boolean;
   },
@@ -167,6 +190,7 @@ function matchesCompanyProfessionalFilters(
   const cityMatch = filters.city ? professional.city === filters.city : true;
   const categoryMatch = filters.category ? professional.role === filters.category : true;
   const genderMatch = filters.gender ? normalise(professional.gender) === normalise(filters.gender) : true;
+  const ageMatch = matchesAgeRange(professional.age, filters.age);
   const hourlyRateMatch = matchesHourlyRate(professional.rate, filters.rate);
   const verifiedMatch = filters.verified
     ? professional.is_company_managed
@@ -174,7 +198,7 @@ function matchesCompanyProfessionalFilters(
       : true
     : true;
 
-  return keywordMatch && cityMatch && categoryMatch && genderMatch && hourlyRateMatch && verifiedMatch;
+  return keywordMatch && cityMatch && categoryMatch && genderMatch && ageMatch && hourlyRateMatch && verifiedMatch;
 }
 
 function isDbFeatured(professional: DirectoryProfessional) {
@@ -216,7 +240,7 @@ async function getDbProfessionals({
   let query = supabase
     .from("professionals")
     .select(
-      "id, full_name, phone_number, whatsapp_number, area, gender, availability, availability_time, availability_days, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, is_featured, featured_until, rating, created_at, cities(name), categories(name)",
+      "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, availability_time, availability_days, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, is_featured, featured_until, rating, created_at, cities(name), categories(name)",
     )
     .eq("is_active", true);
 
@@ -454,6 +478,9 @@ function ConversionProfessionalCard({
           {professional.gender ? (
             <Badge variant="secondary">{professional.gender}</Badge>
           ) : null}
+          <Badge variant="secondary">
+            {professional.age ? `Age ${professional.age}` : "Age not added"}
+          </Badge>
           {professional.is_cnic_verified ? (
             <Badge variant="outline">CNIC Verified</Badge>
           ) : null}
@@ -492,6 +519,7 @@ export default async function ProfessionalsPage({
   const city = params?.city?.trim() ?? "";
   const category = params?.category?.trim() ?? "";
   const gender = params?.gender?.trim() ?? "";
+  const age = params?.age?.trim() ?? "";
   const availabilityTime = params?.availabilityTime?.trim() ?? "";
   const availabilityDays = params?.availabilityDays?.trim() ?? "";
   const rate = params?.rate?.trim() ?? "";
@@ -510,6 +538,7 @@ export default async function ProfessionalsPage({
       city,
       category,
       gender,
+      age,
       rate,
       verified,
     }),
@@ -520,6 +549,7 @@ export default async function ProfessionalsPage({
       city,
       category,
       gender,
+      age,
       rate,
       verified,
     }),
@@ -538,6 +568,7 @@ export default async function ProfessionalsPage({
       const cityMatch = city ? professional.cities?.name === city : true;
       const categoryMatch = category ? professional.categories?.name === category : true;
       const genderMatch = gender ? normalise(professional.gender) === normalise(gender) : true;
+      const ageMatch = matchesAgeRange(professional.age, age);
       const hourlyRateMatch = matchesHourlyRate(professional.expected_rate, rate);
       const verifiedMatch = verified ? isVerified(professional) : true;
 
@@ -546,6 +577,7 @@ export default async function ProfessionalsPage({
         cityMatch &&
         categoryMatch &&
         genderMatch &&
+        ageMatch &&
         hourlyRateMatch &&
         verifiedMatch
       );
@@ -615,6 +647,7 @@ export default async function ProfessionalsPage({
     city,
     category,
     gender,
+    age,
     availabilityTime,
     availabilityDays,
     rate,
@@ -716,6 +749,21 @@ export default async function ProfessionalsPage({
                 >
                   <option value="">Any time</option>
                   {workerTimeAvailabilityOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1">
+                <span className="text-xs font-medium">Age</span>
+                <select
+                  name="age"
+                  defaultValue={age}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Any age</option>
+                  {ageRangeOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>

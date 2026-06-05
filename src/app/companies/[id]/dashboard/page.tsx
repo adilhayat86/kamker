@@ -52,6 +52,7 @@ type CompanyListing = {
   city: string;
   area: string | null;
   description: string | null;
+  age: number | null;
   hourly_rate: number | null;
   monthly_rate: number | null;
   is_featured: boolean;
@@ -116,7 +117,7 @@ async function getCompanyListings(companyId: string) {
 
   const { data, error } = await supabase
     .from("company_listings")
-    .select("id, title, category, city, area, description, hourly_rate, monthly_rate, is_featured, phone, whatsapp, status")
+    .select("id, title, category, city, area, description, age, hourly_rate, monthly_rate, is_featured, phone, whatsapp, status")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -444,6 +445,7 @@ export default async function CompanyDashboardPage({
                     <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
                       <span>Hourly: {listing.hourly_rate ? `Rs ${listing.hourly_rate}` : "Not provided"}</span>
                       <span>Monthly: {listing.monthly_rate ? `Rs ${listing.monthly_rate}` : "Not provided"}</span>
+                      <span>Age: {listing.age ?? "Not added"}</span>
                       <span>Phone: {listing.phone ?? "Not provided"}</span>
                       <span>WhatsApp: {listing.whatsapp ?? "Not provided"}</span>
                     </div>

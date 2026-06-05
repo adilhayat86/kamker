@@ -25,7 +25,7 @@ const statusMessages = {
   "local-success":
     "Test worker saved locally because Supabase is not configured. Configure Supabase for real registrations and login.",
   missing:
-    "Please fill name, phone, city, profession, gender, work time, work days, hourly rate, tagline, password, secret question, and secret answer. Tagline must be 30 characters or less.",
+    "Please fill name, phone, city, profession, gender, age, work time, work days, hourly rate, tagline, password, secret question, and secret answer. Age must be between 16 and 80. Tagline must be 30 characters or less.",
   "not-configured": "Supabase is not configured yet.",
   "invalid-photo": "Upload a jpg, png, or webp image under 8MB.",
   "photo-error": "Could not upload profile photo. Please try again.",
@@ -42,6 +42,7 @@ type ProfessionalDraft = {
   area: string;
   category: string;
   gender: string;
+  age: string;
   availabilityTime: string;
   availabilityDays: string;
   yearsExperience: string;
@@ -122,6 +123,13 @@ export default async function ProfessionalRegisterPage({
                 <SelectField label="City" name="city" options={cities} defaultValue={draft.city} />
                 <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" defaultValue={draft.area} />
                 <SelectField label="Gender" name="gender" options={genderOptions} defaultValue={draft.gender} />
+                <FormField
+                  label="Age"
+                  name="age"
+                  type="number"
+                  placeholder="28"
+                  defaultValue={draft.age}
+                />
               </div>
 
               <div className="grid gap-4 border-t pt-5 sm:grid-cols-2">

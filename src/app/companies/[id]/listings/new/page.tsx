@@ -28,7 +28,7 @@ type CompanyListingNewPageProps = {
 };
 
 const statusMessages = {
-  missing: "Please fill professional title, service group, profession, city, tagline, and description.",
+  missing: "Please fill professional title, service group, profession, city, age, tagline, and description. Age must be between 16 and 80.",
   "not-configured": "Supabase is not configured yet.",
   "company-missing": "Company was not found.",
   "no-package": "An active company package is required before adding professionals.",
@@ -143,6 +143,7 @@ export default async function CompanyListingNewPage({
                 <FormField label="Area" name="area" placeholder="DHA, Gulberg, G-10" />
                 <FormField label="Profile tagline" name="tagline" placeholder="Trusted home nurse" maxLength={30} />
                 <SelectField label="Gender" name="gender" options={["Male", "Female", "Other"]} />
+                <FormField label="Age" name="age" type="number" placeholder="28" />
                 <SelectField label="Availability" name="availability" options={["Full Time", "Part Time", "Day Shift", "Night Shift", "Weekends", "On Call"]} />
                 <FormField label="Years experience" name="yearsExperience" type="number" placeholder="5" />
                 <FormField label="Hourly rate optional" name="hourlyRate" type="number" placeholder="500" />

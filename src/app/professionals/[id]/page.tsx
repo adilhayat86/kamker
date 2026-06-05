@@ -27,6 +27,7 @@ type DbProfessional = {
   whatsapp_number: string | null;
   area: string | null;
   gender: string | null;
+  age: number | null;
   availability: string | null;
   years_experience: number | null;
   experience: string | null;
@@ -57,7 +58,7 @@ async function getDbProfessional(id: string) {
   const { data, error } = await supabase
     .from("professionals")
     .select(
-      "id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, rating, cities(name), categories(name)",
+      "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, rating, cities(name), categories(name)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -179,6 +180,12 @@ export default async function ProfessionalProfilePage({
                   </p>
                 </div>
                 <div className="rounded-lg border p-4">
+                  <p className="text-sm text-muted-foreground">Age</p>
+                  <p className="mt-1 font-semibold">
+                    {dbProfessional.age ? `Age ${dbProfessional.age}` : "Age not added"}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-4">
                   <p className="text-sm text-muted-foreground">Rating</p>
                   <p className="mt-1 flex items-center gap-1 font-semibold">
                     <Star className="size-4 fill-[#f6c343] text-[#f6c343]" aria-hidden="true" />
@@ -296,6 +303,12 @@ export default async function ProfessionalProfilePage({
               <div className="rounded-lg border p-4">
                 <p className="text-sm text-muted-foreground">Hourly Rate</p>
                 <p className="mt-1 font-semibold">{professional.rate}</p>
+              </div>
+              <div className="rounded-lg border p-4">
+                <p className="text-sm text-muted-foreground">Age</p>
+                <p className="mt-1 font-semibold">
+                  {professional.age ? `Age ${professional.age}` : "Age not added"}
+                </p>
               </div>
               <div className="rounded-lg border p-4">
                 <p className="text-sm text-muted-foreground">Rating</p>

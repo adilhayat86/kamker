@@ -20,7 +20,7 @@ const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evenin
 const genderOptions = ["Female", "Male"];
 
 const statusMessages = {
-  missing: "Please fill name, phone, city, profession, gender, availability, hourly rate, and tagline. Tagline must be 30 characters or less.",
+  missing: "Please fill name, phone, city, profession, gender, age, availability, hourly rate, and tagline. Age must be between 16 and 80. Tagline must be 30 characters or less.",
   "not-configured": "Supabase is not configured yet.",
   "invalid-photo": "Upload a jpg, png, or webp image under 8MB.",
   "photo-error": "Could not upload profile photo. Please try again.",
@@ -125,6 +125,7 @@ export default async function EditAccountPage({
   const whatsappNumber =
     dbProfessional?.whatsapp_number ?? demoProfessional?.whatsapp_number;
   const gender = dbProfessional?.gender ?? "";
+  const age = dbProfessional?.age ?? "";
   const availability = dbProfessional?.availability ?? "";
   const yearsExperience = dbProfessional?.years_experience ?? 0;
   const experience = dbProfessional?.experience ?? demoProfessional?.experience;
@@ -217,6 +218,14 @@ export default async function EditAccountPage({
                 name="gender"
                 value={gender}
                 options={genderOptions}
+                disabled={isDemo}
+              />
+              <TextInput
+                label="Age"
+                name="age"
+                type="number"
+                value={age}
+                placeholder="28"
                 disabled={isDemo}
               />
               <SelectInput

@@ -20,6 +20,12 @@ function optionalNumber(formData: FormData, key: string) {
   return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
+function ageField(formData: FormData) {
+  const value = Number(field(formData, "age"));
+
+  return Number.isInteger(value) && value >= 16 && value <= 80 ? value : null;
+}
+
 export async function createCompanyListing(formData: FormData) {
   const companyId = field(formData, "companyId");
   const title = field(formData, "title");
@@ -29,6 +35,7 @@ export async function createCompanyListing(formData: FormData) {
   const area = field(formData, "area");
   const tagline = field(formData, "tagline");
   const gender = field(formData, "gender");
+  const age = ageField(formData);
   const availability = field(formData, "availability");
   const yearsExperience = optionalNumber(formData, "yearsExperience");
   const description = field(formData, "description");
@@ -38,7 +45,7 @@ export async function createCompanyListing(formData: FormData) {
   const phone = field(formData, "phone");
   const whatsapp = field(formData, "whatsapp");
 
-  if (!companyId || !title || !serviceGroup || !category || !city || !tagline || !description || tagline.length > 30) {
+  if (!companyId || !title || !serviceGroup || !category || !city || age === null || !tagline || !description || tagline.length > 30) {
     redirect(`/companies/${companyId || "missing"}/listings/new?status=missing`);
   }
 
@@ -80,6 +87,7 @@ export async function createCompanyListing(formData: FormData) {
       area: area || null,
       tagline,
       gender: gender || null,
+      age,
       availability: availability || null,
       years_experience: yearsExperience,
       description,

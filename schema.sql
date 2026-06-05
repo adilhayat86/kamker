@@ -24,6 +24,7 @@ create table if not exists professionals (
   area text,
   category_id bigint references categories(id),
   gender text,
+  age integer check (age is null or (age >= 16 and age <= 80)),
   availability text,
   availability_time text constraint professionals_availability_time_check check (
     availability_time is null
@@ -158,6 +159,7 @@ values ('auto_approve_professionals', 'false')
 on conflict (key) do nothing;
 
 alter table professionals add column if not exists gender text;
+alter table professionals add column if not exists age integer;
 alter table professionals add column if not exists availability text;
 alter table professionals add column if not exists availability_time text;
 alter table professionals add column if not exists availability_days text;
@@ -167,6 +169,15 @@ alter table requirements add column if not exists availability text;
 
 do $$
 begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'professionals_age_range'
+  ) then
+    alter table professionals
+      add constraint professionals_age_range
+      check (age is null or (age >= 16 and age <= 80));
+  end if;
+
   if not exists (
     select 1 from pg_constraint
     where conname = 'professionals_tagline_length'
@@ -207,6 +218,7 @@ create index if not exists professionals_featured_idx on professionals(is_featur
 create index if not exists professionals_phone_number_idx on professionals(phone_number);
 create index if not exists professionals_availability_time_idx on professionals(availability_time);
 create index if not exists professionals_availability_days_idx on professionals(availability_days);
+create index if not exists professionals_age_idx on professionals(age);
 create index if not exists requirements_city_status_idx on requirements(city_id, status);
 create index if not exists requirement_matches_requirement_idx on requirement_matches(requirement_id);
 create index if not exists requirement_matches_professional_idx on requirement_matches(professional_id);
@@ -358,6 +370,7 @@ create table if not exists company_listings (
   profile_photo_url text,
   tagline text,
   gender text,
+  age integer check (age is null or (age >= 16 and age <= 80)),
   availability text,
   years_experience integer check (years_experience is null or years_experience >= 0),
   phone text,
@@ -400,6 +413,7 @@ create index if not exists company_listings_category_idx on company_listings(cat
 create index if not exists company_listings_city_idx on company_listings(city);
 create index if not exists company_listings_status_idx on company_listings(status);
 create index if not exists company_listings_featured_idx on company_listings(is_featured);
+create index if not exists company_listings_age_idx on company_listings(age);
 create index if not exists company_media_company_id_idx on company_media(company_id);
 create index if not exists company_media_media_type_idx on company_media(media_type);
 

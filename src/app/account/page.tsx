@@ -81,6 +81,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const whatsappNumber =
     dbProfessional?.whatsapp_number ?? demoProfessional?.whatsapp_number;
   const gender = dbProfessional?.gender;
+  const age = dbProfessional?.age;
   const availability = dbProfessional?.availability;
   const yearsExperience = dbProfessional?.years_experience;
   const experience = dbProfessional?.experience ?? demoProfessional?.experience;
@@ -213,6 +214,9 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                       {profession} in {city}
                       {area ? `, ${area}` : ""}
                     </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {age ? `Age ${age}` : "Age not added"}
+                    </p>
                     <p className="mt-2 line-clamp-1 text-sm font-semibold text-foreground">
                       {tagline || "Trusted local professional"}
                     </p>
@@ -283,6 +287,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                     <DetailCard label="Phone Number" value={phoneNumber} />
                     <DetailCard label="WhatsApp Number" value={whatsappNumber} />
                     <DetailCard label="Gender" value={gender} />
+                    <DetailCard label="Age" value={age ? `Age ${age}` : null} />
                     <DetailCard label="Availability" value={availability} />
                     <DetailCard label="Years Experience" value={yearsExperience} />
                     <DetailCard label="Experience" value={experience} />

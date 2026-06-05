@@ -15,6 +15,7 @@ export type LocalProfessionalRecord = {
   whatsapp_number: string | null;
   area: string | null;
   gender: string | null;
+  age: number | null;
   availability: string | null;
   availability_time: WorkerTimeAvailability | null;
   availability_days: WorkerDayAvailability | null;
@@ -46,6 +47,7 @@ type SaveLocalProfessionalInput = {
   area: string;
   categoryName: string;
   gender: string;
+  age: number;
   availabilityTime: WorkerTimeAvailability;
   availabilityDays: WorkerDayAvailability;
   yearsExperience: number;
@@ -120,6 +122,7 @@ export async function saveLocalProfessional(input: SaveLocalProfessionalInput) {
     whatsapp_number: input.whatsappNumber || null,
     area: input.area || null,
     gender: input.gender,
+    age: input.age,
     availability: workerAvailabilitySummary(
       input.availabilityTime,
       input.availabilityDays,
@@ -166,6 +169,7 @@ export function localRecordToProfessional(
     city: professional.cities?.name ?? "Pakistan",
     area: professional.area ?? "Area not added",
     gender: professional.gender ?? "Verified",
+    age: professional.age,
     availability: professional.availability ?? "Ask availability",
     rating: professional.rating ? professional.rating.toFixed(1) : "New",
     ratingCount: professional.rating ? "Verified reviews" : "Local test profile",

@@ -24,6 +24,7 @@ type CompanyListing = {
   area: string | null;
   description: string | null;
   tagline: string | null;
+  age: number | null;
   availability: string | null;
   years_experience: number | null;
   hourly_rate: number | null;
@@ -48,7 +49,7 @@ async function getListings(category?: string, city?: string) {
 
   let query = supabase
     .from("company_listings")
-    .select("id, title, service_group, category, city, area, description, tagline, availability, years_experience, hourly_rate, monthly_rate, phone, whatsapp, is_featured, companies(id, company_name, verification_status)")
+    .select("id, title, service_group, category, city, area, description, tagline, age, availability, years_experience, hourly_rate, monthly_rate, phone, whatsapp, is_featured, companies(id, company_name, verification_status)")
     .eq("status", "approved")
     .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false })
@@ -169,6 +170,7 @@ export default async function CompanyListingsPage({ searchParams }: CompanyListi
                     <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
                       <span>Hourly: {listing.hourly_rate ? `Rs ${listing.hourly_rate}` : "Ask company"}</span>
                       <span>Monthly: {listing.monthly_rate ? `Rs ${listing.monthly_rate}` : "Ask company"}</span>
+                      <span>Age: {listing.age ?? "Not added"}</span>
                       <span>Availability: {listing.availability ?? "Ask company"}</span>
                       <span>Experience: {listing.years_experience ?? 0} years</span>
                     </div>
