@@ -200,7 +200,9 @@ export function companyListingToProfessionalCard(listing: CompanyListingCardRow)
     featured_until: listing.is_featured ? "2030-12-31" : null,
     phone: listing.phone,
     whatsapp: listing.whatsapp,
-    profileHref: `/company-listings/${listing.id}`,
+    profileHref: listing.companies?.id
+      ? `/companies/${listing.companies.id}`
+      : `/company-listings/${listing.id}`,
     is_company_managed: true,
     company_id: listing.companies?.id ?? null,
     company_name: companyName,

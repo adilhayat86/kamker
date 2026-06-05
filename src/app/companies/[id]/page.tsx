@@ -3,12 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   BadgeCheck,
+  BriefcaseBusiness,
   Building2,
   ImageIcon,
   MapPin,
   MessageCircle,
   Phone,
+  ShieldCheck,
   Sparkles,
+  Users,
   Video,
 } from "lucide-react";
 
@@ -182,6 +185,7 @@ export default async function CompanyProfilePage({
     new Set(staffListings.map((listing) => listing.service_group).filter(Boolean)),
   ) as string[];
   const categories = Array.from(new Set(staffListings.map((listing) => listing.category)));
+  const featuredCount = staffListings.filter((listing) => listing.is_featured).length;
   const filteredStaff = staffListings.filter((listing) => {
     const serviceGroupMatch = query?.serviceGroup
       ? listing.service_group === query.serviceGroup
@@ -192,96 +196,136 @@ export default async function CompanyProfilePage({
   });
   const staffCards = filteredStaff.map(companyListingToProfessionalCard);
   const whatsapp = whatsappHref(company.whatsapp, company.company_name);
+  const verificationLabel =
+    company.verification_status === "verified" ? "Verified Company" : "Verification Pending";
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-7xl">
         <PageNavigation backHref="/company-listings" backLabel="Company Listings" />
 
-        <Card className="mt-6 overflow-hidden bg-white shadow-sm">
-          <CardContent className="p-5 sm:p-7">
-            <div className="grid gap-6 lg:grid-cols-[180px_1fr]">
-              <div className="relative size-36 overflow-hidden rounded-2xl border bg-muted sm:size-44">
-                {company.logo_url ? (
-                  <Image
-                    src={company.logo_url}
-                    alt={`${company.company_name} logo`}
-                    fill
-                    priority
-                    sizes="176px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="flex size-full items-center justify-center text-muted-foreground">
-                    <Building2 className="size-14" aria-hidden="true" />
-                  </div>
-                )}
-              </div>
-              <div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge className="gap-1 bg-primary text-primary-foreground">
-                    <Building2 className="size-3" aria-hidden="true" />
-                    Company Profile
-                  </Badge>
-                  {company.verification_status === "verified" ? (
-                    <Badge variant="outline">
-                      <BadgeCheck className="size-3" aria-hidden="true" />
-                      Verified Company
-                    </Badge>
+        <section className="mt-5 overflow-hidden rounded-2xl border bg-white shadow-sm">
+          <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="p-5 sm:p-7">
+              <div className="flex items-start gap-4">
+                <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl border bg-muted sm:size-24">
+                  {company.logo_url ? (
+                    <Image
+                      src={company.logo_url}
+                      alt={`${company.company_name} logo`}
+                      fill
+                      priority
+                      sizes="96px"
+                      className="object-cover"
+                    />
                   ) : (
-                    <Badge variant="outline">Verification Pending</Badge>
+                    <div className="flex size-full items-center justify-center text-primary">
+                      <Building2 className="size-9" aria-hidden="true" />
+                    </div>
                   )}
-                  {subscription ? (
-                    <Badge variant="secondary" className="gap-1">
-                      <Sparkles className="size-3" aria-hidden="true" />
-                      Active Package
-                    </Badge>
-                  ) : null}
                 </div>
-                <h1 className="mt-4 text-3xl font-bold tracking-normal sm:text-4xl">
-                  {company.company_name}
-                </h1>
-                <p className="mt-1 text-lg font-semibold text-primary">
-                  {company.category}
-                </p>
-                <p className="mt-3 flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="size-4" aria-hidden="true" />
-                  {company.city}{company.area ? `, ${company.area}` : ""}
-                </p>
-                {company.description ? (
-                  <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">
-                    {company.description}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className="gap-1 bg-primary text-primary-foreground">
+                      <Building2 className="size-3" aria-hidden="true" />
+                      Company
+                    </Badge>
+                    {company.verification_status === "verified" ? (
+                      <Badge variant="outline">
+                        <BadgeCheck className="size-3" aria-hidden="true" />
+                        Verified Company
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">{verificationLabel}</Badge>
+                    )}
+                    {subscription ? (
+                      <Badge variant="secondary" className="gap-1">
+                        <Sparkles className="size-3" aria-hidden="true" />
+                        Active Package
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <h1 className="mt-3 truncate text-3xl font-bold tracking-normal sm:text-4xl">
+                    {company.company_name}
+                  </h1>
+                  <p className="mt-1 text-lg font-semibold text-primary">
+                    {company.category}
                   </p>
-                ) : null}
-                <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                  {company.phone ? (
-                    <Button asChild variant="outline" className="h-11">
-                      <a href={`tel:${company.phone}`}>
-                        <Phone className="size-4" aria-hidden="true" />
-                        Call
-                      </a>
-                    </Button>
-                  ) : null}
-                  {whatsapp ? (
-                    <Button asChild className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                      <a href={whatsapp}>
-                        <MessageCircle className="size-4" aria-hidden="true" />
-                        WhatsApp
-                      </a>
-                    </Button>
-                  ) : null}
-                  <Button asChild variant="outline" className="h-11">
-                    <Link href={`/send-requirement?city=${encodeURIComponent(company.city)}`}>
-                      Send Requirement
-                    </Link>
-                  </Button>
+                  <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="size-4" aria-hidden="true" />
+                    {company.city}{company.area ? `, ${company.area}` : ""}
+                  </p>
+                </div>
+              </div>
+
+              {company.description ? (
+                <p className="mt-5 max-w-3xl text-sm leading-6 text-muted-foreground">
+                  {company.description}
+                </p>
+              ) : null}
+
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-lg border bg-background p-3">
+                  <Users className="size-5 text-primary" aria-hidden="true" />
+                  <p className="mt-2 text-xl font-bold">{staffListings.length}</p>
+                  <p className="text-xs text-muted-foreground">Staff profiles</p>
+                </div>
+                <div className="rounded-lg border bg-background p-3">
+                  <BriefcaseBusiness className="size-5 text-primary" aria-hidden="true" />
+                  <p className="mt-2 text-xl font-bold">{categories.length}</p>
+                  <p className="text-xs text-muted-foreground">Categories</p>
+                </div>
+                <div className="rounded-lg border bg-background p-3">
+                  <Sparkles className="size-5 text-primary" aria-hidden="true" />
+                  <p className="mt-2 text-xl font-bold">{featuredCount}</p>
+                  <p className="text-xs text-muted-foreground">Featured</p>
+                </div>
+                <div className="rounded-lg border bg-background p-3">
+                  <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
+                  <p className="mt-2 text-sm font-bold capitalize">{company.verification_status}</p>
+                  <p className="text-xs text-muted-foreground">Status</p>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <section className="mt-8">
+            <aside className="border-t bg-secondary/40 p-5 sm:p-7 lg:border-l lg:border-t-0">
+              <h2 className="text-xl font-semibold">Contact company</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Contact directly for staff availability, rates, and service areas.
+              </p>
+              <div className="mt-5 grid gap-2">
+                {company.phone ? (
+                  <Button asChild variant="outline" className="h-12 justify-start bg-white">
+                    <a href={`tel:${company.phone}`}>
+                      <Phone className="size-4" aria-hidden="true" />
+                      {company.phone}
+                    </a>
+                  </Button>
+                ) : null}
+                {whatsapp ? (
+                  <Button asChild className="h-12 justify-start bg-[#25d366] text-white hover:bg-[#21bd5b]">
+                    <a href={whatsapp}>
+                      <MessageCircle className="size-4" aria-hidden="true" />
+                      WhatsApp
+                    </a>
+                  </Button>
+                ) : null}
+                <Button asChild variant="outline" className="h-12 justify-start bg-white">
+                  <Link href={`/send-requirement?city=${encodeURIComponent(company.city)}`}>
+                    Send Requirement
+                  </Link>
+                </Button>
+              </div>
+              <div className="mt-5 rounded-lg border bg-white p-3 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">Company details</p>
+                <p className="mt-2">Contact: {company.contact_person ?? "Ask company"}</p>
+                <p>Service area: {company.city}{company.area ? `, ${company.area}` : ""}</p>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-2xl border bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-normal text-primary">
@@ -323,13 +367,13 @@ export default async function CompanyProfilePage({
               ))}
             </div>
           ) : (
-            <div className="mt-5 rounded-lg border border-dashed bg-white p-5 text-sm text-muted-foreground">
+            <div className="mt-5 rounded-lg border border-dashed bg-background p-5 text-sm text-muted-foreground">
               Company photos and videos will appear here after upload.
             </div>
           )}
         </section>
 
-        <section className="mt-10">
+        <section className="mt-8 rounded-2xl border bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-normal text-primary">
