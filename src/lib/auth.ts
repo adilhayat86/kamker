@@ -20,7 +20,8 @@ const scrypt = promisify(scryptCallback);
 
 const SESSION_COOKIE = "kamker_professional_session";
 const RECOVERY_COOKIE = "kamker_password_recovery";
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+const SESSION_STANDARD_MAX_AGE_SECONDS = 60 * 60 * 8;
+const SESSION_REMEMBER_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 const RECOVERY_MAX_AGE_SECONDS = 60 * 10;
 
 type AuthProfessional = {
@@ -152,7 +153,14 @@ export async function findProfessionalByPhone(phoneNumber: string) {
   );
 }
 
-export async function createProfessionalSession(professionalId: string) {
+export async function createProfessionalSession(
+  professionalId: string,
+  rememberPassword = false,
+) {
+  const maxAge = rememberPassword
+    ? SESSION_REMEMBER_MAX_AGE_SECONDS
+    : SESSION_STANDARD_MAX_AGE_SECONDS;
+
   if (!isSupabaseConfigured || !supabase) {
     const cookieStore = await cookies();
     cookieStore.set(
@@ -160,7 +168,7 @@ export async function createProfessionalSession(professionalId: string) {
       `local:${professionalId}:${signLocalSession(professionalId)}`,
       {
         httpOnly: true,
-        maxAge: SESSION_MAX_AGE_SECONDS,
+        maxAge,
         path: "/",
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
@@ -171,7 +179,7 @@ export async function createProfessionalSession(professionalId: string) {
 
   const token = randomBytes(32).toString("base64url");
   const tokenHash = hashToken(token);
-  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+  const expiresAt = new Date(Date.now() + maxAge * 1000);
 
   const { error } = await supabase.from("professional_sessions").insert({
     professional_id: professionalId,
@@ -187,7 +195,7 @@ export async function createProfessionalSession(professionalId: string) {
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    maxAge: SESSION_MAX_AGE_SECONDS,
+    maxAge,
     path: "/",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

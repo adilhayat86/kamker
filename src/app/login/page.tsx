@@ -85,6 +85,19 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                   placeholder="Password"
                 />
               </label>
+              <label className="flex items-start gap-3 rounded-md border bg-background p-3">
+                <input
+                  name="rememberPassword"
+                  type="checkbox"
+                  className="mt-1 size-4 rounded border-input text-primary accent-primary"
+                />
+                <span className="grid gap-0.5">
+                  <span className="text-sm font-medium">Remember password</span>
+                  <span className="text-xs leading-5 text-muted-foreground">
+                    Keep this professional account logged in on this device.
+                  </span>
+                </span>
+              </label>
               <Button className="h-12">Login</Button>
             </form>
           </CardContent>

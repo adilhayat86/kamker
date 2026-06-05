@@ -19,6 +19,7 @@ function field(formData: FormData, key: string) {
 export async function loginProfessional(formData: FormData) {
   const phoneNumber = field(formData, "phone");
   const password = field(formData, "password");
+  const rememberPassword = formData.get("rememberPassword") === "on";
 
   if (!phoneNumber || !password) {
     redirect("/login?status=missing");
@@ -38,6 +39,6 @@ export async function loginProfessional(formData: FormData) {
     redirect("/login?status=invalid");
   }
 
-  await createProfessionalSession(professional.id);
+  await createProfessionalSession(professional.id, rememberPassword);
   redirect("/account");
 }
