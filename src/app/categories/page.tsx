@@ -40,7 +40,7 @@ export default async function CategoriesPage({
   return (
     <main className="min-h-screen bg-background">
       <header className="border-b bg-background/90 backdrop-blur">
-        <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 pr-16 sm:px-6 sm:pr-20 lg:px-8 lg:pr-20">
           <KamkerLogo />
           <Button asChild variant="outline" size="sm">
             <Link href="/">
