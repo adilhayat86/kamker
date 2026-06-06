@@ -39,6 +39,47 @@ export type LocalProfessionalRecord = {
   categories: { name: string } | null;
 };
 
+export type LocalCompanyRecord = {
+  id: string;
+  company_name: string;
+  category: string;
+  city: string;
+  area: string | null;
+  contact_person: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  description: string | null;
+  license_number: string | null;
+  payment_status: string;
+  verification_status: string;
+  logo_url: string | null;
+  created_at: string;
+};
+
+export type LocalCompanyListingRecord = {
+  id: string;
+  company_id: string;
+  title: string;
+  service_group: string;
+  category: string;
+  city: string;
+  area: string | null;
+  tagline: string | null;
+  gender: string | null;
+  age: number | null;
+  availability: string | null;
+  years_experience: number | null;
+  description: string | null;
+  hourly_rate: number | null;
+  monthly_rate: number | null;
+  profile_photo_url: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  status: string;
+  is_featured: boolean;
+  created_at: string;
+};
+
 type SaveLocalProfessionalInput = {
   fullName: string;
   phoneNumber: string;
@@ -62,6 +103,11 @@ type SaveLocalProfessionalInput = {
 
 const localStoreDir = path.join(process.cwd(), ".kamker-local");
 const localProfessionalsPath = path.join(localStoreDir, "professionals.json");
+const localCompaniesPath = path.join(localStoreDir, "companies.json");
+const localCompanyListingsPath = path.join(
+  localStoreDir,
+  "company-listings.json",
+);
 
 export const isLocalDemoStoreEnabled =
   process.env.NODE_ENV !== "production" &&
@@ -102,10 +148,67 @@ export async function getLocalProfessionalRecords() {
   return readLocalProfessionals();
 }
 
+async function readLocalJsonFile<T>(filePath: string) {
+  try {
+    const contents = await fs.readFile(filePath, "utf8");
+    const parsed = JSON.parse(contents.replace(/^\uFEFF/, ""));
+
+    if (Array.isArray(parsed)) {
+      return parsed as T[];
+    }
+
+    return parsed && typeof parsed === "object" ? [parsed as T] : [];
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return [];
+    }
+
+    throw error;
+  }
+}
+
+async function writeLocalJsonFile<T>(filePath: string, records: T[]) {
+  await fs.mkdir(localStoreDir, { recursive: true });
+  await fs.writeFile(filePath, JSON.stringify(records, null, 2), "utf8");
+}
+
 export async function getLocalProfessionalRecordById(id: string) {
   const records = await getLocalProfessionalRecords();
 
   return records.find((professional) => professional.id === id) ?? null;
+}
+
+export async function getLocalCompanyRecords() {
+  if (!isLocalDemoStoreEnabled) {
+    return [];
+  }
+
+  return readLocalJsonFile<LocalCompanyRecord>(localCompaniesPath);
+}
+
+export async function getLocalCompanyRecordById(id: string) {
+  const records = await getLocalCompanyRecords();
+
+  return records.find((company) => company.id === id) ?? null;
+}
+
+export async function getLocalCompanyListingRecords(companyId?: string) {
+  if (!isLocalDemoStoreEnabled) {
+    return [];
+  }
+
+  const records = await readLocalJsonFile<LocalCompanyListingRecord>(
+    localCompanyListingsPath,
+  );
+
+  return companyId
+    ? records.filter((listing) => listing.company_id === companyId)
+    : records;
 }
 
 export async function saveLocalProfessional(input: SaveLocalProfessionalInput) {
@@ -155,6 +258,99 @@ export async function saveLocalProfessional(input: SaveLocalProfessionalInput) {
     JSON.stringify([record, ...existing], null, 2),
     "utf8",
   );
+
+  return record;
+}
+
+export async function saveLocalCompany(input: {
+  companyName: string;
+  category: string;
+  city: string;
+  area: string;
+  contactPerson: string;
+  phone: string;
+  whatsapp: string;
+  licenseNumber: string;
+  description: string;
+}) {
+  if (!isLocalDemoStoreEnabled) {
+    return null;
+  }
+
+  const existing = await getLocalCompanyRecords();
+  const now = new Date();
+  const record: LocalCompanyRecord = {
+    id: `local-company-${slugify(input.companyName) || "demo"}-${now.getTime()}`,
+    company_name: input.companyName,
+    category: input.category,
+    city: input.city,
+    area: input.area || null,
+    contact_person: input.contactPerson || null,
+    phone: input.phone || null,
+    whatsapp: input.whatsapp || null,
+    description: input.description || null,
+    license_number: input.licenseNumber || null,
+    payment_status: "local-demo-active",
+    verification_status: "local-demo",
+    logo_url: null,
+    created_at: now.toISOString(),
+  };
+
+  await writeLocalJsonFile(localCompaniesPath, [record, ...existing]);
+
+  return record;
+}
+
+export async function saveLocalCompanyListing(input: {
+  companyId: string;
+  title: string;
+  serviceGroup: string;
+  category: string;
+  city: string;
+  area: string;
+  tagline: string;
+  gender: string;
+  age: number;
+  availability: string;
+  yearsExperience: number | null;
+  description: string;
+  hourlyRate: number | null;
+  monthlyRate: number | null;
+  profilePhotoUrl: string;
+  phone: string;
+  whatsapp: string;
+}) {
+  if (!isLocalDemoStoreEnabled) {
+    return null;
+  }
+
+  const existing = await getLocalCompanyListingRecords();
+  const now = new Date();
+  const record: LocalCompanyListingRecord = {
+    id: `local-company-listing-${slugify(input.title) || "worker"}-${now.getTime()}`,
+    company_id: input.companyId,
+    title: input.title,
+    service_group: input.serviceGroup,
+    category: input.category,
+    city: input.city,
+    area: input.area || null,
+    tagline: input.tagline,
+    gender: input.gender || null,
+    age: input.age,
+    availability: input.availability || null,
+    years_experience: input.yearsExperience,
+    description: input.description || null,
+    hourly_rate: input.hourlyRate,
+    monthly_rate: input.monthlyRate,
+    profile_photo_url: input.profilePhotoUrl || null,
+    phone: input.phone || null,
+    whatsapp: input.whatsapp || null,
+    status: "approved",
+    is_featured: false,
+    created_at: now.toISOString(),
+  };
+
+  await writeLocalJsonFile(localCompanyListingsPath, [record, ...existing]);
 
   return record;
 }

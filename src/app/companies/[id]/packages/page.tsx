@@ -6,6 +6,10 @@ import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  getLocalCompanyRecordById,
+  isLocalDemoStoreEnabled,
+} from "@/lib/local-demo-store";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
@@ -37,7 +41,43 @@ type CompanyPackagesPageProps = {
   params: Promise<{
     id: string;
   }>;
+  searchParams?: Promise<{
+    status?: "local-demo";
+  }>;
 };
+
+const localDemoPackages: CompanyPackage[] = [
+  {
+    id: "local-company-starter",
+    package_key: "company_starter_monthly",
+    title: "Starter Company",
+    description: "20 listings, 5 featured listings",
+    price_pkr: 3000,
+    duration_days: 30,
+    listings_limit: 20,
+    featured_limit: 5,
+  },
+  {
+    id: "local-company-growth",
+    package_key: "company_growth_monthly",
+    title: "Growth Company",
+    description: "50 listings, 15 featured listings",
+    price_pkr: 7000,
+    duration_days: 30,
+    listings_limit: 50,
+    featured_limit: 15,
+  },
+  {
+    id: "local-company-enterprise",
+    package_key: "company_enterprise_monthly",
+    title: "Enterprise Company",
+    description: "100 listings, 35 featured listings",
+    price_pkr: 15000,
+    duration_days: 30,
+    listings_limit: 100,
+    featured_limit: 35,
+  },
+];
 
 const packageOrder = [
   "company_starter_monthly",
@@ -51,6 +91,19 @@ function formatPrice(value: number) {
 
 async function getCompany(companyId: string) {
   if (!isSupabaseConfigured || !supabase) {
+    const localCompany = await getLocalCompanyRecordById(companyId);
+
+    if (localCompany) {
+      return {
+        id: localCompany.id,
+        company_name: localCompany.company_name,
+        category: localCompany.category,
+        city: localCompany.city,
+        payment_status: localCompany.payment_status,
+        verification_status: localCompany.verification_status,
+      } satisfies Company;
+    }
+
     return null;
   }
 
@@ -70,6 +123,10 @@ async function getCompany(companyId: string) {
 
 async function getCompanyPackages() {
   if (!isSupabaseConfigured || !supabase) {
+    if (isLocalDemoStoreEnabled) {
+      return localDemoPackages;
+    }
+
     return [] as CompanyPackage[];
   }
 
@@ -89,11 +146,16 @@ async function getCompanyPackages() {
   );
 }
 
-export default async function CompanyPackagesPage({ params }: CompanyPackagesPageProps) {
+export default async function CompanyPackagesPage({
+  params,
+  searchParams,
+}: CompanyPackagesPageProps) {
   const { id } = await params;
+  const query = await searchParams;
+  const isLocalDemoCompany = id.startsWith("local-company-");
   const [company, packages] = await Promise.all([getCompany(id), getCompanyPackages()]);
 
-  if (!isSupabaseConfigured || !supabase) {
+  if ((!isSupabaseConfigured || !supabase) && !company) {
     return (
       <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
         <section className="mx-auto max-w-3xl">
@@ -136,6 +198,16 @@ export default async function CompanyPackagesPage({ params }: CompanyPackagesPag
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-6xl">
         <PageNavigation backHref="/register/company" backLabel="Company Registration" />
+
+        {query?.status === "local-demo" ? (
+          <DismissibleCard
+            className="mt-6 border-sky-200 bg-sky-50 shadow-sm"
+            cardContentClassName="p-4 text-sm leading-6 text-sky-950"
+            closeLabel="Close local demo notice"
+          >
+            Local demo company saved. Packages below use the same values from schema.sql, and the demo package is considered active so you can test uploading workers.
+          </DismissibleCard>
+        ) : null}
 
         <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -227,8 +299,14 @@ export default async function CompanyPackagesPage({ params }: CompanyPackagesPag
                     </p>
 
                     <Button asChild className="mt-auto h-12 w-full">
-                      <Link href={`/companies/${company.id}/payment?package=${companyPackage.package_key}`}>
-                        Select Package
+                      <Link
+                        href={
+                          isLocalDemoCompany
+                            ? `/companies/${company.id}/dashboard`
+                            : `/companies/${company.id}/payment?package=${companyPackage.package_key}`
+                        }
+                      >
+                        {isLocalDemoCompany ? "Continue to Dashboard" : "Select Package"}
                       </Link>
                     </Button>
                   </CardContent>

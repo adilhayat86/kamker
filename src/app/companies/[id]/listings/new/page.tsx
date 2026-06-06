@@ -11,6 +11,7 @@ import {
   getActiveCompanySubscription,
   getPublishedCompanyListingUsage,
 } from "@/lib/company-packages";
+import { getLocalCompanyRecordById } from "@/lib/local-demo-store";
 import { categories, cities, serviceGroups } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -38,7 +39,9 @@ const statusMessages = {
 
 async function getCompanyName(companyId: string) {
   if (!isSupabaseConfigured || !supabase) {
-    return null;
+    const localCompany = await getLocalCompanyRecordById(companyId);
+
+    return localCompany?.company_name;
   }
 
   const { data, error } = await supabase
@@ -136,14 +139,14 @@ export default async function CompanyListingNewPage({
               </div>
               <form action={createCompanyListing} className="grid gap-4 sm:grid-cols-2">
                 <input type="hidden" name="companyId" value={id} />
-                <FormField label="Professional name or title" name="title" placeholder="Ali Khan, Home Nurse, Security Guard" />
-                <SelectField label="Service group" name="serviceGroup" options={serviceGroups.map((group) => group.name)} />
-                <SelectField label="Profession / category" name="category" options={categories.map((category) => category.name)} />
-                <SelectField label="City" name="city" options={cities} />
+                <FormField label="Professional name or title" name="title" placeholder="Ali Khan, Home Nurse, Security Guard" required />
+                <SelectField label="Service group" name="serviceGroup" options={serviceGroups.map((group) => group.name)} required />
+                <SelectField label="Profession / category" name="category" options={categories.map((category) => category.name)} required />
+                <SelectField label="City" name="city" options={cities} required />
                 <FormField label="Area" name="area" placeholder="DHA, Gulberg, G-10" />
-                <FormField label="Profile tagline" name="tagline" placeholder="Trusted home nurse" maxLength={30} />
+                <FormField label="Profile tagline" name="tagline" placeholder="Trusted home nurse" maxLength={30} required />
                 <SelectField label="Gender" name="gender" options={["Male", "Female", "Other"]} />
-                <FormField label="Age" name="age" type="number" placeholder="28" />
+                <FormField label="Age" name="age" type="number" placeholder="28" min={16} max={80} required />
                 <SelectField label="Availability" name="availability" options={["Full Time", "Part Time", "Day Shift", "Night Shift", "Weekends", "On Call"]} />
                 <FormField label="Years experience" name="yearsExperience" type="number" placeholder="5" />
                 <FormField label="Hourly rate optional" name="hourlyRate" type="number" placeholder="500" />
@@ -156,6 +159,7 @@ export default async function CompanyListingNewPage({
                     label="Professional details"
                     name="description"
                     placeholder="Describe experience, timings, areas covered, duties, and any requirements."
+                    required
                   />
                 </div>
                 <Button className="h-12 sm:col-span-2">Save Professional for Review</Button>

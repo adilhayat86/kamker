@@ -1,3 +1,4 @@
+import { getLocalCompanyListingRecords, isLocalDemoStoreEnabled } from "@/lib/local-demo-store";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export type ActiveCompanySubscription = {
@@ -30,6 +31,18 @@ function packageTitle(row: SubscriptionRow) {
 
 export async function getActiveCompanySubscription(companyId: string) {
   if (!isSupabaseConfigured || !supabase) {
+    if (isLocalDemoStoreEnabled && companyId.startsWith("local-company-")) {
+      return {
+        id: `${companyId}-local-demo-subscription`,
+        company_id: companyId,
+        package_key: "company_growth_monthly",
+        listings_limit: 50,
+        featured_limit: 15,
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        package_title: "Growth Company",
+      } satisfies ActiveCompanySubscription;
+    }
+
     return null;
   }
 
@@ -69,6 +82,16 @@ export async function getActiveCompanySubscription(companyId: string) {
 
 export async function getPublishedCompanyListingUsage(companyId: string) {
   if (!isSupabaseConfigured || !supabase) {
+    if (isLocalDemoStoreEnabled && companyId.startsWith("local-company-")) {
+      const listings = await getLocalCompanyListingRecords(companyId);
+      const approved = listings.filter((listing) => listing.status === "approved");
+
+      return {
+        published: approved.length,
+        featured: approved.filter((listing) => listing.is_featured).length,
+      };
+    }
+
     return { published: 0, featured: 0 };
   }
 

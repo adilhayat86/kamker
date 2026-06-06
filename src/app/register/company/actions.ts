@@ -4,6 +4,10 @@ import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
+import {
+  isLocalDemoStoreEnabled,
+  saveLocalCompany,
+} from "@/lib/local-demo-store";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
@@ -52,6 +56,26 @@ export async function registerCompany(formData: FormData) {
   }
 
   if (!isSupabaseConfigured || !supabase) {
+    if (isLocalDemoStoreEnabled) {
+      const company = await saveLocalCompany({
+        companyName,
+        category,
+        city,
+        area,
+        contactPerson,
+        phone,
+        whatsapp,
+        licenseNumber,
+        description,
+      });
+
+      await clearFormDraft("company");
+
+      if (company) {
+        redirect(`/companies/${company.id}/packages?status=local-demo`);
+      }
+    }
+
     await saveFormDraft("company", draft);
     redirect("/register/company?status=not-configured");
   }

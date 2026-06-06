@@ -6,6 +6,11 @@ import {
   getActiveCompanySubscription,
   getPublishedCompanyListingUsage,
 } from "@/lib/company-packages";
+import {
+  getLocalCompanyRecordById,
+  isLocalDemoStoreEnabled,
+  saveLocalCompanyListing,
+} from "@/lib/local-demo-store";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
@@ -50,6 +55,49 @@ export async function createCompanyListing(formData: FormData) {
   }
 
   if (!isSupabaseConfigured || !supabase) {
+    if (isLocalDemoStoreEnabled) {
+      const company = await getLocalCompanyRecordById(companyId);
+
+      if (!company) {
+        redirect(`/companies/${companyId}/listings/new?status=company-missing`);
+      }
+
+      const [activeSubscription, usage] = await Promise.all([
+        getActiveCompanySubscription(companyId),
+        getPublishedCompanyListingUsage(companyId),
+      ]);
+
+      if (!activeSubscription) {
+        redirect(`/companies/${companyId}/listings/new?status=no-package`);
+      }
+
+      if (usage.published >= activeSubscription.listings_limit) {
+        redirect(`/companies/${companyId}/listings/new?status=quota-full`);
+      }
+
+      await saveLocalCompanyListing({
+        companyId,
+        title,
+        serviceGroup,
+        category,
+        city,
+        area,
+        tagline,
+        gender,
+        age,
+        availability,
+        yearsExperience,
+        description,
+        hourlyRate,
+        monthlyRate,
+        profilePhotoUrl,
+        phone,
+        whatsapp,
+      });
+
+      redirect(`/companies/${companyId}/dashboard?status=local-listing-added`);
+    }
+
     redirect(`/companies/${companyId}/listings/new?status=not-configured`);
   }
 

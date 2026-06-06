@@ -27,6 +27,10 @@ import {
   type CompanyListingCardRow,
 } from "@/lib/company-listing-cards";
 import { getActiveCompanySubscription } from "@/lib/company-packages";
+import {
+  getLocalCompanyListingRecords,
+  getLocalCompanyRecordById,
+} from "@/lib/local-demo-store";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +72,12 @@ async function getCompany(id: string) {
   }
 
   if (!isSupabaseConfigured || !supabase) {
+    const localCompany = await getLocalCompanyRecordById(id);
+
+    if (localCompany) {
+      return localCompany satisfies Company;
+    }
+
     return null;
   }
 
@@ -93,7 +103,40 @@ async function getCompanyStaff(companyId: string) {
   }
 
   if (!isSupabaseConfigured || !supabase) {
-    return [] as CompanyListingCardRow[];
+    const [localCompany, localListings] = await Promise.all([
+      getLocalCompanyRecordById(companyId),
+      getLocalCompanyListingRecords(companyId),
+    ]);
+
+    return localListings.map((listing) => ({
+      id: listing.id,
+      title: listing.title,
+      service_group: listing.service_group,
+      category: listing.category,
+      city: listing.city,
+      area: listing.area,
+      description: listing.description,
+      hourly_rate: listing.hourly_rate,
+      monthly_rate: listing.monthly_rate,
+      profile_photo_url: listing.profile_photo_url,
+      tagline: listing.tagline,
+      gender: listing.gender,
+      age: listing.age,
+      availability: listing.availability,
+      years_experience: listing.years_experience,
+      phone: listing.phone,
+      whatsapp: listing.whatsapp,
+      is_featured: listing.is_featured,
+      created_at: listing.created_at,
+      companies: localCompany
+        ? {
+            id: localCompany.id,
+            company_name: localCompany.company_name,
+            verification_status: localCompany.verification_status,
+            logo_url: localCompany.logo_url,
+          }
+        : null,
+    })) satisfies CompanyListingCardRow[];
   }
 
   const { data, error } = await supabase

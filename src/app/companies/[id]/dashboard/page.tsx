@@ -21,6 +21,10 @@ import {
   getActiveCompanySubscription,
   getPublishedCompanyListingUsage,
 } from "@/lib/company-packages";
+import {
+  getLocalCompanyListingRecords,
+  getLocalCompanyRecordById,
+} from "@/lib/local-demo-store";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 import { addCompanyMedia, updateCompanyLogo } from "./actions";
@@ -78,7 +82,8 @@ type CompanyDashboardPageProps = {
       | "missing-media"
       | "invalid-media"
       | "media-error"
-      | "not-configured";
+      | "not-configured"
+      | "local-listing-added";
   }>;
 };
 
@@ -89,10 +94,17 @@ const statusMessages = {
   "invalid-media": "Upload jpg, png, or webp images under 2MB, or mp4/webm videos under 20MB.",
   "media-error": "Could not save company media. Please try again.",
   "not-configured": "Supabase is not configured yet.",
+  "local-listing-added": "Local demo professional added to this company.",
 } as const;
 
 async function getCompany(companyId: string) {
   if (!isSupabaseConfigured || !supabase) {
+    const localCompany = await getLocalCompanyRecordById(companyId);
+
+    if (localCompany) {
+      return localCompany satisfies Company;
+    }
+
     return null;
   }
 
@@ -112,7 +124,23 @@ async function getCompany(companyId: string) {
 
 async function getCompanyListings(companyId: string) {
   if (!isSupabaseConfigured || !supabase) {
-    return [] as CompanyListing[];
+    const localListings = await getLocalCompanyListingRecords(companyId);
+
+    return localListings.map((listing) => ({
+      id: listing.id,
+      title: listing.title,
+      category: listing.category,
+      city: listing.city,
+      area: listing.area,
+      description: listing.description,
+      age: listing.age,
+      hourly_rate: listing.hourly_rate,
+      monthly_rate: listing.monthly_rate,
+      is_featured: listing.is_featured,
+      phone: listing.phone,
+      whatsapp: listing.whatsapp,
+      status: listing.status,
+    })) satisfies CompanyListing[];
   }
 
   const { data, error } = await supabase
