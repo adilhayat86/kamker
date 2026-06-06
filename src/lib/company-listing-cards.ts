@@ -6,6 +6,11 @@ import {
   type Professional,
   serviceGroups,
 } from "@/lib/marketplace-data";
+import {
+  getLocalCompanyListingRecords,
+  getLocalCompanyRecordById,
+  isLocalDemoStoreEnabled,
+} from "@/lib/local-demo-store";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export type CompanyListingCardRow = {
@@ -147,6 +152,71 @@ function getMockCompanyListingCards(filters?: {
   return typeof filters?.limit === "number" ? cards.slice(0, filters.limit) : cards;
 }
 
+async function getLocalCompanyListingCards(filters?: {
+  categories?: string[];
+  serviceGroup?: string;
+  city?: string;
+  area?: string;
+  limit?: number;
+}) {
+  const listings = await getLocalCompanyListingRecords();
+  const rows = await Promise.all(
+    listings.map(async (listing) => {
+      const company = await getLocalCompanyRecordById(listing.company_id);
+
+      return {
+        id: listing.id,
+        title: listing.title,
+        service_group: listing.service_group,
+        category: listing.category,
+        city: listing.city,
+        area: listing.area,
+        description: listing.description,
+        hourly_rate: listing.hourly_rate,
+        monthly_rate: listing.monthly_rate,
+        profile_photo_url: listing.profile_photo_url,
+        tagline: listing.tagline,
+        gender: listing.gender,
+        age: listing.age,
+        availability: listing.availability,
+        years_experience: listing.years_experience,
+        phone: listing.phone,
+        whatsapp: listing.whatsapp,
+        is_featured: listing.is_featured,
+        created_at: listing.created_at,
+        companies: company
+          ? {
+              id: company.id,
+              company_name: company.company_name,
+              verification_status: company.verification_status,
+              logo_url: company.logo_url,
+            }
+          : null,
+      } satisfies CompanyListingCardRow;
+    }),
+  );
+
+  const cards = rows
+    .filter((listing) => {
+      const categoryMatch = filters?.categories?.length
+        ? filters.categories.includes(listing.category)
+        : true;
+      const serviceGroupMatch = filters?.serviceGroup
+        ? (listing.service_group ?? inferredServiceGroup(listing.category)) === filters.serviceGroup
+        : true;
+      const cityMatch = filters?.city ? listing.city === filters.city : true;
+      const areaMatch = filters?.area
+        ? (listing.area ?? "").toLowerCase().includes(filters.area.toLowerCase())
+        : true;
+
+      return categoryMatch && serviceGroupMatch && cityMatch && areaMatch;
+    })
+    .map(companyListingToProfessionalCard)
+    .sort((first, second) => Number(second.is_featured) - Number(first.is_featured));
+
+  return typeof filters?.limit === "number" ? cards.slice(0, filters.limit) : cards;
+}
+
 export function getMockCompanyListingById(id: string) {
   return mockCompanyListingRows.find((listing) => listing.id === id) ?? null;
 }
@@ -219,7 +289,15 @@ export async function getApprovedCompanyListingCards(filters?: {
   limit?: number;
 }) {
   if (!isSupabaseConfigured || !supabase) {
-    return getMockCompanyListingCards(filters);
+    const localCards = isLocalDemoStoreEnabled
+      ? await getLocalCompanyListingCards(filters)
+      : [];
+    const mockCards = getMockCompanyListingCards(filters);
+    const combinedCards = [...localCards, ...mockCards];
+
+    return typeof filters?.limit === "number"
+      ? combinedCards.slice(0, filters.limit)
+      : combinedCards;
   }
 
   let query = supabase
