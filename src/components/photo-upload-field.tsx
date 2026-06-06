@@ -9,6 +9,8 @@ const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 type PhotoUploadFieldProps = {
   disabled?: boolean;
+  label?: string;
+  helpText?: string;
 };
 
 function formatSize(bytes: number) {
@@ -72,7 +74,11 @@ async function compressImage(file: File) {
   return file;
 }
 
-export function PhotoUploadField({ disabled = false }: PhotoUploadFieldProps) {
+export function PhotoUploadField({
+  disabled = false,
+  label = "Profile photo",
+  helpText = "If registration needs correction, keep this page open so the selected photo stays attached.",
+}: PhotoUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState(
     "Phone photos are accepted. Large images will be compressed before upload.",
@@ -136,7 +142,7 @@ export function PhotoUploadField({ disabled = false }: PhotoUploadFieldProps) {
 
   return (
     <label className="grid gap-2 sm:col-span-2">
-      <span className="text-sm font-medium">Profile photo</span>
+      <span className="text-sm font-medium">{label}</span>
       <input
         ref={inputRef}
         name="photo"
@@ -147,9 +153,7 @@ export function PhotoUploadField({ disabled = false }: PhotoUploadFieldProps) {
         className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
       />
       <span className="text-xs text-muted-foreground">{message}</span>
-      <span className="text-xs text-muted-foreground">
-        If registration needs correction, keep this page open so the selected photo stays attached.
-      </span>
+      {helpText ? <span className="text-xs text-muted-foreground">{helpText}</span> : null}
     </label>
   );
 }

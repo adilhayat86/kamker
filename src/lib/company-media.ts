@@ -44,6 +44,18 @@ export async function uploadCompanyGalleryMedia(
   });
 }
 
+export async function uploadCompanyStaffPhoto(
+  formData: FormData,
+  companyId: string,
+) {
+  return uploadCompanyMediaFile(formData, {
+    companyId,
+    fieldName: "photo",
+    folder: "staff",
+    imageOnly: true,
+  });
+}
+
 async function uploadCompanyMediaFile(
   formData: FormData,
   options: {

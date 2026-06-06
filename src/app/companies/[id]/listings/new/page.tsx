@@ -4,6 +4,7 @@ import { BriefcaseBusiness, LockKeyhole, PackageCheck } from "lucide-react";
 import { DismissibleCard, DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
+import { PhotoUploadField } from "@/components/photo-upload-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +25,15 @@ export const metadata = {
 type CompanyListingNewPageProps = {
   params: Promise<{ id: string }>;
   searchParams?: Promise<{
-    status?: "missing" | "not-configured" | "company-missing" | "no-package" | "quota-full" | "error";
+    status?:
+      | "missing"
+      | "not-configured"
+      | "company-missing"
+      | "no-package"
+      | "quota-full"
+      | "invalid-photo"
+      | "photo-error"
+      | "error";
   }>;
 };
 
@@ -34,6 +43,8 @@ const statusMessages = {
   "company-missing": "Company was not found.",
   "no-package": "An active company package is required before adding professionals.",
   "quota-full": "This company has reached the published listing limit for its active package.",
+  "invalid-photo": "Please choose a jpg, png, or webp staff photo under 2MB after compression.",
+  "photo-error": "Could not upload staff photo. Please try again.",
   error: "Could not save professional. Please try again.",
 } as const;
 
@@ -151,7 +162,10 @@ export default async function CompanyListingNewPage({
                 <FormField label="Years experience" name="yearsExperience" type="number" placeholder="5" />
                 <FormField label="Hourly rate optional" name="hourlyRate" type="number" placeholder="500" />
                 <FormField label="Monthly rate optional" name="monthlyRate" type="number" placeholder="45000" />
-                <FormField label="Profile photo URL optional" name="profilePhotoUrl" placeholder="https://... or leave blank" />
+                <PhotoUploadField
+                  label="Staff profile photo"
+                  helpText="Choose a photo from phone gallery. Large images are compressed before upload."
+                />
                 <FormField label="Phone optional" name="phone" type="tel" />
                 <FormField label="WhatsApp optional" name="whatsapp" type="tel" />
                 <div className="sm:col-span-2">

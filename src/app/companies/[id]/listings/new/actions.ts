@@ -6,6 +6,7 @@ import {
   getActiveCompanySubscription,
   getPublishedCompanyListingUsage,
 } from "@/lib/company-packages";
+import { uploadCompanyStaffPhoto } from "@/lib/company-media";
 import {
   getLocalCompanyRecordById,
   isLocalDemoStoreEnabled,
@@ -31,20 +32,6 @@ function ageField(formData: FormData) {
   return Number.isInteger(value) && value >= 16 && value <= 80 ? value : null;
 }
 
-function optionalUrl(value: string) {
-  if (!value) {
-    return "";
-  }
-
-  try {
-    const url = new URL(value);
-
-    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : "";
-  } catch {
-    return "";
-  }
-}
-
 export async function createCompanyListing(formData: FormData) {
   const companyId = field(formData, "companyId");
   const title = field(formData, "title");
@@ -60,7 +47,6 @@ export async function createCompanyListing(formData: FormData) {
   const description = field(formData, "description");
   const hourlyRate = optionalNumber(formData, "hourlyRate");
   const monthlyRate = optionalNumber(formData, "monthlyRate");
-  const profilePhotoUrl = optionalUrl(field(formData, "profilePhotoUrl"));
   const phone = field(formData, "phone");
   const whatsapp = field(formData, "whatsapp");
 
@@ -104,7 +90,7 @@ export async function createCompanyListing(formData: FormData) {
         description,
         hourlyRate,
         monthlyRate,
-        profilePhotoUrl,
+        profilePhotoUrl: "",
         phone,
         whatsapp,
       });
@@ -138,6 +124,18 @@ export async function createCompanyListing(formData: FormData) {
     redirect(`/companies/${companyId}/listings/new?status=quota-full`);
   }
 
+  let uploadedStaffPhoto: Awaited<ReturnType<typeof uploadCompanyStaffPhoto>> = null;
+
+  try {
+    uploadedStaffPhoto = await uploadCompanyStaffPhoto(formData, companyId);
+  } catch (error) {
+    redirect(
+      error instanceof Error && error.message === "invalid-company-media"
+        ? `/companies/${companyId}/listings/new?status=invalid-photo`
+        : `/companies/${companyId}/listings/new?status=photo-error`,
+    );
+  }
+
   const { data: listing, error } = await supabase
     .from("company_listings")
     .insert({
@@ -155,7 +153,7 @@ export async function createCompanyListing(formData: FormData) {
       description,
       hourly_rate: hourlyRate,
       monthly_rate: monthlyRate,
-      profile_photo_url: profilePhotoUrl || null,
+      profile_photo_url: uploadedStaffPhoto?.publicUrl ?? null,
       phone: phone || null,
       whatsapp: whatsapp || null,
       status: "pending",
