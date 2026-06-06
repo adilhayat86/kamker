@@ -1,3 +1,4 @@
+import { getAdminSessionRole } from "@/lib/admin-auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export async function recordAdminAudit(input: {
@@ -10,11 +11,12 @@ export async function recordAdminAudit(input: {
     return;
   }
 
+  const role = await getAdminSessionRole();
   const { error } = await supabase.from("admin_audit_logs").insert({
     action: input.action,
     target_type: input.targetType,
     target_id: input.targetId ?? null,
-    admin_label: "password-admin",
+    admin_label: role ? `${role}-admin` : "password-admin",
     metadata: input.metadata ?? {},
   });
 

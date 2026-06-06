@@ -118,8 +118,8 @@ export default async function RequirementDetailPage({
           >
                 <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
                 <p className="text-sm">
-                  Set KAMKER_ADMIN_PASSWORD and KAMKER_AUTH_SECRET before using
-                  requirement matches with real customer data.
+                    Set owner or manager admin credentials and KAMKER_AUTH_SECRET
+                    before using requirement matches with real customer data.
                 </p>
           </DismissibleCard>
         ) : null}

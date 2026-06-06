@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { updateAutoApprovalMode } from "@/app/admin/actions";
@@ -41,7 +42,8 @@ export default async function AdminSettingsPage() {
     >
       {!health.adminAuth ? (
         <AdminWarning title="Admin auth needs setup">
-          Set KAMKER_ADMIN_PASSWORD and KAMKER_AUTH_SECRET before production admin use.
+          Set KAMKER_OWNER_ADMIN_PASSWORD, optional KAMKER_MANAGER_ADMIN_PASSWORD,
+          and KAMKER_AUTH_SECRET before production admin use.
         </AdminWarning>
       ) : null}
 
@@ -62,6 +64,23 @@ export default async function AdminSettingsPage() {
           </p>
           <Button className="mt-4" disabled={!adminAuthenticated}>Save Mode</Button>
         </form>
+      </AdminSection>
+
+      <AdminSection
+        title="Admin Access"
+        description="Manage owner and manager passwords. Only the owner admin can change credentials."
+      >
+        <div className="flex flex-col gap-3 rounded-lg border bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-medium">Owner and manager passwords</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Use database-backed password overrides after Supabase is configured.
+            </p>
+          </div>
+          <Button asChild disabled={!adminAuthenticated}>
+            <Link href="/admin/change-password">Change Passwords</Link>
+          </Button>
+        </div>
       </AdminSection>
 
       <AdminSection title="Configuration Status" description="Safe env checks only. No secrets are printed.">

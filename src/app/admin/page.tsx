@@ -70,7 +70,8 @@ export default async function AdminPage() {
     >
       {!adminPasswordConfigured ? (
         <AdminWarning title="Admin protection is not configured">
-          Set KAMKER_ADMIN_PASSWORD and KAMKER_AUTH_SECRET before using admin actions.
+          Set KAMKER_OWNER_ADMIN_PASSWORD, optional KAMKER_MANAGER_ADMIN_PASSWORD,
+          and KAMKER_AUTH_SECRET before using admin actions.
         </AdminWarning>
       ) : null}
 

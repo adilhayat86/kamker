@@ -44,7 +44,7 @@ export default async function AdminSystemPage() {
       <AdminSection title="Production Checklist" description="Apply before calling Kamker production-ready.">
         <div className="grid gap-3">
           {[
-            ["KAMKER_ADMIN_PASSWORD and KAMKER_AUTH_SECRET are set", health.adminAuth],
+            ["Owner/manager admin password and KAMKER_AUTH_SECRET are set", health.adminAuth],
             ["NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set", health.supabase],
             ["OpenAI proof review key is set if proof automation is required", health.openai],
             ["WhatsApp admin alert env vars are set", health.whatsapp],
