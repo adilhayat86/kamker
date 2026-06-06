@@ -9,10 +9,63 @@ import {
   getActiveCompanySubscription,
   getPublishedCompanyListingUsage,
 } from "@/lib/company-packages";
+import { categorySlug } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 async function canMutateAdmin() {
   return requireAdmin();
+}
+
+function textField(formData: FormData, key: string) {
+  const value = formData.get(key);
+
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function numberField(formData: FormData, key: string) {
+  const value = Number(textField(formData, key));
+
+  return Number.isFinite(value) ? value : 0;
+}
+
+export async function createAdminCategory(formData: FormData) {
+  const name = textField(formData, "name");
+  const icon = textField(formData, "icon") || "wrench";
+  const description = textField(formData, "description");
+  const parentId = textField(formData, "parentId");
+  const sortOrder = numberField(formData, "sortOrder");
+
+  if (!name || !isSupabaseConfigured || !supabase || !(await canMutateAdmin())) {
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("categories")
+    .insert({
+      name,
+      slug: categorySlug(name),
+      icon,
+      description: description || null,
+      parent_id: parentId ? Number(parentId) : null,
+      sort_order: sortOrder,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("Failed to create admin category", error);
+    return;
+  }
+
+  await recordAdminAudit({
+    action: parentId ? "create_subcategory" : "create_category",
+    targetType: "category",
+    targetId: String(data.id),
+    metadata: { name, parentId: parentId || null },
+  });
+
+  revalidatePath("/admin/categories");
+  revalidatePath("/categories");
 }
 
 export async function approveProfessional(formData: FormData) {

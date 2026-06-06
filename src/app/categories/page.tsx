@@ -7,6 +7,7 @@ import { KamkerLogo } from "@/components/kamker-logo";
 import { Button } from "@/components/ui/button";
 import { getBroadcastRecipientCount } from "@/lib/broadcast";
 import { categories, cities, parentCategories } from "@/lib/marketplace-data";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
   title: "All Categories | Kamker",
@@ -21,6 +22,52 @@ type CategoriesPageProps = {
   }>;
 };
 
+type DbCategoryCard = {
+  name: string;
+  count: string;
+  icon: string;
+  parent_id: number | null;
+};
+
+async function getSupabaseCategoryCards() {
+  if (!isSupabaseConfigured || !supabase) {
+    return [] as DbCategoryCard[];
+  }
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("name, icon, parent_id")
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Failed to load public Supabase categories", error);
+    return [] as DbCategoryCard[];
+  }
+
+  return ((data ?? []) as Array<{ name: string; icon: string | null; parent_id: number | null }>).map((category) => ({
+    name: category.name,
+    icon: category.icon ?? "wrench",
+    count: "0",
+    parent_id: category.parent_id,
+  }));
+}
+
+function uniqueCategoryCards<T extends { name: string }>(items: T[]) {
+  const seen = new Set<string>();
+
+  return items.filter((item) => {
+    const key = item.name.toLowerCase();
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
 export default async function CategoriesPage({
   searchParams,
 }: CategoriesPageProps) {
@@ -28,14 +75,19 @@ export default async function CategoriesPage({
   const city = params?.city?.trim() || undefined;
   const area = params?.area?.trim() || undefined;
   const q = params?.q?.trim() || "";
+  const dbCategories = await getSupabaseCategoryCards();
+  const dbParentCategories = dbCategories.filter((category) => category.parent_id === null);
+  const dbSubcategories = dbCategories.filter((category) => category.parent_id !== null);
   const recipientCount = await getBroadcastRecipientCount({ city, area });
   const normalizedQuery = q.toLowerCase();
-  const searchableCategories = q ? [...categories, ...parentCategories] : parentCategories;
+  const searchableCategories = q
+    ? uniqueCategoryCards([...dbSubcategories, ...dbParentCategories, ...categories, ...parentCategories])
+    : uniqueCategoryCards([...dbParentCategories, ...parentCategories]);
   const visibleCategories = q
     ? searchableCategories.filter((category) =>
         category.name.toLowerCase().includes(normalizedQuery),
       )
-    : parentCategories;
+    : searchableCategories;
 
   return (
     <main className="min-h-screen bg-background">

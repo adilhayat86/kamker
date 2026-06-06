@@ -55,6 +55,73 @@ type CategoryDbProfessional = {
   categories: { name: string } | null;
 };
 
+type DbCategory = {
+  id: number;
+  name: string;
+  slug: string;
+  icon: string | null;
+  description: string | null;
+  parent_id: number | null;
+};
+
+async function getDbCategoryBySlug(slug: string) {
+  if (!isSupabaseConfigured || !supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name, slug, icon, description, parent_id")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to load DB category by slug", error);
+    return null;
+  }
+
+  return data as DbCategory | null;
+}
+
+async function getDbSubcategories(parentId: number) {
+  if (!isSupabaseConfigured || !supabase) {
+    return [] as DbCategory[];
+  }
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name, slug, icon, description, parent_id")
+    .eq("parent_id", parentId)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Failed to load DB subcategories", error);
+    return [] as DbCategory[];
+  }
+
+  return (data ?? []) as DbCategory[];
+}
+
+async function getDbParentCategory(parentId: number | null) {
+  if (!parentId || !isSupabaseConfigured || !supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name, slug, icon, description, parent_id")
+    .eq("id", parentId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to load DB parent category", error);
+    return null;
+  }
+
+  return data as DbCategory | null;
+}
+
 function normaliseMatchValue(value: string) {
   return value
     .toLowerCase()
@@ -180,7 +247,8 @@ export async function generateMetadata({ params }: CategoryDetailPageProps) {
   const { slug } = await params;
   const serviceGroup = findServiceGroupBySlug(slug);
   const category = findCategoryBySlug(slug);
-  const name = serviceGroup?.name ?? category?.name;
+  const dbCategory = serviceGroup || category ? null : await getDbCategoryBySlug(slug);
+  const name = serviceGroup?.name ?? category?.name ?? dbCategory?.name;
 
   return {
     title: name ? `${name} Professionals | Kamker` : "Category | Kamker",
@@ -197,25 +265,42 @@ export default async function CategoryDetailPage({
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const serviceGroup = findServiceGroupBySlug(slug);
   const category = findCategoryBySlug(slug);
+  const dbCategory = serviceGroup || category ? null : await getDbCategoryBySlug(slug);
+  const dbSubcategories = dbCategory?.parent_id === null ? await getDbSubcategories(dbCategory.id) : [];
+  const dbParentCategory = dbCategory?.parent_id ? await getDbParentCategory(dbCategory.parent_id) : null;
 
-  if (!serviceGroup && !category) {
+  if (!serviceGroup && !category && !dbCategory) {
     notFound();
   }
 
   const city = query?.city?.trim() || undefined;
   const area = query?.area?.trim() || undefined;
   const parentGroup = category ? findServiceGroupForCategory(category.name) : null;
-  const pageName = serviceGroup?.name ?? category?.name ?? "Category";
+  const pageName = serviceGroup?.name ?? category?.name ?? dbCategory?.name ?? "Category";
   const pageDescription = serviceGroup
     ? serviceGroup.description
+    : dbCategory
+      ? dbCategory.description ?? "Send one requirement and reach approved professionals matching this service category."
     : parentGroup
       ? `${category?.name} are part of ${parentGroup.name}. Send one requirement and reach approved matching professionals.`
       : "Send one requirement and reach approved professionals matching this service category.";
-  const subcategoryCards = serviceGroup ? getGroupSubcategoryCards(serviceGroup) : [];
+  const subcategoryCards = serviceGroup
+    ? getGroupSubcategoryCards(serviceGroup)
+    : dbSubcategories.map((subcategory) => ({
+        name: subcategory.name,
+        icon: subcategory.icon ?? "wrench",
+        count: "0",
+      }));
   const targetCategories = serviceGroup
     ? serviceGroup.subcategories
     : category
       ? [category.name]
+      : dbCategory?.parent_id === null
+        ? dbSubcategories.length > 0
+          ? dbSubcategories.map((subcategory) => subcategory.name)
+          : [dbCategory.name]
+        : dbCategory
+          ? [dbCategory.name]
       : [];
   const matchingProfessionals = await getCategoryProfessionals(
     targetCategories,
@@ -233,8 +318,8 @@ export default async function CategoryDetailPage({
     (a, b) => Number(b.is_featured) - Number(a.is_featured),
   );
   const recipientCount = await getBroadcastRecipientCount({
-    category: serviceGroup?.name ?? parentGroup?.name ?? category?.name,
-    subcategory: category?.name,
+    category: serviceGroup?.name ?? parentGroup?.name ?? dbParentCategory?.name ?? category?.name ?? dbCategory?.name,
+    subcategory: category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined),
     city,
     area,
   });
@@ -255,7 +340,7 @@ export default async function CategoryDetailPage({
 
       <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <Badge variant="secondary">
-          {serviceGroup ? "Service Group" : "Subcategory"}
+          {serviceGroup || dbCategory?.parent_id === null ? "Service Group" : "Subcategory"}
         </Badge>
         <h1 className="mt-3 text-3xl font-bold tracking-normal sm:text-4xl">
           {pageName} Professionals
@@ -273,8 +358,8 @@ export default async function CategoryDetailPage({
 
         <BroadcastRequirementCta
           count={recipientCount}
-          category={serviceGroup?.name ?? parentGroup?.name ?? category?.name}
-          subcategory={category?.name}
+          category={serviceGroup?.name ?? parentGroup?.name ?? dbParentCategory?.name ?? category?.name ?? dbCategory?.name}
+          subcategory={category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined)}
           city={city}
           area={area}
         />
@@ -288,12 +373,14 @@ export default async function CategoryDetailPage({
               <h2 className="mt-1 text-2xl font-bold tracking-normal">
                 {serviceGroup
                   ? `${serviceGroup.name} professionals`
+                  : dbCategory?.parent_id === null
+                    ? `${dbCategory.name} professionals`
                   : `${category?.name} professionals`}
               </h2>
             </div>
             <Button asChild variant="outline" className="h-11 w-full sm:w-auto">
               <Link
-                href={`/professionals?category=${encodeURIComponent(category?.name ?? serviceGroup?.name ?? "")}`}
+                href={`/professionals?category=${encodeURIComponent(category?.name ?? serviceGroup?.name ?? dbCategory?.name ?? "")}`}
               >
                 View directory
               </Link>
@@ -323,30 +410,30 @@ export default async function CategoryDetailPage({
           )}
         </section>
 
-        {serviceGroup ? (
+        {serviceGroup || dbCategory?.parent_id === null ? (
           <Card className="mt-8 bg-white shadow-sm">
             <CardContent className="p-5">
               <p className="text-sm font-semibold uppercase tracking-normal text-primary">
                 Choose a specific service
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Message the full {serviceGroup.name} group, or choose one professional type for a more targeted requirement.
+                Message the full {serviceGroup?.name ?? dbCategory?.name} group, or choose one professional type for a more targeted requirement.
               </p>
               <CategoryGrid categories={subcategoryCards} city={city} area={area} />
             </CardContent>
           </Card>
-        ) : parentGroup ? (
+        ) : parentGroup || dbParentCategory ? (
           <Card className="mt-8 bg-white shadow-sm">
             <CardContent className="p-5">
               <p className="text-sm font-semibold uppercase tracking-normal text-primary">
                 Parent service group
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                {category?.name} belongs to {parentGroup.name}. You can also send one broader requirement to every approved professional in this group.
+                {category?.name ?? dbCategory?.name} belongs to {parentGroup?.name ?? dbParentCategory?.name}. You can also send one broader requirement to every approved professional in this group.
               </p>
               <Button asChild className="mt-4 h-11 w-full sm:w-auto" variant="outline">
-                <Link href={`/categories/${categorySlug(parentGroup.name)}`}>
-                  View {parentGroup.name}
+                <Link href={`/categories/${parentGroup ? categorySlug(parentGroup.name) : dbParentCategory?.slug}`}>
+                  View {parentGroup?.name ?? dbParentCategory?.name}
                 </Link>
               </Button>
             </CardContent>

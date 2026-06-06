@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 
 const adminLinks = [
   { href: "/admin", label: "Dashboard", icon: Home },
+  { href: "/admin/categories", label: "Categories", icon: ClipboardList },
   { href: "/admin/workers", label: "Workers", icon: Users },
   { href: "/admin/companies", label: "Companies", icon: Building2 },
   { href: "/admin/company-listings", label: "Company Staff", icon: BriefcaseBusiness },
