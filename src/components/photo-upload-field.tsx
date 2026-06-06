@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-const MAX_DIRECT_UPLOAD_BYTES = 8 * 1024 * 1024;
+const MAX_DIRECT_UPLOAD_BYTES = 20 * 1024 * 1024;
 const TARGET_UPLOAD_BYTES = 2 * 1024 * 1024;
 const MAX_IMAGE_DIMENSION = 1600;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -13,6 +13,10 @@ type PhotoUploadFieldProps = {
 
 function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+function setInputError(input: HTMLInputElement, message = "") {
+  input.setCustomValidity(message);
 }
 
 function imageFromDataUrl(dataUrl: string) {
@@ -82,19 +86,27 @@ export function PhotoUploadField({ disabled = false }: PhotoUploadFieldProps) {
       setMessage(
         "Phone photos are accepted. Large images will be compressed before upload.",
       );
+      if (input) {
+        setInputError(input);
+      }
       return;
     }
 
     if (!ACCEPTED_TYPES.includes(file.type)) {
-      setMessage("Please choose a jpg, png, or webp photo.");
+      const error = "Please choose a jpg, png, or webp photo.";
+      setInputError(input, error);
+      setMessage(error);
       return;
     }
 
+    setInputError(input);
+
     if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
       setMessage(
-        `This photo is ${formatSize(file.size)}. Please choose one under 8MB.`,
+        `This photo is ${formatSize(file.size)}. Please choose one under 20MB.`,
       );
       input.value = "";
+      setInputError(input);
       return;
     }
 
@@ -135,6 +147,9 @@ export function PhotoUploadField({ disabled = false }: PhotoUploadFieldProps) {
         className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
       />
       <span className="text-xs text-muted-foreground">{message}</span>
+      <span className="text-xs text-muted-foreground">
+        If registration needs correction, keep this page open so the selected photo stays attached.
+      </span>
     </label>
   );
 }

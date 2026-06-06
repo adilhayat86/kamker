@@ -13,6 +13,7 @@ import {
 } from "@/lib/worker-availability";
 import { categories, cities } from "@/lib/marketplace-data";
 import { getFormDraft } from "@/lib/form-draft";
+import { cn } from "@/lib/utils";
 
 import { registerProfessional } from "./actions";
 
@@ -25,7 +26,7 @@ const statusMessages = {
   "local-success":
     "Test worker saved locally because Supabase is not configured. Configure Supabase for real registrations and login.",
   missing:
-    "Please fill name, phone, city, profession, gender, age, work time, work days, hourly rate, tagline, password, secret question, and secret answer. Age must be between 16 and 80. Tagline must be 30 characters or less.",
+    "Fix the highlighted fields. For security, password and photo are not saved after the form leaves this page, but the browser now blocks missing required fields before sending.",
   "not-configured": "Supabase is not configured yet.",
   "invalid-photo": "Upload a jpg, png, or webp image under 8MB.",
   "photo-error": "Could not upload profile photo. Please try again.",
@@ -51,6 +52,7 @@ type ProfessionalDraft = {
   tagline: string;
   bio: string;
   secretQuestion: string;
+  errors: string;
 };
 
 type ProfessionalRegisterPageProps = {
@@ -66,6 +68,32 @@ export default async function ProfessionalRegisterPage({
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
   const draft = await getFormDraft<ProfessionalDraft>("professional");
+  const failedFields = new Set(
+    (draft.errors ?? "").split(",").filter(Boolean),
+  );
+  const errorFor = (field: string) => {
+    if (!failedFields.has(field)) {
+      return undefined;
+    }
+
+    const messages: Record<string, string> = {
+      fullName: "Full name is required.",
+      phone: "Phone number is required.",
+      city: "Choose a city.",
+      category: "Choose a profession/category.",
+      gender: "Choose gender.",
+      age: "Enter an age between 16 and 80.",
+      availabilityTime: "Choose work time.",
+      availabilityDays: "Choose work days.",
+      rate: "Hourly rate is required.",
+      tagline: "Tagline is required and must be 30 characters or less.",
+      password: "Password is required. Re-enter it after this error.",
+      secretQuestion: "Secret question is required.",
+      secretAnswer: "Secret answer is required. Re-enter it after this error.",
+    };
+
+    return messages[field] ?? "This field needs attention.";
+  };
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -117,18 +145,22 @@ export default async function ProfessionalRegisterPage({
                   <p className="mt-1 text-sm text-muted-foreground">Your name, contact, and work location.</p>
                 </div>
                 <PhotoUploadField />
-                <FormField label="Full name" name="fullName" defaultValue={draft.fullName} />
-                <FormField label="Phone number" name="phone" type="tel" defaultValue={draft.phone} />
+                <FormField label="Full name" name="fullName" defaultValue={draft.fullName} error={errorFor("fullName")} required />
+                <FormField label="Phone number" name="phone" type="tel" defaultValue={draft.phone} error={errorFor("phone")} required />
                 <FormField label="WhatsApp number" name="whatsapp" type="tel" defaultValue={draft.whatsapp} />
-                <SelectField label="City" name="city" options={cities} defaultValue={draft.city} />
+                <SelectField label="City" name="city" options={cities} defaultValue={draft.city} error={errorFor("city")} required />
                 <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" defaultValue={draft.area} />
-                <SelectField label="Gender" name="gender" options={genderOptions} defaultValue={draft.gender} />
+                <SelectField label="Gender" name="gender" options={genderOptions} defaultValue={draft.gender} error={errorFor("gender")} required />
                 <FormField
                   label="Age"
                   name="age"
                   type="number"
                   placeholder="28"
                   defaultValue={draft.age}
+                  error={errorFor("age")}
+                  required
+                  min={16}
+                  max={80}
                 />
               </div>
 
@@ -142,13 +174,21 @@ export default async function ProfessionalRegisterPage({
                   name="category"
                   options={categories.map((category) => category.name)}
                   defaultValue={draft.category}
+                  error={errorFor("category")}
+                  required
                 />
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Work time</span>
                   <select
                     name="availabilityTime"
                     defaultValue={draft.availabilityTime ?? ""}
-                    className="h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    required
+                    aria-invalid={Boolean(errorFor("availabilityTime"))}
+                    className={cn(
+                      "h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      errorFor("availabilityTime") &&
+                        "border-red-500 bg-red-50 focus-visible:ring-red-500",
+                    )}
                   >
                     <option value="" disabled>
                       Select work time
@@ -159,13 +199,24 @@ export default async function ProfessionalRegisterPage({
                       </option>
                     ))}
                   </select>
+                  {errorFor("availabilityTime") ? (
+                    <span className="text-xs font-medium text-red-600">
+                      {errorFor("availabilityTime")}
+                    </span>
+                  ) : null}
                 </label>
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Work days</span>
                   <select
                     name="availabilityDays"
                     defaultValue={draft.availabilityDays ?? ""}
-                    className="h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    required
+                    aria-invalid={Boolean(errorFor("availabilityDays"))}
+                    className={cn(
+                      "h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      errorFor("availabilityDays") &&
+                        "border-red-500 bg-red-50 focus-visible:ring-red-500",
+                    )}
                   >
                     <option value="" disabled>
                       Select work days
@@ -176,6 +227,11 @@ export default async function ProfessionalRegisterPage({
                       </option>
                     ))}
                   </select>
+                  {errorFor("availabilityDays") ? (
+                    <span className="text-xs font-medium text-red-600">
+                      {errorFor("availabilityDays")}
+                    </span>
+                  ) : null}
                 </label>
                 <FormField
                   label="Years of experience"
@@ -189,6 +245,8 @@ export default async function ProfessionalRegisterPage({
                   name="rate"
                   placeholder="Rs. 500/hour"
                   defaultValue={draft.rate}
+                  error={errorFor("rate")}
+                  required
                 />
                 <FormField
                   label="Profile Tagline"
@@ -196,6 +254,8 @@ export default async function ProfessionalRegisterPage({
                   placeholder="Trusted elderly caregiver"
                   maxLength={30}
                   defaultValue={draft.tagline}
+                  error={errorFor("tagline")}
+                  required
                 />
                 <FormField
                   label="Experience details"
@@ -219,18 +279,22 @@ export default async function ProfessionalRegisterPage({
                   <p className="mt-1 text-sm text-muted-foreground">Used for login, review, and account recovery.</p>
                 </div>
                 <FormField label="CNIC optional" name="cnic" />
-                <FormField label="Password" name="password" type="password" />
+                <FormField label="Password" name="password" type="password" error={errorFor("password")} required />
                 <FormField
                   label="Secret question"
                   name="secretQuestion"
                   placeholder="What is your first school name?"
                   defaultValue={draft.secretQuestion}
+                  error={errorFor("secretQuestion")}
+                  required
                 />
                 <FormField
                   label="Secret answer"
                   name="secretAnswer"
                   type="password"
                   placeholder="Answer"
+                  error={errorFor("secretAnswer")}
+                  required
                 />
               </div>
               <Button className="h-12 sm:col-span-2">Register for Hourly Work</Button>

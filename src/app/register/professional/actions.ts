@@ -6,6 +6,8 @@ import { getAutoApproveProfessionals } from "@/lib/admin-settings";
 import {
   isWorkerDayAvailability,
   isWorkerTimeAvailability,
+  type WorkerDayAvailability,
+  type WorkerTimeAvailability,
   workerAvailabilitySummary,
 } from "@/lib/worker-availability";
 import { createProfessionalSession, hashSecret } from "@/lib/auth";
@@ -49,6 +51,7 @@ async function saveProfessionalDraft(input: {
   tagline: string;
   shortBio: string;
   secretQuestion: string;
+  errors?: string[];
 }) {
   await saveFormDraft("professional", {
     fullName: input.fullName,
@@ -67,6 +70,7 @@ async function saveProfessionalDraft(input: {
     tagline: input.tagline,
     bio: input.shortBio,
     secretQuestion: input.secretQuestion,
+    errors: input.errors?.join(",") ?? "",
   });
 }
 
@@ -109,25 +113,30 @@ export async function registerProfessional(formData: FormData) {
     secretQuestion,
   };
 
-  if (
-    !fullName ||
-    !phoneNumber ||
-    !cityName ||
-    !categoryName ||
-    !gender ||
-    age === null ||
-    !isWorkerTimeAvailability(availabilityTime) ||
-    !isWorkerDayAvailability(availabilityDays) ||
-    !expectedRate ||
-    !tagline ||
-    tagline.length > 30 ||
-    !password ||
-    !secretQuestion ||
-    !secretAnswer
-  ) {
-    await saveProfessionalDraft(draftInput);
+  const errors = [
+    !fullName ? "fullName" : null,
+    !phoneNumber ? "phone" : null,
+    !cityName ? "city" : null,
+    !categoryName ? "category" : null,
+    !gender ? "gender" : null,
+    age === null ? "age" : null,
+    !isWorkerTimeAvailability(availabilityTime) ? "availabilityTime" : null,
+    !isWorkerDayAvailability(availabilityDays) ? "availabilityDays" : null,
+    !expectedRate ? "rate" : null,
+    !tagline || tagline.length > 30 ? "tagline" : null,
+    !password ? "password" : null,
+    !secretQuestion ? "secretQuestion" : null,
+    !secretAnswer ? "secretAnswer" : null,
+  ].filter((error): error is string => Boolean(error));
+
+  if (errors.length > 0) {
+    await saveProfessionalDraft({ ...draftInput, errors });
     redirect("/register/professional?status=missing");
   }
+
+  const validatedAge = age as number;
+  const validatedAvailabilityTime = availabilityTime as WorkerTimeAvailability;
+  const validatedAvailabilityDays = availabilityDays as WorkerDayAvailability;
 
   const [passwordHash, secretAnswerHash] = await Promise.all([
     hashSecret(password),
@@ -144,9 +153,9 @@ export async function registerProfessional(formData: FormData) {
         area,
         categoryName,
         gender,
-        age,
-        availabilityTime,
-        availabilityDays,
+        age: validatedAge,
+        availabilityTime: validatedAvailabilityTime,
+        availabilityDays: validatedAvailabilityDays,
         yearsExperience,
         experience,
         expectedRate,
@@ -182,8 +191,8 @@ export async function registerProfessional(formData: FormData) {
   const autoApprove = await getAutoApproveProfessionals();
   let profilePhotoUrl: string | null = null;
   const availability = workerAvailabilitySummary(
-    availabilityTime,
-    availabilityDays,
+    validatedAvailabilityTime,
+    validatedAvailabilityDays,
   );
 
   try {
@@ -207,10 +216,10 @@ export async function registerProfessional(formData: FormData) {
       area: area || null,
       category_id: category?.id ?? null,
       gender,
-      age,
+      age: validatedAge,
       availability,
-      availability_time: availabilityTime,
-      availability_days: availabilityDays,
+      availability_time: validatedAvailabilityTime,
+      availability_days: validatedAvailabilityDays,
       years_experience: yearsExperience,
       experience: experience || null,
       expected_rate: expectedRate || null,
