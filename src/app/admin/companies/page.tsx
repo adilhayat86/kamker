@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import {
@@ -7,8 +7,8 @@ import {
   approveCompanyVerification,
   rejectCompanyVerification,
 } from "@/app/admin/actions";
+import { AdminShell } from "@/components/admin/admin-ui";
 import { DismissibleCard, DismissibleNotice } from "@/components/dismissible-notice";
-import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -117,26 +117,16 @@ export default async function AdminCompaniesPage() {
   );
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
-      <section className="mx-auto max-w-7xl">
-        <PageNavigation backHref="/admin" backLabel="Admin" />
-
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <Badge variant="secondary" className="gap-1.5">
-              <Building2 className="size-3.5" aria-hidden="true" />
-              Company registrations
-            </Badge>
-            <h1 className="mt-3 text-3xl font-bold tracking-normal">Companies</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Review company registrations, payment status, and verification status.
-            </p>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/register/company">Register Test Company</Link>
-          </Button>
-        </div>
-
+    <AdminShell
+      active="/admin/companies"
+      title="Companies"
+      description="Review company registrations, payment status, package activation, and verification status."
+      actions={
+        <Button asChild variant="outline">
+          <Link href="/register/company">Register Test Company</Link>
+        </Button>
+      }
+    >
         {!isSupabaseConfigured ? (
           <DismissibleCard
             className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm"
@@ -257,7 +247,6 @@ export default async function AdminCompaniesPage() {
             </Card>
           )}
         </div>
-      </section>
-    </main>
+    </AdminShell>
   );
 }

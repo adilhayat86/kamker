@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { recordAdminAudit } from "@/lib/admin-audit";
 import {
   clearAdminSession,
   createAdminSession,
@@ -16,10 +17,12 @@ export async function loginAdmin(formData: FormData) {
   }
 
   await createAdminSession();
+  await recordAdminAudit({ action: "admin_login", targetType: "admin_session" });
   redirect("/admin");
 }
 
 export async function logoutAdmin() {
+  await recordAdminAudit({ action: "admin_logout", targetType: "admin_session" });
   await clearAdminSession();
   redirect("/admin/login");
 }

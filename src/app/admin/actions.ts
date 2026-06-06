@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { recordAdminAudit } from "@/lib/admin-audit";
 import { requireAdmin } from "@/lib/admin-auth";
 import { setAutoApproveProfessionals } from "@/lib/admin-settings";
 import {
@@ -36,7 +37,14 @@ export async function approveProfessional(formData: FormData) {
     console.error("Failed to approve professional", error);
   }
 
+  await recordAdminAudit({
+    action: "approve_professional",
+    targetType: "professional",
+    targetId: id,
+  });
+
   revalidatePath("/admin");
+  revalidatePath("/admin/workers");
   revalidatePath("/professionals");
 }
 
@@ -62,7 +70,14 @@ export async function rejectProfessional(formData: FormData) {
     console.error("Failed to reject professional", error);
   }
 
+  await recordAdminAudit({
+    action: "reject_professional",
+    targetType: "professional",
+    targetId: id,
+  });
+
   revalidatePath("/admin");
+  revalidatePath("/admin/workers");
   revalidatePath("/professionals");
 }
 
@@ -88,7 +103,14 @@ export async function verifyCnic(formData: FormData) {
     console.error("Failed to verify CNIC", error);
   }
 
+  await recordAdminAudit({
+    action: "verify_cnic",
+    targetType: "professional",
+    targetId: id,
+  });
+
   revalidatePath("/admin");
+  revalidatePath("/admin/workers");
   revalidatePath("/professionals");
 }
 
@@ -126,8 +148,15 @@ export async function makeProfessionalFeatured(formData: FormData) {
     console.error("Failed to feature professional", error);
   }
 
+  await recordAdminAudit({
+    action: "make_professional_featured",
+    targetType: "professional",
+    targetId: id,
+  });
+
   revalidatePath("/");
   revalidatePath("/admin");
+  revalidatePath("/admin/featured");
   revalidatePath("/professionals");
 }
 
@@ -156,8 +185,15 @@ export async function removeProfessionalFeatured(formData: FormData) {
     console.error("Failed to remove featured professional", error);
   }
 
+  await recordAdminAudit({
+    action: "remove_professional_featured",
+    targetType: "professional",
+    targetId: id,
+  });
+
   revalidatePath("/");
   revalidatePath("/admin");
+  revalidatePath("/admin/featured");
   revalidatePath("/professionals");
 }
 
@@ -182,8 +218,15 @@ export async function deleteProfessional(formData: FormData) {
     console.error("Failed to delete professional", error);
   }
 
+  await recordAdminAudit({
+    action: "delete_professional",
+    targetType: "professional",
+    targetId: id,
+  });
+
   revalidatePath("/");
   revalidatePath("/admin");
+  revalidatePath("/admin/workers");
   revalidatePath("/professionals");
 }
 
@@ -208,6 +251,12 @@ export async function approveCompanyVerification(formData: FormData) {
   if (error) {
     console.error("Failed to approve company verification", error);
   }
+
+  await recordAdminAudit({
+    action: "approve_company_verification",
+    targetType: "company",
+    targetId: id,
+  });
 
   revalidatePath("/admin");
   revalidatePath("/admin/companies");
@@ -234,6 +283,12 @@ export async function rejectCompanyVerification(formData: FormData) {
   if (error) {
     console.error("Failed to reject company verification", error);
   }
+
+  await recordAdminAudit({
+    action: "reject_company_verification",
+    targetType: "company",
+    targetId: id,
+  });
 
   revalidatePath("/admin");
   revalidatePath("/admin/companies");
@@ -308,6 +363,13 @@ export async function activateCompanyPackage(formData: FormData) {
     console.error("Failed to update company payment status", companyError);
   }
 
+  await recordAdminAudit({
+    action: "activate_company_package",
+    targetType: "company",
+    targetId: companyId,
+    metadata: { packageKey },
+  });
+
   revalidatePath("/admin/companies");
   revalidatePath(`/companies/${companyId}/dashboard`);
   revalidatePath(`/companies/${companyId}/packages`);
@@ -362,6 +424,12 @@ export async function approveCompanyListing(formData: FormData) {
   if (error) {
     console.error("Failed to approve company listing", error);
   }
+
+  await recordAdminAudit({
+    action: "approve_company_staff",
+    targetType: "company_listing",
+    targetId: id,
+  });
 
   revalidatePath("/admin/company-listings");
   revalidatePath("/company-listings");
@@ -420,6 +488,12 @@ export async function makeCompanyListingFeatured(formData: FormData) {
     console.error("Failed to feature company listing", error);
   }
 
+  await recordAdminAudit({
+    action: "make_company_staff_featured",
+    targetType: "company_listing",
+    targetId: id,
+  });
+
   revalidatePath("/admin/company-listings");
   revalidatePath("/company-listings");
   revalidatePath("/professionals");
@@ -449,6 +523,12 @@ export async function removeCompanyListingFeatured(formData: FormData) {
   if (error) {
     console.error("Failed to remove featured company listing", error);
   }
+
+  await recordAdminAudit({
+    action: "remove_company_staff_featured",
+    targetType: "company_listing",
+    targetId: id,
+  });
 
   revalidatePath("/admin/company-listings");
   revalidatePath("/company-listings");
@@ -482,6 +562,12 @@ export async function rejectCompanyListing(formData: FormData) {
     console.error("Failed to reject company listing", error);
   }
 
+  await recordAdminAudit({
+    action: "reject_company_staff",
+    targetType: "company_listing",
+    targetId: id,
+  });
+
   revalidatePath("/admin/company-listings");
   revalidatePath("/company-listings");
   if (data?.company_id) {
@@ -495,5 +581,12 @@ export async function updateAutoApprovalMode(formData: FormData) {
   }
 
   await setAutoApproveProfessionals(formData.get("autoApprove") === "on");
+  await recordAdminAudit({
+    action: "update_auto_approval",
+    targetType: "admin_setting",
+    targetId: "auto_approve_professionals",
+    metadata: { enabled: formData.get("autoApprove") === "on" },
+  });
   revalidatePath("/admin");
+  revalidatePath("/admin/settings");
 }
