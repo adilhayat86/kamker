@@ -151,7 +151,7 @@ export default async function CompanyListingNewPage({
                 <FormField label="Years experience" name="yearsExperience" type="number" placeholder="5" />
                 <FormField label="Hourly rate optional" name="hourlyRate" type="number" placeholder="500" />
                 <FormField label="Monthly rate optional" name="monthlyRate" type="number" placeholder="45000" />
-                <FormField label="Profile photo URL optional" name="profilePhotoUrl" type="url" placeholder="https://..." />
+                <FormField label="Profile photo URL optional" name="profilePhotoUrl" placeholder="https://... or leave blank" />
                 <FormField label="Phone optional" name="phone" type="tel" />
                 <FormField label="WhatsApp optional" name="whatsapp" type="tel" />
                 <div className="sm:col-span-2">
@@ -162,7 +162,7 @@ export default async function CompanyListingNewPage({
                     required
                   />
                 </div>
-                <Button className="h-12 sm:col-span-2">Save Staff Profile for Review</Button>
+                <Button className="h-12 sm:col-span-2">Publish Staff Profile</Button>
               </form>
             </CardContent>
           </Card>

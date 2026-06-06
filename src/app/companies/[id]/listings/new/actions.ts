@@ -31,6 +31,20 @@ function ageField(formData: FormData) {
   return Number.isInteger(value) && value >= 16 && value <= 80 ? value : null;
 }
 
+function optionalUrl(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const url = new URL(value);
+
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
 export async function createCompanyListing(formData: FormData) {
   const companyId = field(formData, "companyId");
   const title = field(formData, "title");
@@ -46,7 +60,7 @@ export async function createCompanyListing(formData: FormData) {
   const description = field(formData, "description");
   const hourlyRate = optionalNumber(formData, "hourlyRate");
   const monthlyRate = optionalNumber(formData, "monthlyRate");
-  const profilePhotoUrl = field(formData, "profilePhotoUrl");
+  const profilePhotoUrl = optionalUrl(field(formData, "profilePhotoUrl"));
   const phone = field(formData, "phone");
   const whatsapp = field(formData, "whatsapp");
 
