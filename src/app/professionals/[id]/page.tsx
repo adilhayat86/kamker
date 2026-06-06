@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, MapPin, MessageCircle, Phone, Send, Star } from "lucide-react";
+import { BadgeCheck, Crown, MapPin, MessageCircle, Phone, Send, Star } from "lucide-react";
 
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import {
   getLocalProfessionalRecordById,
   localRecordToProfessional,
 } from "@/lib/local-demo-store";
+import { getSessionProfessional } from "@/lib/auth";
 
 type ProfessionalProfilePageProps = {
   params: Promise<{
@@ -104,6 +105,8 @@ export default async function ProfessionalProfilePage({
   const localProfessional = dbProfessional
     ? null
     : await getLocalProfessionalRecordById(id);
+  const sessionProfessional = await getSessionProfessional();
+  const isOwnProfile = sessionProfessional?.id === id;
   const demoProfessional = localProfessional
     ? localRecordToProfessional(localProfessional)
     : recentProfessionals.find((item) => item.id === id);
@@ -151,6 +154,14 @@ export default async function ProfessionalProfilePage({
                     <MapPin className="size-4" aria-hidden="true" />
                     {dbProfessional.cities?.name ?? "Pakistan"}{dbProfessional.area ? `, ${dbProfessional.area}` : ""}
                   </p>
+                  {isOwnProfile ? (
+                    <Button asChild className="mt-4 h-11">
+                      <Link href="/account/featured">
+                        <Crown className="size-4" aria-hidden="true" />
+                        Get Featured
+                      </Link>
+                    </Button>
+                  ) : null}
                 </div>
               </div>
 
@@ -255,6 +266,7 @@ export default async function ProfessionalProfilePage({
   }
 
   const professional = demoProfessional!;
+  const isOwnDemoProfile = sessionProfessional?.id === professional.id;
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
@@ -292,6 +304,14 @@ export default async function ProfessionalProfilePage({
                   <MapPin className="size-4" aria-hidden="true" />
                   {professional.city}, {professional.area}
                 </p>
+                {isOwnDemoProfile ? (
+                  <Button asChild className="mt-4 h-11">
+                    <Link href="/account/featured">
+                      <Crown className="size-4" aria-hidden="true" />
+                      Get Featured
+                    </Link>
+                  </Button>
+                ) : null}
               </div>
             </div>
 
