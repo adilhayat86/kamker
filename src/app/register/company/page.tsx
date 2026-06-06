@@ -13,12 +13,12 @@ import { registerCompany } from "./actions";
 
 export const metadata = {
   title: "Register Company | Kamker",
-  description: "Register a company account to add multiple professionals on Kamker.",
+  description: "Register a company account to add multiple staff profiles on Kamker.",
 };
 
 const statusMessages = {
   success:
-    "Company details saved. Next step is choosing a package for company-managed professionals.",
+    "Company details saved. Next step is choosing a package for company-managed staff profiles.",
   missing:
     "Fix the highlighted fields. Your entered company details are kept so you can correct them easily.",
   "not-configured": "Supabase is not configured yet.",
@@ -105,7 +105,7 @@ export default async function CompanyRegisterPage({
         </div>
 
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Register your agency or business as a company account. After package activation, your company can add multiple professionals in any category and city according to the selected package limit.
+          Register your agency or business as one company account. After package activation, your company can add multiple staff profiles in any category and city according to the selected package limit.
         </p>
 
         <DismissibleNotice className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950" contentClassName="flex gap-3" closeLabel="Close directory warning">
@@ -141,7 +141,7 @@ export default async function CompanyRegisterPage({
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Basic info</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Company identity. Professional categories are selected later for each worker profile.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Company identity. Staff categories are selected later for each worker profile.</p>
                 </div>
                 <FormField
                   label="Company name"
@@ -201,7 +201,7 @@ export default async function CompanyRegisterPage({
               <div className="grid gap-4 border-t pt-5">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Service details</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Explain staff types, areas covered, and verification details. Worker profiles are added after package activation.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Explain staff types, areas covered, and verification details. Staff profiles are added after package activation.</p>
                 </div>
                 <TextAreaField
                   label="Company description"

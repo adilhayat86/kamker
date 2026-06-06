@@ -202,7 +202,7 @@ export async function generateMetadata({ params }: CompanyProfilePageProps) {
     title: `${company.company_name} - ${company.category} in ${company.city} | Kamker`,
     description:
       company.description ??
-      `${company.company_name} company profile on Kamker. Browse company-managed professionals in ${company.city}.`,
+      `${company.company_name} company profile on Kamker. Browse company-managed staff profiles in ${company.city}.`,
   };
 }
 
@@ -245,7 +245,7 @@ export default async function CompanyProfilePage({
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-7xl">
-        <PageNavigation backHref="/company-listings" backLabel="Company Listings" />
+        <PageNavigation backHref="/professionals" backLabel="Professionals" />
 
         <section className="mt-5 overflow-hidden rounded-2xl border bg-white shadow-sm">
           <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -423,15 +423,15 @@ export default async function CompanyProfilePage({
                 Staff directory
               </p>
               <h2 className="mt-1 text-2xl font-bold tracking-normal">
-                Company-managed professionals
+                Company-managed staff profiles
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Showing {staffCards.length} of {staffListings.length} approved staff profiles.
               </p>
             </div>
             <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link href={`/company-listings?city=${encodeURIComponent(company.city)}`}>
-                Browse Company Listings
+              <Link href={`/professionals?city=${encodeURIComponent(company.city)}`}>
+                Browse All Workers
               </Link>
             </Button>
           </div>

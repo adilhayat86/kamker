@@ -14,7 +14,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
   title: "Choose Company Package | Kamker",
-  description: "Choose a Kamker package for company-managed professionals.",
+  description: "Choose a Kamker package for company-managed staff profiles.",
 };
 
 type Company = {
@@ -219,7 +219,7 @@ export default async function CompanyPackagesPage({
               Choose package for {company.company_name}
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Select how many company-managed professionals your company can publish. Each professional can use any Kamker service group and profession category.
+              Select how many company-managed staff profiles your company can publish. Each staff profile can use any Kamker service group and profession category.
             </p>
           </div>
           <Card className="bg-white shadow-sm sm:w-80">
@@ -281,7 +281,7 @@ export default async function CompanyPackagesPage({
                     <div className="mt-5 grid gap-3 text-sm">
                       <div className="flex items-center gap-2">
                         <ListChecks className="size-4 text-primary" aria-hidden="true" />
-                        <span>{companyPackage.listings_limit} published professionals</span>
+                        <span>{companyPackage.listings_limit} published staff profiles</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="size-4 text-primary" aria-hidden="true" />
@@ -295,7 +295,7 @@ export default async function CompanyPackagesPage({
 
                     <p className="mt-4 text-sm leading-6 text-muted-foreground">
                       {companyPackage.description ??
-                        `${companyPackage.listings_limit} published professionals with ${companyPackage.featured_limit} featured.`}
+                        `${companyPackage.listings_limit} published staff profiles with ${companyPackage.featured_limit} featured.`}
                     </p>
 
                     <Button asChild className="mt-auto h-12 w-full">
@@ -323,7 +323,7 @@ export default async function CompanyPackagesPage({
         >
           <p className="font-semibold">Manual payment next</p>
           <p className="mt-1">
-            Package benefits activate only after Kamker admin approval. After activation, the company dashboard allows adding professionals until the published package limit is reached.
+            Package benefits activate only after Kamker admin approval. After activation, the company dashboard allows adding staff profiles until the published package limit is reached.
           </p>
         </DismissibleCard>
       </section>

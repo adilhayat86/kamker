@@ -18,7 +18,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { createCompanyListing } from "./actions";
 
 export const metadata = {
-  title: "Add Company Professional | Kamker",
+  title: "Add Company Staff Profile | Kamker",
 };
 
 type CompanyListingNewPageProps = {
@@ -29,7 +29,7 @@ type CompanyListingNewPageProps = {
 };
 
 const statusMessages = {
-  missing: "Please fill professional title, service group, profession, city, age, tagline, and description. Age must be between 16 and 80.",
+  missing: "Please fill staff name/title, service group, profession, city, age, tagline, and description. Age must be between 16 and 80.",
   "not-configured": "Supabase is not configured yet.",
   "company-missing": "Company was not found.",
   "no-package": "An active company package is required before adding professionals.",
@@ -81,11 +81,11 @@ export default async function CompanyListingNewPage({
         <div className="mt-5">
           <Badge variant="secondary" className="gap-1.5">
             <BriefcaseBusiness className="size-3.5" aria-hidden="true" />
-            Company professional
+            Company staff profile
           </Badge>
-          <h1 className="mt-3 text-3xl font-bold tracking-normal">Add Professional</h1>
+          <h1 className="mt-3 text-3xl font-bold tracking-normal">Add Staff Profile</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Add a company-managed professional under {companyName ?? "this company"}. Choose any service group and profession. Published professionals count against the active package limit.
+            Add a company-managed worker profile under {companyName ?? "this company"}. Choose any service group and profession. Published staff profiles count against the active package limit.
           </p>
         </div>
 
@@ -139,7 +139,7 @@ export default async function CompanyListingNewPage({
               </div>
               <form action={createCompanyListing} className="grid gap-4 sm:grid-cols-2">
                 <input type="hidden" name="companyId" value={id} />
-                <FormField label="Professional name or title" name="title" placeholder="Ali Khan, Home Nurse, Security Guard" required />
+                <FormField label="Staff name or title" name="title" placeholder="Ali Khan, Home Nurse, Security Guard" required />
                 <SelectField label="Service group" name="serviceGroup" options={serviceGroups.map((group) => group.name)} required />
                 <SelectField label="Profession / category" name="category" options={categories.map((category) => category.name)} required />
                 <SelectField label="City" name="city" options={cities} required />
@@ -156,13 +156,13 @@ export default async function CompanyListingNewPage({
                 <FormField label="WhatsApp optional" name="whatsapp" type="tel" />
                 <div className="sm:col-span-2">
                   <TextAreaField
-                    label="Professional details"
+                    label="Staff profile details"
                     name="description"
                     placeholder="Describe experience, timings, areas covered, duties, and any requirements."
                     required
                   />
                 </div>
-                <Button className="h-12 sm:col-span-2">Save Professional for Review</Button>
+                <Button className="h-12 sm:col-span-2">Save Staff Profile for Review</Button>
               </form>
             </CardContent>
           </Card>

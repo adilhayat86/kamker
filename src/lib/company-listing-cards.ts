@@ -169,7 +169,7 @@ export function getMockCompanyProfileById(id: string) {
     phone: firstListing.phone,
     whatsapp: firstListing.whatsapp,
     description:
-      `${firstListing.companies.company_name} is a demo company profile showing company-managed professionals across Kamker categories.`,
+      `${firstListing.companies.company_name} is a demo company profile showing company-managed staff profiles across Kamker categories.`,
     verification_status: firstListing.companies.verification_status,
     logo_url: firstListing.companies.logo_url ?? null,
   };
@@ -203,9 +203,7 @@ export function companyListingToProfessionalCard(listing: CompanyListingCardRow)
     featured_until: listing.is_featured ? "2030-12-31" : null,
     phone: listing.phone,
     whatsapp: listing.whatsapp,
-    profileHref: listing.companies?.id
-      ? `/companies/${listing.companies.id}`
-      : `/company-listings/${listing.id}`,
+    profileHref: `/company-listings/${listing.id}`,
     is_company_managed: true,
     company_id: listing.companies?.id ?? null,
     company_name: companyName,

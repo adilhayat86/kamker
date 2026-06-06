@@ -21,7 +21,7 @@ import {
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
-  title: "Company Professionals | Kamker Admin",
+  title: "Company Staff Profiles | Kamker Admin",
 };
 
 export const dynamic = "force-dynamic";
@@ -104,9 +104,9 @@ export default async function AdminCompanyListingsPage() {
             <ClipboardList className="size-3.5" aria-hidden="true" />
             Review queue
           </Badge>
-          <h1 className="mt-3 text-3xl font-bold tracking-normal">Company Professionals</h1>
+          <h1 className="mt-3 text-3xl font-bold tracking-normal">Company Staff Profiles</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Approve, reject, and feature company-managed professionals submitted under active packages.
+            Approve, reject, and feature company-managed staff profiles submitted under active packages.
           </p>
         </div>
 

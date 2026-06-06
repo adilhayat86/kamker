@@ -231,19 +231,19 @@ export default async function CompanyDashboardPage({
             </Badge>
             <h1 className="mt-3 text-3xl font-bold tracking-normal">{company.company_name}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Manage company details and staff or service listings from one place.
+              Manage company details and staff profiles from one place.
             </p>
           </div>
           <Button asChild={canAddProfessional} className="h-12 w-full sm:w-auto" disabled={!canAddProfessional}>
             {canAddProfessional ? (
               <Link href={`/companies/${company.id}/listings/new`}>
                 <PlusCircle className="size-4" aria-hidden="true" />
-                Add Professional
+                Add Staff Profile
               </Link>
             ) : (
               <span>
               <PlusCircle className="size-4" aria-hidden="true" />
-                Add Professional
+                Add Staff Profile
               </span>
             )}
           </Button>
@@ -418,7 +418,7 @@ export default async function CompanyDashboardPage({
             ) : (
               <DismissibleNotice className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950" closeLabel="Close package warning">
                 <p className="font-semibold">No active package</p>
-                <p className="mt-1">Choose and activate a package before adding company-managed professionals.</p>
+              <p className="mt-1">Choose and activate a package before adding company-managed staff profiles.</p>
                 <Button asChild className="mt-4 h-11 w-full sm:w-auto">
                   <Link href={`/companies/${company.id}/packages`}>Choose Package</Link>
                 </Button>
@@ -447,13 +447,13 @@ export default async function CompanyDashboardPage({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-xl font-semibold">Professionals</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Add workers or professionals under this company package.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Add worker profiles owned by this company account.</p>
               </div>
               <Button asChild={canAddProfessional} variant="outline" className="w-full sm:w-auto" disabled={!canAddProfessional}>
                 {canAddProfessional ? (
-                  <Link href={`/companies/${company.id}/listings/new`}>Add Professional</Link>
+                  <Link href={`/companies/${company.id}/listings/new`}>Add Staff Profile</Link>
                 ) : (
-                  <span>Add Professional</span>
+                  <span>Add Staff Profile</span>
                 )}
               </Button>
             </div>
