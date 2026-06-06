@@ -22,8 +22,17 @@ export async function registerCustomer(formData: FormData) {
     area,
   };
 
-  if (!fullName || !phoneNumber || !cityName) {
-    await saveFormDraft("customer", draft);
+  const errors = [
+    !fullName ? "fullName" : null,
+    !phoneNumber ? "phone" : null,
+    !cityName ? "city" : null,
+  ].filter((error): error is string => Boolean(error));
+
+  if (errors.length > 0) {
+    await saveFormDraft("customer", {
+      ...draft,
+      errors: errors.join(","),
+    });
     redirect("/register/customer?status=missing");
   }
 

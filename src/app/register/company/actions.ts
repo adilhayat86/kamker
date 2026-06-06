@@ -34,8 +34,20 @@ export async function registerCompany(formData: FormData) {
     description,
   };
 
-  if (!companyName || !category || !city || !contactPerson || !phone || !description) {
-    await saveFormDraft("company", draft);
+  const errors = [
+    !companyName ? "companyName" : null,
+    !category ? "category" : null,
+    !city ? "city" : null,
+    !contactPerson ? "contactPerson" : null,
+    !phone ? "phone" : null,
+    !description ? "description" : null,
+  ].filter((error): error is string => Boolean(error));
+
+  if (errors.length > 0) {
+    await saveFormDraft("company", {
+      ...draft,
+      errors: errors.join(","),
+    });
     redirect("/register/company?status=missing");
   }
 

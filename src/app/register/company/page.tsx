@@ -20,7 +20,7 @@ const statusMessages = {
   success:
     "Company details saved. Next step is choosing a package for company-managed professionals.",
   missing:
-    "Please fill company name, category, city, contact person, phone number, and description.",
+    "Fix the highlighted fields. Your entered company details are kept so you can correct them easily.",
   "not-configured": "Supabase is not configured yet.",
   error: "Could not register company. Please try again.",
 } as const;
@@ -58,6 +58,7 @@ type CompanyDraft = {
   whatsapp: string;
   licenseNumber: string;
   description: string;
+  errors: string;
 };
 
 export default async function CompanyRegisterPage({
@@ -68,6 +69,23 @@ export default async function CompanyRegisterPage({
   const companyId = params?.companyId;
   const statusMessage = status ? statusMessages[status] : null;
   const draft = await getFormDraft<CompanyDraft>("company");
+  const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
+  const errorFor = (field: string) => {
+    if (!failedFields.has(field)) {
+      return undefined;
+    }
+
+    const messages: Record<string, string> = {
+      companyName: "Company name is required.",
+      category: "Choose a company category.",
+      city: "Choose a city.",
+      contactPerson: "Contact person is required.",
+      phone: "Phone number is required.",
+      description: "Company description is required.",
+    };
+
+    return messages[field] ?? "This field needs attention.";
+  };
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -108,7 +126,7 @@ export default async function CompanyRegisterPage({
                   <Link href="/register/company">Register Another Company</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link href={companyId ? `/register/company?companyId=${companyId}` : "/register/company"}>
+                  <Link href={companyId ? `/companies/${companyId}/packages` : "/register/company"}>
                     Continue to Packages
                   </Link>
                 </Button>
@@ -125,14 +143,29 @@ export default async function CompanyRegisterPage({
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Basic info</p>
                   <p className="mt-1 text-sm text-muted-foreground">Company identity. Professional categories are selected later for each worker profile.</p>
                 </div>
-                <FormField label="Company name" name="companyName" defaultValue={draft.companyName} />
+                <FormField
+                  label="Company name"
+                  name="companyName"
+                  defaultValue={draft.companyName}
+                  error={errorFor("companyName")}
+                  required
+                />
                 <SelectField
                   label="Company category"
                   name="category"
                   options={companyCategories}
                   defaultValue={draft.category}
+                  error={errorFor("category")}
+                  required
                 />
-                <SelectField label="City" name="city" options={cities} defaultValue={draft.city} />
+                <SelectField
+                  label="City"
+                  name="city"
+                  options={cities}
+                  defaultValue={draft.city}
+                  error={errorFor("city")}
+                  required
+                />
                 <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" defaultValue={draft.area} />
               </div>
 
@@ -141,8 +174,21 @@ export default async function CompanyRegisterPage({
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Contact</p>
                   <p className="mt-1 text-sm text-muted-foreground">Customer-facing phone and WhatsApp details.</p>
                 </div>
-                <FormField label="Contact person" name="contactPerson" defaultValue={draft.contactPerson} />
-                <FormField label="Phone number" name="phone" type="tel" defaultValue={draft.phone} />
+                <FormField
+                  label="Contact person"
+                  name="contactPerson"
+                  defaultValue={draft.contactPerson}
+                  error={errorFor("contactPerson")}
+                  required
+                />
+                <FormField
+                  label="Phone number"
+                  name="phone"
+                  type="tel"
+                  defaultValue={draft.phone}
+                  error={errorFor("phone")}
+                  required
+                />
                 <FormField label="WhatsApp number" name="whatsapp" type="tel" defaultValue={draft.whatsapp} />
                 <FormField
                   label="License number optional"
@@ -162,6 +208,8 @@ export default async function CompanyRegisterPage({
                   name="description"
                   placeholder="Tell customers what services your company offers, areas covered, staff types, timings, and verification details."
                   defaultValue={draft.description}
+                  error={errorFor("description")}
+                  required
                 />
               </div>
               <Button className="h-12 sm:col-span-2">Save Company Details</Button>

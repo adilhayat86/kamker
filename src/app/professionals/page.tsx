@@ -693,11 +693,11 @@ export default async function ProfessionalsPage({
             </Button>
           </div>
 
-          <details className="mt-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
+          <details className="mt-2 rounded-md border border-sky-100 bg-sky-50/50 px-3 py-2 text-sm">
             <summary className="cursor-pointer text-sm font-semibold text-primary">
-              Advanced filters
+              Filters: city, category, age, rate, availability
             </summary>
-            <div className="mt-3 grid max-h-[20vh] gap-2 overflow-y-auto pr-1 sm:max-h-none sm:grid-cols-2 lg:grid-cols-8">
+            <div className="mt-3 grid max-h-[24vh] gap-2 overflow-y-auto pr-1 sm:max-h-none sm:grid-cols-2 lg:grid-cols-4">
               <label className="grid gap-1">
                 <span className="text-xs font-medium">City</span>
                 <select
@@ -824,6 +824,14 @@ export default async function ProfessionalsPage({
                 />
                 Verified only
               </label>
+              <div className="grid grid-cols-2 gap-2 sm:col-span-2 lg:col-span-4">
+                <Button className="h-10" type="submit">
+                  Apply filters
+                </Button>
+                <Button asChild className="h-10" variant="outline">
+                  <Link href="/professionals">Reset filters</Link>
+                </Button>
+              </div>
             </div>
           </details>
         </form>

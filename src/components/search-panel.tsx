@@ -12,6 +12,20 @@ import {
   workerTimeAvailabilityOptions,
 } from "@/lib/worker-availability";
 
+const ageRangeOptions = [
+  { value: "18-25", label: "18-25" },
+  { value: "26-35", label: "26-35" },
+  { value: "36-45", label: "36-45" },
+  { value: "46+", label: "46+" },
+];
+
+const hourlyRateOptions = [
+  { value: "0-500", label: "Under Rs. 500/hr" },
+  { value: "500-1000", label: "Rs. 500-1,000/hr" },
+  { value: "1000-2000", label: "Rs. 1,000-2,000/hr" },
+  { value: "2000+", label: "Rs. 2,000+/hr" },
+];
+
 export function SearchPanel() {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
@@ -82,7 +96,7 @@ export function SearchPanel() {
                 : "invisible max-h-0 opacity-0 pointer-events-none"
             }`}
           >
-            <div className="mt-2 grid gap-2 rounded-lg border border-sky-100 bg-sky-50/50 p-3 sm:grid-cols-4 sm:gap-3">
+            <div className="mt-2 grid gap-2 rounded-lg border border-sky-100 bg-sky-50/50 p-3 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
               <label className="grid gap-1.5">
                 <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
                   Profession
@@ -114,6 +128,42 @@ export function SearchPanel() {
                   <option value="">Any gender</option>
                   <option value="Female">Female</option>
                   <option value="Male">Male</option>
+                </select>
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                  Age
+                </span>
+                <select
+                  name="age"
+                  defaultValue=""
+                  disabled={!isAdvancedOpen}
+                  className="h-10 rounded-md border border-input bg-white px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Any age</option>
+                  {ageRangeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                  Hourly rate
+                </span>
+                <select
+                  name="rate"
+                  defaultValue=""
+                  disabled={!isAdvancedOpen}
+                  className="h-10 rounded-md border border-input bg-white px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Any rate</option>
+                  {hourlyRateOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="grid gap-1.5">
@@ -151,6 +201,33 @@ export function SearchPanel() {
                     </option>
                   ))}
                 </select>
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                  Sort
+                </span>
+                <select
+                  name="sort"
+                  defaultValue="featured"
+                  disabled={!isAdvancedOpen}
+                  className="h-10 rounded-md border border-input bg-white px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="featured">Featured first</option>
+                  <option value="newest">Recently added</option>
+                  <option value="experienced">Most experienced</option>
+                  <option value="rate-low">Lowest hourly rate</option>
+                  <option value="rate-high">Highest hourly rate</option>
+                </select>
+              </label>
+              <label className="flex h-10 items-center gap-2 rounded-md border border-input bg-white px-3 text-sm shadow-sm">
+                <input
+                  type="checkbox"
+                  name="verified"
+                  value="true"
+                  disabled={!isAdvancedOpen}
+                  className="size-4"
+                />
+                Verified only
               </label>
             </div>
           </div>

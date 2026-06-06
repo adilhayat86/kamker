@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
@@ -13,8 +15,8 @@ export const metadata = {
 };
 
 const statusMessages = {
-  success: "Customer profile submitted successfully.",
-  missing: "Please fill name, phone, and city.",
+  success: "Customer profile submitted successfully. You can now browse categories and contact workers directly.",
+  missing: "Fix the highlighted fields. Your entered customer details are kept so you can correct them easily.",
   "not-configured": "Supabase is not configured yet.",
   error: "Could not register customer. Please try again.",
 } as const;
@@ -30,6 +32,7 @@ type CustomerDraft = {
   phone: string;
   city: string;
   area: string;
+  errors: string;
 };
 
 export default async function CustomerRegisterPage({
@@ -39,6 +42,20 @@ export default async function CustomerRegisterPage({
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
   const draft = await getFormDraft<CustomerDraft>("customer");
+  const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
+  const errorFor = (field: string) => {
+    if (!failedFields.has(field)) {
+      return undefined;
+    }
+
+    const messages: Record<string, string> = {
+      fullName: "Full name is required.",
+      phone: "Phone number is required.",
+      city: "Choose a city.",
+    };
+
+    return messages[field] ?? "This field needs attention.";
+  };
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -47,17 +64,50 @@ export default async function CustomerRegisterPage({
         <h1 className="mt-4 text-3xl font-bold tracking-normal">
           Register as Customer
         </h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Save your basic contact details for future requirement requests. Browsing workers and categories remains public.
+        </p>
         {statusMessage ? (
           <DismissibleNotice className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close registration message">
             {statusMessage}
+            {status === "success" ? (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <Button asChild>
+                  <Link href="/categories">Browse Categories</Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href="/professionals">View Workers</Link>
+                </Button>
+              </div>
+            ) : null}
           </DismissibleNotice>
         ) : null}
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
             <form action={registerCustomer} className="grid gap-4 sm:grid-cols-2">
-              <FormField label="Full name" name="fullName" defaultValue={draft.fullName} />
-              <FormField label="Phone number" name="phone" type="tel" defaultValue={draft.phone} />
-              <SelectField label="City" name="city" options={cities} defaultValue={draft.city} />
+              <FormField
+                label="Full name"
+                name="fullName"
+                defaultValue={draft.fullName}
+                error={errorFor("fullName")}
+                required
+              />
+              <FormField
+                label="Phone number"
+                name="phone"
+                type="tel"
+                defaultValue={draft.phone}
+                error={errorFor("phone")}
+                required
+              />
+              <SelectField
+                label="City"
+                name="city"
+                options={cities}
+                defaultValue={draft.city}
+                error={errorFor("city")}
+                required
+              />
               <FormField label="Area" name="area" defaultValue={draft.area} />
               <Button className="h-12 sm:col-span-2">Register</Button>
             </form>
