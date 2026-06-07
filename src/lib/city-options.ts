@@ -5,6 +5,13 @@ type CityRow = {
   name: string | null;
 };
 
+function isExpectedCityFetchFailure(error: { message?: string; details?: string }) {
+  return (
+    error.message?.includes("fetch failed") ||
+    error.details?.includes("fetch failed")
+  );
+}
+
 export async function getCityOptions() {
   if (!isSupabaseConfigured || !supabase) {
     return fallbackCities;
@@ -16,7 +23,10 @@ export async function getCityOptions() {
     .order("name", { ascending: true });
 
   if (error) {
-    console.error("Failed to load city options", error);
+    if (!isExpectedCityFetchFailure(error)) {
+      console.error("Failed to load city options", error);
+    }
+
     return fallbackCities;
   }
 

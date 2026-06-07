@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { createAdminCity } from "@/app/admin/actions";
+import { createAdminCity, updateAdminCity } from "@/app/admin/actions";
 import {
   AdminEmptyState,
   AdminSection,
@@ -140,18 +140,45 @@ export default async function AdminCitiesPage() {
 
       <AdminSection
         title="Managed City List"
-        description="These cities appear alongside Kamker fallback cities wherever city selection is shown."
+        description="Rename cities here when spellings need correction. Existing profiles keep working because they reference the city row."
       >
         {cities.length > 0 ? (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3">
             {cities.map((city) => (
-              <Link
+              <form
                 key={city.id}
-                href={`/professionals?city=${encodeURIComponent(city.name)}`}
-                className="rounded-lg border bg-white px-4 py-3 text-sm font-semibold shadow-sm hover:border-primary hover:text-primary"
+                action={updateAdminCity}
+                className="grid gap-2 rounded-lg border bg-white p-3 shadow-sm sm:grid-cols-[1fr_auto_auto]"
               >
-                {city.name}
-              </Link>
+                <input type="hidden" name="cityId" value={city.id} />
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    City
+                  </span>
+                  <input
+                    name="name"
+                    defaultValue={city.name}
+                    required
+                    className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                  />
+                </label>
+                <Button
+                  className="h-10 self-end"
+                  disabled={!adminAuthenticated || !isSupabaseConfigured}
+                  variant="outline"
+                >
+                  Save
+                </Button>
+                <Button
+                  asChild
+                  className="h-10 self-end"
+                  variant="outline"
+                >
+                  <Link href={`/professionals?city=${encodeURIComponent(city.name)}`}>
+                    Test
+                  </Link>
+                </Button>
+              </form>
             ))}
           </div>
         ) : (

@@ -119,6 +119,48 @@ export async function createAdminCity(formData: FormData) {
   revalidatePath("/send-requirement");
 }
 
+export async function updateAdminCity(formData: FormData) {
+  const id = formData.get("cityId");
+  const name = textField(formData, "name").replace(/\s+/g, " ");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !name ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("cities")
+    .update({ name })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to update admin city", error);
+    return;
+  }
+
+  await recordAdminAudit({
+    action: "update_city",
+    targetType: "city",
+    targetId: id,
+    metadata: { name },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/cities");
+  revalidatePath("/categories");
+  revalidatePath("/professionals");
+  revalidatePath("/register/professional");
+  revalidatePath("/register/company");
+  revalidatePath("/register/customer");
+  revalidatePath("/send-requirement");
+}
+
 export async function approveProfessional(formData: FormData) {
   const id = formData.get("professionalId");
 
