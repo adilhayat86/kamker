@@ -30,13 +30,14 @@ function decodeDraft<T extends Record<string, string>>(value: string | undefined
 export async function saveFormDraft(
   key: string,
   values: Record<string, string | number>,
+  options?: { path?: string },
 ) {
   const cookieStore = await cookies();
 
   cookieStore.set(cookieName(key), encodeDraft(values), {
     httpOnly: true,
     maxAge: DRAFT_MAX_AGE_SECONDS,
-    path: `/register/${key}`,
+    path: options?.path ?? `/register/${key}`,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
   });
@@ -50,13 +51,13 @@ export async function getFormDraft<T extends Record<string, string>>(
   return decodeDraft<T>(cookieStore.get(cookieName(key))?.value);
 }
 
-export async function clearFormDraft(key: string) {
+export async function clearFormDraft(key: string, options?: { path?: string }) {
   const cookieStore = await cookies();
 
   cookieStore.set(cookieName(key), "", {
     httpOnly: true,
     maxAge: 0,
-    path: `/register/${key}`,
+    path: options?.path ?? `/register/${key}`,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
   });

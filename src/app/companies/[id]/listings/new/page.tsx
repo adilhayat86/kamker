@@ -13,6 +13,7 @@ import {
   getActiveCompanySubscription,
   getPublishedCompanyListingUsage,
 } from "@/lib/company-packages";
+import { getFormDraft } from "@/lib/form-draft";
 import { getLocalCompanyRecordById } from "@/lib/local-demo-store";
 import { categories, cities, serviceGroups } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -50,6 +51,25 @@ const statusMessages = {
   error: "Could not save professional. Please try again.",
 } as const;
 
+type CompanyStaffDraft = {
+  title: string;
+  serviceGroup: string;
+  category: string;
+  city: string;
+  area: string;
+  tagline: string;
+  gender: string;
+  age: string;
+  availability: string;
+  yearsExperience: string;
+  hourlyRate: string;
+  monthlyRate: string;
+  phone: string;
+  whatsapp: string;
+  description: string;
+  errors: string;
+};
+
 async function getCompanyName(companyId: string) {
   if (!isSupabaseConfigured || !supabase) {
     const localCompany = await getLocalCompanyRecordById(companyId);
@@ -81,8 +101,12 @@ export default async function CompanyListingNewPage({
   const source = query?.source?.trim() ?? "";
   const statusMessage = status ? statusMessages[status] : null;
   const missingRequired = status === "missing";
-  const requiredError = (message: string) =>
-    missingRequired ? message : undefined;
+  const draft = await getFormDraft<CompanyStaffDraft>(`company_listing_${id}`);
+  const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
+  const requiredError = (field: string, message: string) =>
+    missingRequired && (failedFields.size === 0 || failedFields.has(field))
+      ? message
+      : undefined;
   const [companyName, activeSubscription, usage] = await Promise.all([
     getCompanyName(id),
     getActiveCompanySubscription(id),
@@ -161,40 +185,45 @@ export default async function CompanyListingNewPage({
                   label="Staff name or title"
                   name="title"
                   placeholder="Ali Khan, Home Nurse, Security Guard"
+                  defaultValue={draft.title}
                   required
-                  error={requiredError("Staff name or title is required.")}
+                  error={requiredError("title", "Staff name or title is required.")}
                 />
                 <SelectField
                   label="Service group"
                   name="serviceGroup"
                   options={serviceGroups.map((group) => group.name)}
+                  defaultValue={draft.serviceGroup}
                   required
-                  error={requiredError("Choose a service group.")}
+                  error={requiredError("serviceGroup", "Choose a service group.")}
                 />
                 <SelectField
                   label="Profession / category"
                   name="category"
                   options={categories.map((category) => category.name)}
+                  defaultValue={draft.category}
                   required
-                  error={requiredError("Choose a profession/category.")}
+                  error={requiredError("category", "Choose a profession/category.")}
                 />
                 <SelectField
                   label="City"
                   name="city"
                   options={cities}
+                  defaultValue={draft.city}
                   required
-                  error={requiredError("Choose a city.")}
+                  error={requiredError("city", "Choose a city.")}
                 />
-                <FormField label="Area" name="area" placeholder="DHA, Gulberg, G-10" />
+                <FormField label="Area" name="area" placeholder="DHA, Gulberg, G-10" defaultValue={draft.area} />
                 <FormField
                   label="Profile tagline"
                   name="tagline"
                   placeholder="Trusted home nurse"
                   maxLength={30}
+                  defaultValue={draft.tagline}
                   required
-                  error={requiredError("Profile tagline is required and must be 30 characters or less.")}
+                  error={requiredError("tagline", "Profile tagline is required and must be 30 characters or less.")}
                 />
-                <SelectField label="Gender" name="gender" options={["Male", "Female", "Other"]} />
+                <SelectField label="Gender" name="gender" options={["Male", "Female", "Other"]} defaultValue={draft.gender} />
                 <FormField
                   label="Age"
                   name="age"
@@ -202,26 +231,28 @@ export default async function CompanyListingNewPage({
                   placeholder="28"
                   min={16}
                   max={80}
+                  defaultValue={draft.age}
                   required
-                  error={requiredError("Enter an age between 16 and 80.")}
+                  error={requiredError("age", "Enter an age between 16 and 80.")}
                 />
-                <SelectField label="Availability" name="availability" options={["Full Time", "Part Time", "Day Shift", "Night Shift", "Weekends", "On Call"]} />
-                <FormField label="Years experience" name="yearsExperience" type="number" placeholder="5" />
-                <FormField label="Hourly rate optional" name="hourlyRate" type="number" placeholder="500" />
-                <FormField label="Monthly rate optional" name="monthlyRate" type="number" placeholder="45000" />
+                <SelectField label="Availability" name="availability" options={["Full Time", "Part Time", "Day Shift", "Night Shift", "Weekends", "On Call"]} defaultValue={draft.availability} />
+                <FormField label="Years experience" name="yearsExperience" type="number" placeholder="5" defaultValue={draft.yearsExperience} />
+                <FormField label="Hourly rate optional" name="hourlyRate" type="number" placeholder="500" defaultValue={draft.hourlyRate} />
+                <FormField label="Monthly rate optional" name="monthlyRate" type="number" placeholder="45000" defaultValue={draft.monthlyRate} />
                 <PhotoUploadField
                   label="Staff profile photo"
                   helpText="Choose a photo from phone gallery. Large images are compressed before upload."
                 />
-                <FormField label="Phone optional" name="phone" type="tel" />
-                <CountryPhoneField label="WhatsApp optional" name="whatsapp" />
+                <FormField label="Phone optional" name="phone" type="tel" defaultValue={draft.phone} />
+                <CountryPhoneField label="WhatsApp optional" name="whatsapp" defaultValue={draft.whatsapp} />
                 <div className="sm:col-span-2">
                   <TextAreaField
                     label="Staff profile details"
                     name="description"
                     placeholder="Describe experience, timings, areas covered, duties, and any requirements."
+                    defaultValue={draft.description}
                     required
-                    error={requiredError("Staff profile details are required.")}
+                    error={requiredError("description", "Staff profile details are required.")}
                   />
                 </div>
                 <Button className="h-12 sm:col-span-2">Publish Staff Profile</Button>
