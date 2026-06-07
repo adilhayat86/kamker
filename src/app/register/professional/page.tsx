@@ -28,7 +28,7 @@ const statusMessages = {
   missing:
     "Fix the highlighted fields. For security, password and photo are not saved after the form leaves this page, but the browser now blocks missing required fields before sending.",
   "not-configured": "Supabase is not configured yet.",
-  "invalid-photo": "Upload a jpg, png, or webp image under 8MB.",
+  "invalid-photo": "Upload a jpg, png, or webp image under 10MB.",
   "photo-error": "Could not upload profile photo. Please try again.",
   error: "Could not register professional. Please try again.",
 } as const;
