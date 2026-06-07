@@ -5,9 +5,7 @@ import { LogOut } from "lucide-react";
 import { logoutAdmin } from "@/app/admin/login/actions";
 import {
   AdminEmptyState,
-  AdminSection,
   AdminShell,
-  AdminStatCard,
   AdminWarning,
 } from "@/components/admin/admin-ui";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +28,66 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
+function CompactStatCard({
+  label,
+  value,
+  helper,
+  tone = "default",
+}: {
+  label: string;
+  value: string | number;
+  helper?: string;
+  tone?: "default" | "urgent" | "good" | "warning";
+}) {
+  const toneClass =
+    tone === "urgent"
+      ? "text-red-600"
+      : tone === "good"
+        ? "text-emerald-600"
+        : tone === "warning"
+          ? "text-amber-600"
+          : "text-foreground";
+
+  return (
+    <div className="rounded-xl border bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+        {label}
+      </p>
+      <p className={`mt-2 text-2xl font-bold ${toneClass}`}>{value}</p>
+      {helper ? <p className="mt-1 text-xs text-muted-foreground">{helper}</p> : null}
+    </div>
+  );
+}
+
+function CompactPanel({
+  title,
+  description,
+  children,
+  action,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">{title}</h2>
+          {description ? (
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {description}
+            </p>
+          ) : null}
+        </div>
+        {action}
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
 export default async function AdminPage() {
   const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
@@ -40,7 +98,7 @@ export default async function AdminPage() {
 
   const [summary, requirements, systemHealth] = await Promise.all([
     getAdminCountSummary(),
-    getRecentRequirements(6),
+    getRecentRequirements(3),
     getSystemHealth(),
   ]);
 
@@ -56,7 +114,7 @@ export default async function AdminPage() {
     <AdminShell
       active="/admin"
       title="Admin Dashboard"
-      description="Command center for review queues, marketplace health, package activity, analytics, and system readiness."
+      description="Compact command center for queues, today’s signals, and system readiness."
       actions={
         adminAuthenticated ? (
           <form action={logoutAdmin}>
@@ -81,110 +139,166 @@ export default async function AdminPage() {
         </AdminWarning>
       ) : null}
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard label="Needs Review Now" value={reviewCount} tone={reviewCount ? "urgent" : "good"} helper="Workers, companies, staff, proofs, and requirements" />
-        <AdminStatCard label="Active Marketplace Profiles" value={summary.approvedWorkers + summary.approvedCompanyStaff} helper="Approved workers plus company staff" />
-        <AdminStatCard label="Active Company Packages" value={summary.activeCompanyPackages} helper="Paid package subscriptions currently active" />
-        <AdminStatCard label="System Health" value={`${healthyCount}/4`} tone={healthyCount === 4 ? "good" : "warning"} helper="Admin, Supabase, OpenAI, WhatsApp" />
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <CompactStatCard
+          label="Needs Review"
+          value={reviewCount}
+          tone={reviewCount ? "urgent" : "good"}
+          helper="All open queues"
+        />
+        <CompactStatCard
+          label="Marketplace Profiles"
+          value={summary.approvedWorkers + summary.approvedCompanyStaff}
+          helper="Approved public profiles"
+        />
+        <CompactStatCard
+          label="Active Packages"
+          value={summary.activeCompanyPackages}
+          helper="Paid company packages"
+        />
+        <CompactStatCard
+          label="System Health"
+          value={`${healthyCount}/4`}
+          tone={healthyCount === 4 ? "good" : "warning"}
+          helper="Core setup checks"
+        />
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard label="Pending Workers" value={summary.pendingWorkers} />
-        <AdminStatCard label="Pending Companies" value={summary.pendingCompanies} />
-        <AdminStatCard label="Pending Company Staff" value={summary.pendingCompanyStaff} />
-        <AdminStatCard label="Pending Proof Reviews" value={summary.pendingProofs} />
-      </div>
+      <div className="mt-4 grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+        <CompactPanel
+          title="Review Queues"
+          description="Open the queue that needs action. Detailed review stays on dedicated pages."
+        >
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              { label: "Workers", count: summary.pendingWorkers, href: "/admin/workers?status=pending" },
+              { label: "Companies", count: summary.pendingCompanies, href: "/admin/companies?status=pending" },
+              { label: "Staff", count: summary.pendingCompanyStaff, href: "/admin/company-listings?status=pending" },
+              { label: "Proofs", count: summary.pendingProofs, href: "/admin/payments?status=pending" },
+              { label: "Requirements", count: summary.newRequirements, href: "/admin#requirements" },
+            ].map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="rounded-lg border bg-slate-50 px-3 py-3 transition hover:border-primary hover:bg-white"
+              >
+                <p className="text-xs font-semibold text-muted-foreground">{item.label}</p>
+                <p className="mt-1 text-xl font-bold">{item.count}</p>
+                <p className="mt-1 text-xs font-medium text-primary">Open</p>
+              </Link>
+            ))}
+          </div>
+        </CompactPanel>
 
-      <AdminSection
-        title="Needs Review Now"
-        description="Start here. These are the queues that block marketplace quality, payments, and public visibility."
-      >
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          {[
-            { label: "Workers", count: summary.pendingWorkers, href: "/admin/workers?status=pending" },
-            { label: "Companies", count: summary.pendingCompanies, href: "/admin/companies?status=pending" },
-            { label: "Company Staff", count: summary.pendingCompanyStaff, href: "/admin/company-listings?status=pending" },
-            { label: "Proofs", count: summary.pendingProofs, href: "/admin/payments?status=pending" },
-            { label: "Requirements", count: summary.newRequirements, href: "/admin#requirements" },
-          ].map((item) => (
-            <Link key={item.label} href={item.href} className="rounded-xl border bg-slate-50 p-4 transition hover:border-primary hover:bg-white">
-              <p className="text-sm font-medium text-muted-foreground">{item.label}</p>
-              <p className="mt-2 text-2xl font-bold">{item.count}</p>
-              <p className="mt-2 text-xs font-medium text-primary">Open queue</p>
-            </Link>
-          ))}
-        </div>
-      </AdminSection>
-
-      <AdminSection
-        title="Revenue / Package Snapshot"
-        description="Package and featured placement indicators without changing pricing logic."
-      >
-        <div className="grid gap-4 sm:grid-cols-3">
-          <AdminStatCard label="Active Packages" value={summary.activeCompanyPackages} />
-          <AdminStatCard label="Featured Workers" value={summary.activeFeaturedWorkers} />
-          <AdminStatCard label="Featured Company Staff" value={summary.activeFeaturedCompanyStaff} />
-        </div>
-      </AdminSection>
-
-      <AdminSection
-        title="Marketplace Health"
-        description="Demand and contact signals for today."
-      >
-        <div className="grid gap-4 sm:grid-cols-3">
-          <AdminStatCard label="New Requirements" value={summary.newRequirements} />
-          <AdminStatCard label="Call Clicks Today" value={summary.todayCallClicks} />
-          <AdminStatCard label="WhatsApp Clicks Today" value={summary.todayWhatsappClicks} />
-        </div>
-      </AdminSection>
-
-      <AdminSection
-        title="Recent Requirements"
-        description="Latest customer demand and stored match counts."
-        action={<Button asChild variant="outline"><Link href="/send-requirement">Submit Test Requirement</Link></Button>}
-      >
-        <div id="requirements" className="grid gap-3">
-          {requirements.length > 0 ? (
-            requirements.map((requirement) => (
-              <div key={requirement.id} className="rounded-lg border p-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <Link href={`/admin/requirements/${requirement.id}`} className="font-semibold text-primary hover:underline">
-                      {requirement.required_service}
-                    </Link>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {requirement.cities?.name ?? "Unknown city"}
-                      {requirement.area ? ` - ${requirement.area}` : ""} - {requirement.urgency}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">{requirement.status}</Badge>
-                    <Badge>{requirement.matched_count ?? 0} matches</Badge>
-                  </div>
-                </div>
+        <CompactPanel
+          title="Today"
+          description="Fast demand and contact signals."
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/analytics">Analytics</Link>
+            </Button>
+          }
+        >
+          <div className="grid gap-2">
+            {[
+              ["New Requirements", summary.newRequirements],
+              ["Call Clicks", summary.todayCallClicks],
+              ["WhatsApp Clicks", summary.todayWhatsappClicks],
+            ].map(([label, value]) => (
+              <div
+                key={String(label)}
+                className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"
+              >
+                <span className="text-sm font-medium text-muted-foreground">{label}</span>
+                <span className="text-lg font-bold">{value}</span>
               </div>
-            ))
-          ) : (
-            <AdminEmptyState>No requirements found yet.</AdminEmptyState>
-          )}
-        </div>
-      </AdminSection>
+            ))}
+          </div>
+        </CompactPanel>
+      </div>
 
-      <AdminSection title="System Warnings" description="Safe readiness checks. No secret values are displayed.">
-        <div className="grid gap-3 sm:grid-cols-2">
-          {[
-            ["Admin auth", systemHealth.adminAuth],
-            ["Supabase", systemHealth.supabase],
-            ["OpenAI proof review", systemHealth.openai],
-            ["WhatsApp admin alerts", systemHealth.whatsapp],
-          ].map(([label, ok]) => (
-            <div key={String(label)} className="flex items-center justify-between rounded-lg border bg-slate-50 p-4">
-              <span className="font-medium">{label}</span>
-              <Badge variant={ok ? "default" : "outline"}>{ok ? "Ready" : "Needs setup"}</Badge>
-            </div>
-          ))}
-        </div>
-      </AdminSection>
+      <div className="mt-4 grid gap-4 xl:grid-cols-2">
+        <CompactPanel
+          title="Recent Requirements"
+          description="Latest 3 customer requests."
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link href="/send-requirement">Submit Test</Link>
+            </Button>
+          }
+        >
+          <div id="requirements" className="grid gap-2">
+            {requirements.length > 0 ? (
+              requirements.map((requirement) => (
+                <Link
+                  key={requirement.id}
+                  href={`/admin/requirements/${requirement.id}`}
+                  className="rounded-lg border bg-slate-50 px-3 py-2 transition hover:border-primary hover:bg-white"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-primary">
+                        {requirement.required_service}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {requirement.cities?.name ?? "Unknown city"}
+                        {requirement.area ? ` - ${requirement.area}` : ""} - {requirement.urgency}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Badge variant="outline">{requirement.status}</Badge>
+                      <Badge>{requirement.matched_count ?? 0}</Badge>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <AdminEmptyState>No requirements found yet.</AdminEmptyState>
+            )}
+          </div>
+        </CompactPanel>
+
+        <CompactPanel
+          title="System"
+          description="Readiness checks. Secret values are never displayed."
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/system">System</Link>
+            </Button>
+          }
+        >
+          <div className="grid gap-2 sm:grid-cols-2">
+            {[
+              ["Admin auth", systemHealth.adminAuth],
+              ["Supabase", systemHealth.supabase],
+              ["OpenAI", systemHealth.openai],
+              ["WhatsApp", systemHealth.whatsapp],
+            ].map(([label, ok]) => (
+              <div
+                key={String(label)}
+                className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"
+              >
+                <span className="text-sm font-medium">{label}</span>
+                <Badge variant={ok ? "default" : "outline"}>
+                  {ok ? "Ready" : "Setup"}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </CompactPanel>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <Button asChild variant="outline" className="h-11">
+          <Link href="/admin/payments">Payments & Proofs</Link>
+        </Button>
+        <Button asChild variant="outline" className="h-11">
+          <Link href="/admin/featured">Featured Profiles</Link>
+        </Button>
+        <Button asChild variant="outline" className="h-11">
+          <Link href="/admin/analytics">Full Analytics</Link>
+        </Button>
+      </div>
     </AdminShell>
   );
 }
