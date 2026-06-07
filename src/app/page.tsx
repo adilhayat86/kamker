@@ -82,13 +82,13 @@ async function getHomepageStats() {
     companyStaffCount,
     categoryCount,
     cityCount,
-    requirementCount,
+    companyCount,
   ] = await Promise.all([
     countRows("professionals", { is_active: true }),
     countRows("company_listings", { status: "approved" }),
     countRows("categories"),
     countRows("cities"),
-    countRows("requirements"),
+    countRows("companies"),
   ]);
 
   const totalProfessionals =
@@ -110,8 +110,8 @@ async function getHomepageStats() {
       "Cities",
     ],
     [
-      requirementCount === null ? "Growing" : formatStatCount(requirementCount),
-      requirementCount === null ? "Requests" : "Requirements",
+      companyCount === null ? "Growing" : formatStatCount(companyCount),
+      "Companies",
     ],
   ];
 }
