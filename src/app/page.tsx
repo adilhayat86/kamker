@@ -21,7 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cities, parentCategories } from "@/lib/marketplace-data";
 
 const bottomNavItems = [
-  { label: "Home", icon: Home, href: "#" },
+  { label: "Home", icon: Home, href: "/" },
   { label: "Categories", icon: ClipboardList, href: "/categories" },
   { label: "Professionals", icon: Users, href: "/professionals" },
   { label: "Register", icon: BriefcaseBusiness, href: "/register" },
@@ -135,7 +135,7 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"><AdBanner label="Reserved ad space before footer" /></section>
 
-      <footer className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8"><p>Kamker Pakistan service directory marketplace.</p><div className="flex flex-wrap gap-4"><Link href="/about" className="hover:text-foreground">About</Link><a href="#" className="hover:text-foreground">Privacy Policy</a><a href="#" className="hover:text-foreground">Terms</a><a href="#" className="hover:text-foreground">Contact Us</a></div></footer>
+      <footer className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8"><p>Kamker Pakistan service directory marketplace.</p><div className="flex flex-wrap gap-4"><Link href="/about" className="hover:text-foreground">About</Link><Link href="/privacy" className="hover:text-foreground">Privacy Policy</Link><Link href="/terms" className="hover:text-foreground">Terms</Link><Link href="/contact" className="hover:text-foreground">Contact Us</Link></div></footer>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-2 py-2 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1">

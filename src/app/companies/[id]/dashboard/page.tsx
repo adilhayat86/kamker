@@ -221,6 +221,11 @@ export default async function CompanyDashboardPage({
   const canAddProfessional = Boolean(activeSubscription) && (
     !activeSubscription || usage.published < activeSubscription.listings_limit
   );
+  const staffActionLabel = activeSubscription
+    ? usage.published >= activeSubscription.listings_limit
+      ? "Package Limit Reached"
+      : "Add Staff Profile"
+    : "Package Required";
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -238,16 +243,21 @@ export default async function CompanyDashboardPage({
               Manage company details and staff profiles from one place.
             </p>
           </div>
-          <Button asChild={canAddProfessional} className="h-12 w-full sm:w-auto" disabled={!canAddProfessional}>
+          <Button
+            asChild={canAddProfessional}
+            variant={canAddProfessional ? "default" : "outline"}
+            className="h-12 w-full sm:w-auto"
+            disabled={!canAddProfessional}
+          >
             {canAddProfessional ? (
               <Link href={`/companies/${company.id}/listings/new`}>
                 <PlusCircle className="size-4" aria-hidden="true" />
-                Add Staff Profile
+                {staffActionLabel}
               </Link>
             ) : (
               <span>
               <PlusCircle className="size-4" aria-hidden="true" />
-                Add Staff Profile
+                {staffActionLabel}
               </span>
             )}
           </Button>
@@ -257,6 +267,24 @@ export default async function CompanyDashboardPage({
           <DismissibleNotice className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close company profile message">
             {statusMessage}
           </DismissibleNotice>
+        ) : null}
+
+        {!activeSubscription ? (
+          <Card className="mt-5 border-amber-200 bg-amber-50 shadow-sm">
+            <CardContent className="grid gap-3 p-4 text-sm leading-6 text-amber-950 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold">Package activation needed</p>
+                <p className="mt-1">
+                  Choose a package and upload payment proof. Clear receipts activate automatically through AI review.
+                </p>
+              </div>
+              <Button asChild variant="outline" className="h-11 shrink-0 bg-white">
+                <Link href={`/companies/${company.id}/packages`}>
+                  Choose Package
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         ) : null}
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
