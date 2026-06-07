@@ -246,6 +246,7 @@ export default async function CompanyPaymentPage({
                   <span className="text-sm font-medium">Payment method</span>
                   <select
                     name="paymentMethod"
+                    required
                     className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     defaultValue="JazzCash/EasyPaisa"
                   >
@@ -260,6 +261,7 @@ export default async function CompanyPaymentPage({
                   <span className="text-sm font-medium">Payer name</span>
                   <input
                     name="payerName"
+                    required
                     className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     placeholder="Name used for payment"
                   />
@@ -269,6 +271,8 @@ export default async function CompanyPaymentPage({
                   <span className="text-sm font-medium">Sender phone</span>
                   <input
                     name="senderPhone"
+                    required
+                    inputMode="tel"
                     className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     placeholder="Any payment sender number"
                   />
@@ -288,6 +292,7 @@ export default async function CompanyPaymentPage({
                   <input
                     name="proofImage"
                     type="file"
+                    required
                     accept="image/jpeg,image/png,image/webp"
                     className="rounded-md border border-dashed border-input bg-background px-3 py-3 text-sm shadow-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
                   />
