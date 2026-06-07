@@ -158,6 +158,9 @@ export default async function AdminPaymentsPage({
       q: params?.q,
     }),
   ]);
+  const needsActionCount =
+    proofs.filter((proof) => proof.audit_status === "unchecked").length +
+    payments.filter((payment) => payment.status === "pending_review").length;
 
   return (
     <AdminShell
@@ -171,7 +174,12 @@ export default async function AdminPaymentsPage({
         </AdminWarning>
       ) : null}
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid gap-4 sm:grid-cols-4">
+        <AdminStatCard
+          label="Needs Action"
+          value={needsActionCount}
+          tone={needsActionCount ? "urgent" : "good"}
+        />
         <AdminStatCard label="Pending Proof Reviews" value={summary.pendingProofs} tone={summary.pendingProofs ? "warning" : "good"} />
         <AdminStatCard label="Manual Payments Loaded" value={payments.length} />
         <AdminStatCard label="Proof Reviews Loaded" value={proofs.length} />
@@ -220,6 +228,11 @@ export default async function AdminPaymentsPage({
           </select>
           <Button>Filter</Button>
         </form>
+        <div className="mt-3">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/payments">Reset filters</Link>
+          </Button>
+        </div>
       </AdminSection>
 
       <AdminSection title="Proof Reviews" description="AI-readable proof checks and manual review status.">
