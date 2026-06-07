@@ -417,6 +417,16 @@ create index if not exists company_listings_age_idx on company_listings(age);
 create index if not exists company_media_company_id_idx on company_media(company_id);
 create index if not exists company_media_media_type_idx on company_media(media_type);
 
+alter table requirement_matches
+  add column if not exists company_listing_id uuid references company_listings(id) on delete cascade;
+
+create unique index if not exists requirement_matches_company_listing_unique_idx
+  on requirement_matches(requirement_id, company_listing_id)
+  where company_listing_id is not null;
+
+create index if not exists requirement_matches_company_listing_idx
+  on requirement_matches(company_listing_id);
+
 create table if not exists admin_passwords (
   role text primary key check (role in ('owner', 'manager')),
   password_hash text not null,

@@ -40,6 +40,16 @@ type RequirementMatch = {
     cities: { name: string } | null;
     categories: { name: string } | null;
   } | null;
+  company_listings: {
+    id: string;
+    title: string;
+    category: string | null;
+    city: string | null;
+    availability: string | null;
+    hourly_rate: number | null;
+    monthly_rate: number | null;
+    companies: { company_name: string } | null;
+  } | null;
 };
 
 type RequirementDetailPageProps = {
@@ -75,7 +85,7 @@ async function getRequirementMatches(id: string) {
   const { data, error } = await supabase
     .from("requirement_matches")
     .select(
-      "id, match_score, professionals(id, full_name, availability, expected_rate, cities(name), categories(name))",
+      "id, match_score, professionals(id, full_name, availability, expected_rate, cities(name), categories(name)), company_listings(id, title, category, city, availability, hourly_rate, monthly_rate, companies(company_name))",
     )
     .eq("requirement_id", id)
     .order("match_score", { ascending: false });
@@ -179,6 +189,30 @@ export default async function RequirementDetailPage({
               <div className="mt-5 grid gap-3">
                 {matches.map((match) => {
                   const professional = match.professionals;
+                  const companyListing = match.company_listings;
+                  const displayName =
+                    professional?.full_name ??
+                    companyListing?.title ??
+                    "Unknown professional";
+                  const category =
+                    professional?.categories?.name ??
+                    companyListing?.category ??
+                    "Not provided";
+                  const city =
+                    professional?.cities?.name ??
+                    companyListing?.city ??
+                    "Not provided";
+                  const availability =
+                    professional?.availability ??
+                    companyListing?.availability ??
+                    "Not provided";
+                  const hourlyRate =
+                    professional?.expected_rate ??
+                    (companyListing?.hourly_rate
+                      ? `Rs ${companyListing.hourly_rate.toLocaleString("en-PK")}/hour`
+                      : companyListing?.monthly_rate
+                        ? `Rs ${companyListing.monthly_rate.toLocaleString("en-PK")}/month`
+                        : "Not provided");
 
                   return (
                     <div
@@ -187,23 +221,28 @@ export default async function RequirementDetailPage({
                     >
                       <div>
                         <p className="font-semibold">
-                          {professional?.full_name ?? "Unknown professional"}
+                          {displayName}
                         </p>
+                        {companyListing ? (
+                          <p className="mt-1 text-xs font-medium text-primary">
+                            Company staff
+                            {companyListing.companies?.company_name
+                              ? ` - ${companyListing.companies.company_name}`
+                              : ""}
+                          </p>
+                        ) : null}
                         <div className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
                           <span>
-                            Category:{" "}
-                            {professional?.categories?.name ?? "Not provided"}
+                            Category: {category}
                           </span>
                           <span>
-                            City: {professional?.cities?.name ?? "Not provided"}
+                            City: {city}
                           </span>
                           <span>
-                            Availability:{" "}
-                            {professional?.availability ?? "Not provided"}
+                            Availability: {availability}
                           </span>
                           <span>
-                            Hourly Rate:{" "}
-                            {professional?.expected_rate ?? "Not provided"}
+                            Hourly Rate: {hourlyRate}
                           </span>
                         </div>
                       </div>
@@ -217,6 +256,13 @@ export default async function RequirementDetailPage({
                             className="text-sm font-medium text-primary hover:underline"
                           >
                             View Profile
+                          </Link>
+                        ) : companyListing?.id ? (
+                          <Link
+                            href={`/company-listings/${companyListing.id}`}
+                            className="text-sm font-medium text-primary hover:underline"
+                          >
+                            View Staff Profile
                           </Link>
                         ) : null}
                       </div>
