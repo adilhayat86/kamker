@@ -733,14 +733,32 @@ export default async function CompanyDashboardPage({
               <div className="mt-5 grid gap-3">
                 {listings.map((listing) => (
                   <div key={listing.id} className="rounded-lg border p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold">{listing.title}</p>
-                      <Badge variant="outline">{listing.status}</Badge>
-                      {listing.is_featured ? <Badge>Featured</Badge> : null}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold">{listing.title}</p>
+                          <Badge variant="outline">{listing.status}</Badge>
+                          {listing.is_featured ? <Badge>Featured</Badge> : null}
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {listing.category} - {listing.city}{listing.area ? ` - ${listing.area}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                        {listing.status === "approved" ? (
+                          <Button asChild size="sm" variant="outline" className="w-full sm:w-auto">
+                            <Link href={`/company-listings/${listing.id}`}>Worker Profile</Link>
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" className="w-full sm:w-auto" disabled>
+                            Awaiting Approval
+                          </Button>
+                        )}
+                        <Button asChild size="sm" variant="outline" className="w-full sm:w-auto">
+                          <Link href={`/companies/${company.id}`}>Company Profile</Link>
+                        </Button>
+                      </div>
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {listing.category} · {listing.city}{listing.area ? ` · ${listing.area}` : ""}
-                    </p>
                     <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
                       <span>Hourly: {listing.hourly_rate ? `Rs ${listing.hourly_rate}` : "Not provided"}</span>
                       <span>Monthly: {listing.monthly_rate ? `Rs ${listing.monthly_rate}` : "Not provided"}</span>
