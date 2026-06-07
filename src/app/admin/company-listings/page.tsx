@@ -180,6 +180,11 @@ export default async function AdminCompanyListingsPage({
             </select>
             <Button>Filter</Button>
           </form>
+          <div className="mt-3">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/admin/company-listings">Reset filters</Link>
+            </Button>
+          </div>
         </AdminSection>
         <div className="mt-6 grid gap-4">
           {listingsWithUsage.length > 0 ? (

@@ -155,6 +155,11 @@ export default async function AdminWorkersPage({ searchParams }: WorkersPageProp
           </select>
           <Button>Filter</Button>
         </form>
+        <div className="mt-3">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/workers">Reset filters</Link>
+          </Button>
+        </div>
       </AdminSection>
 
       <AdminSection title="Worker Profiles" description={`${workers.length} profile${workers.length === 1 ? "" : "s"} loaded.`}>
