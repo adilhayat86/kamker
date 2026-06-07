@@ -350,6 +350,7 @@ export async function rejectCompanyVerification(formData: FormData) {
 export async function activateCompanyPackage(formData: FormData) {
   const companyId = formData.get("companyId");
   const packageKey = formData.get("packageKey");
+  const manualPaymentId = formData.get("manualPaymentId");
 
   if (
     typeof companyId !== "string" ||
@@ -416,14 +417,49 @@ export async function activateCompanyPackage(formData: FormData) {
     console.error("Failed to update company payment status", companyError);
   }
 
+  if (typeof manualPaymentId === "string" && manualPaymentId) {
+    const reviewedAt = new Date().toISOString();
+
+    const { error: paymentError } = await supabase
+      .from("manual_payments")
+      .update({
+        status: "approved",
+        reviewed_at: reviewedAt,
+        admin_notes: "Approved by admin package activation.",
+      })
+      .eq("id", manualPaymentId);
+
+    if (paymentError) {
+      console.error("Failed to approve manual payment during package activation", paymentError);
+    }
+
+    const { error: proofError } = await supabase
+      .from("proof_reviews")
+      .update({
+        audit_status: "approved",
+      })
+      .eq("related_id", manualPaymentId);
+
+    if (proofError) {
+      console.error("Failed to mark linked proof review approved", proofError);
+    }
+  }
+
   await recordAdminAudit({
     action: "activate_company_package",
     targetType: "company",
     targetId: companyId,
-    metadata: { packageKey },
+    metadata: {
+      packageKey,
+      manualPaymentId:
+        typeof manualPaymentId === "string" && manualPaymentId
+          ? manualPaymentId
+          : null,
+    },
   });
 
   revalidatePath("/admin/companies");
+  revalidatePath("/admin/payments");
   revalidatePath(`/companies/${companyId}/dashboard`);
   revalidatePath(`/companies/${companyId}/packages`);
 }

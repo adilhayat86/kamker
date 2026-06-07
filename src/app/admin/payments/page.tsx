@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { activateCompanyPackage } from "@/app/admin/actions";
 import {
   AdminEmptyState,
   AdminMetaGrid,
@@ -188,6 +189,22 @@ export default async function AdminPaymentsPage() {
                     ]}
                   />
                 </div>
+                {payment.status !== "approved" ? (
+                  <form
+                    action={activateCompanyPackage}
+                    className="mt-4 grid gap-2 rounded-lg border bg-slate-50 p-3 sm:grid-cols-[1fr_auto]"
+                  >
+                    <input type="hidden" name="companyId" value={payment.company_id} />
+                    <input type="hidden" name="packageKey" value={payment.package_key} />
+                    <input type="hidden" name="manualPaymentId" value={payment.id} />
+                    <p className="text-sm text-muted-foreground">
+                      Approve this payment and activate the selected company package.
+                    </p>
+                    <Button type="submit" disabled={!adminAuthenticated}>
+                      Activate Package
+                    </Button>
+                  </form>
+                ) : null}
               </div>
             ))
           ) : (
