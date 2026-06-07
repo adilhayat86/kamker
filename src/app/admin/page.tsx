@@ -180,9 +180,9 @@ export default async function AdminPage() {
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
             {[
               { label: "Workers", count: summary.pendingWorkers, href: "/admin/workers?status=pending" },
-              { label: "Companies", count: summary.pendingCompanies, href: "/admin/companies?status=pending" },
+              { label: "Companies", count: summary.pendingCompanies, href: "/admin/companies?verification=pending" },
               { label: "Staff", count: summary.pendingCompanyStaff, href: "/admin/company-listings?status=pending" },
-              { label: "Proofs", count: summary.pendingProofs, href: "/admin/payments?status=pending" },
+              { label: "Proofs", count: summary.pendingProofs, href: "/admin/payments?proofStatus=unchecked&paymentStatus=pending_review" },
               { label: "Requirements", count: summary.newRequirements, href: "/admin/requirements" },
             ].map((item) => (
               <Link

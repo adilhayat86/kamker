@@ -211,7 +211,8 @@ export default async function AdminCompaniesPage({
               className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
             >
               <option value="">All payments</option>
-              <option value="pending">Pending</option>
+              <option value="unpaid">Unpaid</option>
+              <option value="pending_review">Pending review</option>
               <option value="paid">Paid</option>
               <option value="rejected">Rejected</option>
             </select>
