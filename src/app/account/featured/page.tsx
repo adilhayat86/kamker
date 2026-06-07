@@ -38,7 +38,7 @@ const featuredPackages = [
 ] as const;
 
 const statusMessages = {
-  missing: "Choose a package and upload a jpg, png, or webp payment screenshot under 3MB.",
+  missing: "Choose a package and upload a jpg, png, or webp payment screenshot under 8MB.",
   "not-configured": "Supabase is not configured yet.",
   "upload-error": "Could not upload payment proof. Please try again.",
   "save-error": "Could not save AI proof review. Please try again.",
@@ -174,6 +174,9 @@ export default async function FeaturedProfilePage({
                             accept="image/jpeg,image/png,image/webp"
                             className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
                           />
+                          <span className="text-xs font-normal text-muted-foreground">
+                            JPG, PNG, or WebP. Maximum 8MB.
+                          </span>
                         </label>
                         <Button className="h-12">
                           <UploadCloud className="size-4" aria-hidden="true" />
