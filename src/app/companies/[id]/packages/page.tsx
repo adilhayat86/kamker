@@ -321,9 +321,9 @@ export default async function CompanyPackagesPage({
           cardContentClassName="p-5 text-sm leading-6 text-amber-950"
           closeLabel="Close payment notice"
         >
-          <p className="font-semibold">Manual payment next</p>
+          <p className="font-semibold">Receipt upload next</p>
           <p className="mt-1">
-            Package benefits activate only after Kamker admin approval. After activation, the company dashboard allows adding staff profiles until the published package limit is reached.
+            Upload your payment receipt after choosing a package. Clear matching receipts can activate automatically by AI review; unclear receipts stay pending for admin review.
           </p>
         </DismissibleCard>
       </section>

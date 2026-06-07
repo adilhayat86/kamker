@@ -13,7 +13,7 @@ import { submitCompanyPackagePayment } from "./actions";
 
 export const metadata = {
   title: "Activate Company Package | Kamker",
-  description: "Upload payment proof to activate a Kamker company professional package.",
+  description: "Upload payment proof to activate a Kamker company staff package.",
 };
 
 type Company = {
@@ -308,7 +308,7 @@ export default async function CompanyPaymentPage({
 
                 <Button className="h-12 w-full">
                   <UploadCloud className="size-4" aria-hidden="true" />
-                  Upload Receipt for Review
+                  Upload Receipt
                 </Button>
               </form>
 

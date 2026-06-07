@@ -43,7 +43,7 @@ const statusMessages = {
   missing: "Please fill staff name/title, service group, profession, city, age, tagline, and description. Age must be between 16 and 80.",
   "not-configured": "Supabase is not configured yet.",
   "company-missing": "Company was not found.",
-  "no-package": "An active company package is required before adding professionals.",
+  "no-package": "An active company package is required before adding staff profiles.",
   "quota-full": "This company has reached the published listing limit for its active package.",
   "invalid-photo": "Please choose a jpg, png, or webp staff photo under 2MB after compression.",
   "photo-error": "Could not upload staff photo. Please try again.",
@@ -123,7 +123,7 @@ export default async function CompanyListingNewPage({
                 <div>
                   <h2 className="text-xl font-bold">Activate a package first</h2>
                   <p className="mt-2 text-sm leading-6">
-                    Companies can add multiple professionals after package activation. Clear payment receipts activate automatically through AI review; unclear receipts stay pending for admin review.
+                    Companies can add multiple staff profiles after package activation. Clear payment receipts activate automatically through AI review; unclear receipts stay pending for admin review.
                   </p>
                   <Button asChild className="mt-4 h-11 w-full sm:w-auto">
                     <Link href={`/companies/${id}/packages`}>Choose Package</Link>

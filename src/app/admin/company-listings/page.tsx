@@ -160,7 +160,7 @@ export default async function AdminCompanyListingsPage() {
 
                     {!subscription ? (
                       <DismissibleNotice className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950" closeLabel="Close package warning">
-                        Activate a company package before approving this professional.
+                        Activate a company package before approving this staff profile.
                       </DismissibleNotice>
                     ) : approvalWouldExceedQuota ? (
                       <DismissibleNotice className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950" closeLabel="Close quota warning">
@@ -200,7 +200,7 @@ export default async function AdminCompanyListingsPage() {
             })
           ) : (
             <Card className="bg-white shadow-sm">
-              <CardContent className="p-5 text-sm text-muted-foreground">No company professionals found yet.</CardContent>
+              <CardContent className="p-5 text-sm text-muted-foreground">No company staff profiles found yet.</CardContent>
             </Card>
           )}
         </div>
