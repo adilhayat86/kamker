@@ -7,6 +7,7 @@ import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import { phoneFieldWithCountry } from "@/lib/phone";
 import { createRequirementMatches } from "@/lib/requirement-matching";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { findOrCreateCityId } from "@/lib/taxonomy";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
 function requiredValue(formData: FormData, key: string) {
@@ -73,17 +74,13 @@ export async function submitRequirement(formData: FormData) {
     redirect("/send-requirement?status=not-configured");
   }
 
-  const { data: city } = await supabase
-    .from("cities")
-    .select("id")
-    .eq("name", cityName)
-    .maybeSingle();
+  const cityId = await findOrCreateCityId(cityName);
 
   const { data: requirement, error } = await supabase
     .from("requirements")
     .insert({
       required_service: requiredService,
-      city_id: city?.id ?? null,
+      city_id: cityId,
       area: area || null,
       availability: availability || null,
       details,

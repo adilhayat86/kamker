@@ -20,6 +20,7 @@ import {
 import { phoneFieldWithCountry } from "@/lib/phone";
 import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { findOrCreateCategoryId, findOrCreateCityId } from "@/lib/taxonomy";
 
 function field(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -179,17 +180,10 @@ export async function registerProfessional(formData: FormData) {
     redirect("/register/professional?status=not-configured");
   }
 
-  const { data: city } = await supabase
-    .from("cities")
-    .select("id")
-    .eq("name", cityName)
-    .maybeSingle();
-
-  const { data: category } = await supabase
-    .from("categories")
-    .select("id")
-    .eq("name", categoryName)
-    .maybeSingle();
+  const [cityId, categoryId] = await Promise.all([
+    findOrCreateCityId(cityName),
+    findOrCreateCategoryId(categoryName),
+  ]);
 
   const autoApprove = await getAutoApproveProfessionals();
   let profilePhotoUrl: string | null = null;
@@ -222,9 +216,9 @@ export async function registerProfessional(formData: FormData) {
       full_name: fullName,
       phone_number: phoneNumber,
       whatsapp_number: whatsappNumber || null,
-      city_id: city?.id ?? null,
+      city_id: cityId,
       area: area || null,
-      category_id: category?.id ?? null,
+      category_id: categoryId,
       gender,
       age: validatedAge,
       availability,
