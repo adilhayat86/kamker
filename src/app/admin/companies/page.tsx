@@ -217,6 +217,11 @@ export default async function AdminCompaniesPage({
             </select>
             <Button>Filter</Button>
           </form>
+          <div className="mt-3">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/admin/companies">Reset filters</Link>
+            </Button>
+          </div>
         </AdminSection>
 
         <div className="mt-6 grid gap-4">
