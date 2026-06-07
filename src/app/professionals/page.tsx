@@ -93,6 +93,7 @@ const hourlyRateOptions = [
   { value: "under-300", label: "Under Rs. 300/hour", min: 0, max: 299 },
   { value: "300-500", label: "Rs. 300-500/hour", min: 300, max: 500 },
   { value: "500-1000", label: "Rs. 500-1,000/hour", min: 500, max: 1000 },
+  { value: "under-1000", label: "Under Rs. 1,000/hour", min: 0, max: 1000 },
   { value: "1000-2000", label: "Rs. 1,000-2,000/hour", min: 1000, max: 2000 },
   { value: "2000-plus", label: "Rs. 2,000+/hour", min: 2000, max: Number.POSITIVE_INFINITY },
 ];
