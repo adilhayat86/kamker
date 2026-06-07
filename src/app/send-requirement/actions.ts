@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { trackAnalyticsEvent } from "@/lib/analytics";
+import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import { phoneFieldWithCountry } from "@/lib/phone";
 import { createRequirementMatches } from "@/lib/requirement-matching";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -12,6 +13,21 @@ function requiredValue(formData: FormData, key: string) {
   const value = formData.get(key);
 
   return typeof value === "string" ? value.trim() : "";
+}
+
+const requirementDraftKey = "send_requirement";
+const requirementDraftPath = "/send-requirement";
+
+async function saveRequirementDraft(values: Record<string, string | number>) {
+  await saveFormDraft(requirementDraftKey, values, {
+    path: requirementDraftPath,
+  });
+}
+
+async function clearRequirementDraft() {
+  await clearFormDraft(requirementDraftKey, {
+    path: requirementDraftPath,
+  });
 }
 
 export async function submitRequirement(formData: FormData) {
@@ -25,12 +41,35 @@ export async function submitRequirement(formData: FormData) {
   const urgency = requiredValue(formData, "urgency");
   const details = requiredValue(formData, "details");
   const source = requiredValue(formData, "source") || "unknown";
+  const draft = {
+    service: requiredService,
+    city: cityName,
+    area,
+    availability,
+    budget,
+    phone: phoneNumber,
+    whatsapp: whatsappNumber,
+    urgency,
+    details,
+  };
+  const errors = [
+    !requiredService ? "service" : null,
+    !cityName ? "city" : null,
+    !phoneNumber ? "phone" : null,
+    !urgency ? "urgency" : null,
+    !details ? "details" : null,
+  ].filter((error): error is string => Boolean(error));
 
-  if (!requiredService || !cityName || !phoneNumber || !urgency || !details) {
+  if (errors.length > 0) {
+    await saveRequirementDraft({
+      ...draft,
+      errors: errors.join(","),
+    });
     redirect("/send-requirement?status=missing");
   }
 
   if (!isSupabaseConfigured || !supabase) {
+    await saveRequirementDraft(draft);
     redirect("/send-requirement?status=not-configured");
   }
 
@@ -60,6 +99,7 @@ export async function submitRequirement(formData: FormData) {
 
   if (error || !requirement) {
     console.error("Failed to submit requirement", error);
+    await saveRequirementDraft(draft);
     redirect("/send-requirement?status=error");
   }
 
@@ -96,5 +136,6 @@ export async function submitRequirement(formData: FormData) {
     requirement.id as string,
   );
 
+  await clearRequirementDraft();
   redirect("/send-requirement?status=success");
 }

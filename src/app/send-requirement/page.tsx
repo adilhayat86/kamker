@@ -8,6 +8,7 @@ import {
   getBroadcastRecipientCount,
   serviceFromBroadcastQuery,
 } from "@/lib/broadcast";
+import { getFormDraft } from "@/lib/form-draft";
 import { categories, cities } from "@/lib/marketplace-data";
 
 import { submitRequirement } from "./actions";
@@ -27,6 +28,19 @@ const statusMessages = {
   error: "Could not save requirement. Please try again.",
 } as const;
 
+type RequirementDraft = {
+  service: string;
+  city: string;
+  area: string;
+  availability: string;
+  budget: string;
+  phone: string;
+  whatsapp: string;
+  urgency: string;
+  details: string;
+  errors: string;
+};
+
 type SendRequirementPageProps = {
   searchParams?: Promise<{
     status?: keyof typeof statusMessages;
@@ -44,16 +58,19 @@ export default async function SendRequirementPage({
   const params = await searchParams;
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
+  const draft = await getFormDraft<RequirementDraft>("send_requirement");
+  const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
   const category = params?.category?.trim() || undefined;
   const subcategory = params?.subcategory?.trim() || undefined;
-  const city = params?.city?.trim();
-  const area = params?.area?.trim();
+  const city = params?.city?.trim() || draft.city;
+  const area = params?.area?.trim() || draft.area;
   const source = params?.source?.trim() ?? "";
   const selectedService = serviceFromBroadcastQuery({
     category,
     subcategory,
   });
   const selectedCity = cities.includes(city ?? "") ? city : "";
+  const selectedServiceName = selectedService?.name ?? draft.service;
   const hasBroadcastContext = Boolean(category || subcategory || city || area);
   const recipientCount = hasBroadcastContext
     ? await getBroadcastRecipientCount({
@@ -64,8 +81,10 @@ export default async function SendRequirementPage({
       })
     : null;
   const missingRequired = status === "missing";
-  const requiredError = (message: string) =>
-    missingRequired ? message : undefined;
+  const requiredError = (field: string, message: string) =>
+    missingRequired && (failedFields.size === 0 || failedFields.has(field))
+      ? message
+      : undefined;
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
@@ -131,9 +150,9 @@ export default async function SendRequirementPage({
                   label="Required service"
                   name="service"
                   options={categories.map((category) => category.name)}
-                  defaultValue={selectedService?.name}
+                  defaultValue={selectedServiceName}
                   required
-                  error={requiredError("Choose a required service.")}
+                  error={requiredError("service", "Choose a required service.")}
                 />
                 <SelectField
                   label="City"
@@ -141,21 +160,23 @@ export default async function SendRequirementPage({
                   options={cities}
                   defaultValue={selectedCity}
                   required
-                  error={requiredError("Choose a city.")}
+                  error={requiredError("city", "Choose a city.")}
                 />
                 <FormField label="Area" name="area" defaultValue={area} />
                 <SelectField
                   label="Availability"
                   name="availability"
                   options={availabilityOptions}
+                  defaultValue={draft.availability}
                 />
-                <FormField label="Budget optional" name="budget" placeholder="Rs. 5,000" />
+                <FormField label="Budget optional" name="budget" placeholder="Rs. 5,000" defaultValue={draft.budget} />
                 <SelectField
                   label="Urgency"
                   name="urgency"
                   options={urgencyOptions}
+                  defaultValue={draft.urgency}
                   required
-                  error={requiredError("Choose urgency.")}
+                  error={requiredError("urgency", "Choose urgency.")}
                 />
               </div>
 
@@ -168,10 +189,11 @@ export default async function SendRequirementPage({
                   label="Phone number"
                   name="phone"
                   type="tel"
+                  defaultValue={draft.phone}
                   required
-                  error={requiredError("Phone number is required.")}
+                  error={requiredError("phone", "Phone number is required.")}
                 />
-                <CountryPhoneField label="WhatsApp number" name="whatsapp" />
+                <CountryPhoneField label="WhatsApp number" name="whatsapp" defaultValue={draft.whatsapp} />
               </div>
 
               <div className="grid gap-4 border-t pt-5">
@@ -183,8 +205,9 @@ export default async function SendRequirementPage({
                   label="Details"
                   name="details"
                   placeholder="Explain the service, timing, location, and any preferences."
+                  defaultValue={draft.details}
                   required
-                  error={requiredError("Requirement details are required.")}
+                  error={requiredError("details", "Requirement details are required.")}
                 />
               </div>
               <Button className="h-12 text-base sm:col-span-2">
