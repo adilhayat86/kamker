@@ -13,9 +13,10 @@ import {
   getActiveCompanySubscription,
   getPublishedCompanyListingUsage,
 } from "@/lib/company-packages";
+import { getCityOptions } from "@/lib/city-options";
 import { getFormDraft } from "@/lib/form-draft";
 import { getLocalCompanyRecordById } from "@/lib/local-demo-store";
-import { categories, cities, serviceGroups } from "@/lib/marketplace-data";
+import { categories, serviceGroups } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 import { createCompanyListing } from "./actions";
@@ -107,10 +108,11 @@ export default async function CompanyListingNewPage({
     missingRequired && (failedFields.size === 0 || failedFields.has(field))
       ? message
       : undefined;
-  const [companyName, activeSubscription, usage] = await Promise.all([
+  const [companyName, activeSubscription, usage, cityOptions] = await Promise.all([
     getCompanyName(id),
     getActiveCompanySubscription(id),
     getPublishedCompanyListingUsage(id),
+    getCityOptions(),
   ]);
   const quotaFull = activeSubscription ? usage.published >= activeSubscription.listings_limit : false;
 
@@ -208,7 +210,7 @@ export default async function CompanyListingNewPage({
                 <SelectField
                   label="City"
                   name="city"
-                  options={cities}
+                  options={cityOptions}
                   defaultValue={draft.city}
                   required
                   error={requiredError("city", "Choose a city.")}

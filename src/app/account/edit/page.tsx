@@ -8,7 +8,8 @@ import { PhotoUploadField } from "@/components/photo-upload-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAccountProfessional, getDemoAccountProfessional } from "@/lib/account";
-import { categories, cities } from "@/lib/marketplace-data";
+import { getCityOptions } from "@/lib/city-options";
+import { categories } from "@/lib/marketplace-data";
 
 import { updateProfessionalProfile } from "./actions";
 
@@ -108,7 +109,10 @@ export default async function EditAccountPage({
   const params = await searchParams;
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
-  const dbProfessional = await getAccountProfessional();
+  const [dbProfessional, cityOptions] = await Promise.all([
+    getAccountProfessional(),
+    getCityOptions(),
+  ]);
 
   if (!dbProfessional) {
     redirect("/login");
@@ -216,7 +220,7 @@ export default async function EditAccountPage({
                 label="City"
                 name="city"
                 value={city}
-                options={cities}
+                options={cityOptions}
                 disabled={isDemo}
               />
               <TextInput

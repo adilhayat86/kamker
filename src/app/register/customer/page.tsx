@@ -5,8 +5,8 @@ import { FormField, SelectField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getCityOptions } from "@/lib/city-options";
 import { getFormDraft } from "@/lib/form-draft";
-import { cities } from "@/lib/marketplace-data";
 
 import { registerCustomer } from "./actions";
 
@@ -42,6 +42,7 @@ export default async function CustomerRegisterPage({
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
   const draft = await getFormDraft<CustomerDraft>("customer");
+  const cityOptions = await getCityOptions();
   const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
   const errorFor = (field: string) => {
     if (!failedFields.has(field)) {
@@ -103,7 +104,7 @@ export default async function CustomerRegisterPage({
               <SelectField
                 label="City"
                 name="city"
-                options={cities}
+                options={cityOptions}
                 defaultValue={draft.city}
                 error={errorFor("city")}
                 required

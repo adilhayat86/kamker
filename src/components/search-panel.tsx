@@ -6,7 +6,7 @@ import { ChevronDown, MapPin, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { categories, cities } from "@/lib/marketplace-data";
+import { categories, cities as fallbackCities } from "@/lib/marketplace-data";
 import {
   workerDayAvailabilityOptions,
   workerTimeAvailabilityOptions,
@@ -28,7 +28,11 @@ const hourlyRateOptions = [
   { value: "2000-plus", label: "Rs. 2,000+/hr" },
 ];
 
-export function SearchPanel() {
+export function SearchPanel({
+  cityOptions = fallbackCities,
+}: {
+  cityOptions?: string[];
+}) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
   return (
@@ -62,7 +66,7 @@ export function SearchPanel() {
               defaultValue=""
             >
               <option value="">All locations</option>
-              {cities.map((city) => (
+              {cityOptions.map((city) => (
                 <option key={city} value={city}>
                   {city}
                 </option>

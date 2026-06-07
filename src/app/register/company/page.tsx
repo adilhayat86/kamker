@@ -7,8 +7,9 @@ import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getCityOptions } from "@/lib/city-options";
 import { getFormDraft } from "@/lib/form-draft";
-import { categories, cities } from "@/lib/marketplace-data";
+import { categories } from "@/lib/marketplace-data";
 
 import { registerCompany } from "./actions";
 
@@ -70,6 +71,7 @@ export default async function CompanyRegisterPage({
   const companyId = params?.companyId;
   const statusMessage = status ? statusMessages[status] : null;
   const draft = await getFormDraft<CompanyDraft>("company");
+  const cityOptions = await getCityOptions();
   const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
   const errorFor = (field: string) => {
     if (!failedFields.has(field)) {
@@ -162,7 +164,7 @@ export default async function CompanyRegisterPage({
                 <SelectField
                   label="City"
                   name="city"
-                  options={cities}
+                  options={cityOptions}
                   defaultValue={draft.city}
                   error={errorFor("city")}
                   required

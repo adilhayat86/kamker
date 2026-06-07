@@ -18,6 +18,7 @@ import { SearchPanel } from "@/components/search-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getCityOptions } from "@/lib/city-options";
 import { categories, cities, parentCategories } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -127,7 +128,10 @@ async function getHomepageStats() {
 }
 
 export default async function HomePage() {
-  const stats = await getHomepageStats();
+  const [stats, cityOptions] = await Promise.all([
+    getHomepageStats(),
+    getCityOptions(),
+  ]);
 
   return (
     <main className="min-h-screen overflow-hidden pb-24 md:pb-0">
@@ -162,7 +166,7 @@ export default async function HomePage() {
 
       <section className="border-b bg-background px-4 py-4 shadow-sm sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <SearchPanel />
+          <SearchPanel cityOptions={cityOptions} />
         </div>
       </section>
 

@@ -1,0 +1,30 @@
+import { cities as fallbackCities } from "@/lib/marketplace-data";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+
+type CityRow = {
+  name: string | null;
+};
+
+export async function getCityOptions() {
+  if (!isSupabaseConfigured || !supabase) {
+    return fallbackCities;
+  }
+
+  const { data, error } = await supabase
+    .from("cities")
+    .select("name")
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Failed to load city options", error);
+    return fallbackCities;
+  }
+
+  const dbCities = ((data ?? []) as CityRow[])
+    .map((city) => city.name?.trim())
+    .filter((city): city is string => Boolean(city));
+
+  return Array.from(new Set([...fallbackCities, ...dbCities])).sort((a, b) =>
+    a.localeCompare(b),
+  );
+}

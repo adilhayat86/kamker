@@ -68,6 +68,57 @@ export async function createAdminCategory(formData: FormData) {
   revalidatePath("/categories");
 }
 
+export async function createAdminCity(formData: FormData) {
+  const name = textField(formData, "name").replace(/\s+/g, " ");
+
+  if (!name || !isSupabaseConfigured || !supabase || !(await canMutateAdmin())) {
+    return;
+  }
+
+  const { data: existingCity, error: existingError } = await supabase
+    .from("cities")
+    .select("id")
+    .ilike("name", name)
+    .maybeSingle();
+
+  if (existingError) {
+    console.error("Failed to check admin city", existingError);
+    return;
+  }
+
+  if (existingCity) {
+    revalidatePath("/admin/cities");
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("cities")
+    .insert({ name })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("Failed to create admin city", error);
+    return;
+  }
+
+  await recordAdminAudit({
+    action: "create_city",
+    targetType: "city",
+    targetId: String(data.id),
+    metadata: { name },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/cities");
+  revalidatePath("/categories");
+  revalidatePath("/professionals");
+  revalidatePath("/register/professional");
+  revalidatePath("/register/company");
+  revalidatePath("/register/customer");
+  revalidatePath("/send-requirement");
+}
+
 export async function approveProfessional(formData: FormData) {
   const id = formData.get("professionalId");
 

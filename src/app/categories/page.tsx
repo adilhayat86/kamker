@@ -7,7 +7,8 @@ import { KamkerLogo } from "@/components/kamker-logo";
 import { Button } from "@/components/ui/button";
 import { getBroadcastRecipientCount } from "@/lib/broadcast";
 import { countForCategory, getLiveCategoryCountMap } from "@/lib/category-counts";
-import { categories, cities, parentCategories } from "@/lib/marketplace-data";
+import { getCityOptions } from "@/lib/city-options";
+import { categories, parentCategories } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
@@ -78,7 +79,10 @@ export default async function CategoriesPage({
   const city = params?.city?.trim() || undefined;
   const area = params?.area?.trim() || undefined;
   const q = params?.q?.trim() || "";
-  const dbCategories = await getSupabaseCategoryCards();
+  const [dbCategories, cityOptions] = await Promise.all([
+    getSupabaseCategoryCards(),
+    getCityOptions(),
+  ]);
   const liveCountMap = await getLiveCategoryCountMap([
     ...dbCategories,
     ...categories,
@@ -164,7 +168,7 @@ export default async function CategoriesPage({
                 className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="">All cities</option>
-                {cities.map((cityOption) => (
+                {cityOptions.map((cityOption) => (
                   <option key={cityOption} value={cityOption}>
                     {cityOption}
                   </option>

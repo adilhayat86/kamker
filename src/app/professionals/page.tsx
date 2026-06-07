@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getCityOptions } from "@/lib/city-options";
 import { trackedContactHref } from "@/lib/contact-tracking";
 import {
   workerAvailabilitySummary,
@@ -28,7 +29,6 @@ import {
 import { getApprovedCompanyListingCards } from "@/lib/company-listing-cards";
 import {
   categories,
-  cities,
   isActiveFeaturedProfessional,
   recentProfessionals,
   type Professional,
@@ -612,11 +612,14 @@ export default async function ProfessionalsPage({
   const sort = params?.sort?.trim() || "featured";
   const currentPage = Math.max(Number(params?.page ?? "1") || 1, 1);
 
-  const dbProfessionals = await getDbProfessionals({
-    availabilityTime,
-    availabilityDays,
-  });
-  const companyProfessionals = await getApprovedCompanyListingCards({ limit: 200 });
+  const [dbProfessionals, companyProfessionals, cityOptions] = await Promise.all([
+    getDbProfessionals({
+      availabilityTime,
+      availabilityDays,
+    }),
+    getApprovedCompanyListingCards({ limit: 200 }),
+    getCityOptions(),
+  ]);
   const filteredCompanyProfessionals = companyProfessionals.filter((professional) =>
     matchesCompanyProfessionalFilters(professional, {
       q,
@@ -795,7 +798,7 @@ export default async function ProfessionalsPage({
                   className="h-10 rounded-md border border-input bg-background px-3 text-sm"
                 >
                   <option value="">All cities</option>
-                  {cities.map((cityOption) => (
+                  {cityOptions.map((cityOption) => (
                     <option key={cityOption} value={cityOption}>
                       {cityOption}
                     </option>

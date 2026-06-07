@@ -12,7 +12,8 @@ import {
   workerDayAvailabilityOptions,
   workerTimeAvailabilityOptions,
 } from "@/lib/worker-availability";
-import { categories, cities } from "@/lib/marketplace-data";
+import { getCityOptions } from "@/lib/city-options";
+import { categories } from "@/lib/marketplace-data";
 import { getFormDraft } from "@/lib/form-draft";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +72,7 @@ export default async function ProfessionalRegisterPage({
   const source = params?.source?.trim() ?? "";
   const statusMessage = status ? statusMessages[status] : null;
   const draft = await getFormDraft<ProfessionalDraft>("professional");
+  const cityOptions = await getCityOptions();
   const failedFields = new Set(
     (draft.errors ?? "").split(",").filter(Boolean),
   );
@@ -155,7 +157,7 @@ export default async function ProfessionalRegisterPage({
                 <FormField label="Full name" name="fullName" defaultValue={draft.fullName} error={errorFor("fullName")} required />
                 <FormField label="Phone number" name="phone" type="tel" defaultValue={draft.phone} error={errorFor("phone")} required />
                 <CountryPhoneField label="WhatsApp number" name="whatsapp" defaultValue={draft.whatsapp} />
-                <SelectField label="City" name="city" options={cities} defaultValue={draft.city} error={errorFor("city")} required />
+                <SelectField label="City" name="city" options={cityOptions} defaultValue={draft.city} error={errorFor("city")} required />
                 <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" defaultValue={draft.area} />
                 <SelectField label="Gender" name="gender" options={genderOptions} defaultValue={draft.gender} error={errorFor("gender")} required />
                 <FormField

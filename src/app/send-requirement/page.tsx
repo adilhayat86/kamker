@@ -8,8 +8,9 @@ import {
   getBroadcastRecipientCount,
   serviceFromBroadcastQuery,
 } from "@/lib/broadcast";
+import { getCityOptions } from "@/lib/city-options";
 import { getFormDraft } from "@/lib/form-draft";
-import { categories, cities } from "@/lib/marketplace-data";
+import { categories } from "@/lib/marketplace-data";
 
 import { submitRequirement } from "./actions";
 
@@ -59,6 +60,7 @@ export default async function SendRequirementPage({
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
   const draft = await getFormDraft<RequirementDraft>("send_requirement");
+  const cityOptions = await getCityOptions();
   const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
   const category = params?.category?.trim() || undefined;
   const subcategory = params?.subcategory?.trim() || undefined;
@@ -69,7 +71,7 @@ export default async function SendRequirementPage({
     category,
     subcategory,
   });
-  const selectedCity = cities.includes(city ?? "") ? city : "";
+  const selectedCity = cityOptions.includes(city ?? "") ? city : "";
   const selectedServiceName = selectedService?.name ?? draft.service;
   const hasBroadcastContext = Boolean(category || subcategory || city || area);
   const recipientCount = hasBroadcastContext
@@ -159,7 +161,7 @@ export default async function SendRequirementPage({
                 <SelectField
                   label="City"
                   name="city"
-                  options={cities}
+                  options={cityOptions}
                   defaultValue={selectedCity}
                   required
                   error={requiredError("city", "Choose a city.")}
