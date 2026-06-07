@@ -195,17 +195,22 @@ export async function registerProfessional(formData: FormData) {
     validatedAvailabilityTime,
     validatedAvailabilityDays,
   );
+  const browserUploadedPhotoUrl = field(formData, "profilePhotoUrl");
 
-  try {
-    profilePhotoUrl = await uploadProfessionalPhoto(formData);
-  } catch (error) {
-    if (error instanceof Error && error.message === "invalid-photo") {
-      await saveProfessionalDraft(draftInput);
-      redirect("/register/professional?status=invalid-photo");
+  if (browserUploadedPhotoUrl) {
+    profilePhotoUrl = browserUploadedPhotoUrl;
+  } else {
+    try {
+      profilePhotoUrl = await uploadProfessionalPhoto(formData);
+    } catch (error) {
+      if (error instanceof Error && error.message === "invalid-photo") {
+        await saveProfessionalDraft(draftInput);
+        redirect("/register/professional?status=invalid-photo");
+      }
+
+      photoSkipped = true;
+      console.error("Professional photo upload failed; continuing registration without photo", error);
     }
-
-    photoSkipped = true;
-    console.error("Professional photo upload failed; continuing registration without photo", error);
   }
 
   const { data: professional, error } = await supabase
