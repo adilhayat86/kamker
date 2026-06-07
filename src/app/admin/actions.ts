@@ -668,6 +668,44 @@ export async function rejectCompanyListing(formData: FormData) {
   }
 }
 
+export async function updateRequirementStatus(formData: FormData) {
+  const id = formData.get("requirementId");
+  const status = formData.get("status");
+  const allowedStatuses = new Set(["open", "contacted", "completed", "spam"]);
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    typeof status !== "string" ||
+    !allowedStatuses.has(status) ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("requirements")
+    .update({ status })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to update requirement status", error);
+    return;
+  }
+
+  await recordAdminAudit({
+    action: "update_requirement_status",
+    targetType: "requirement",
+    targetId: id,
+    metadata: { status },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath(`/admin/requirements/${id}`);
+}
+
 export async function updateAutoApprovalMode(formData: FormData) {
   if (!(await canMutateAdmin())) {
     return;

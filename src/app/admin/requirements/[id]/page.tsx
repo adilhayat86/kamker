@@ -2,9 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShieldAlert, Sparkles } from "lucide-react";
 
+import { updateRequirementStatus } from "@/app/admin/actions";
 import { DismissibleCard } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   isAdminAuthenticated,
@@ -113,6 +115,12 @@ export default async function RequirementDetailPage({
     getRequirement(id),
     getRequirementMatches(id),
   ]);
+  const statusActions = [
+    { label: "Mark Open", status: "open" },
+    { label: "Mark Contacted", status: "contacted" },
+    { label: "Mark Completed", status: "completed" },
+    { label: "Mark Spam", status: "spam" },
+  ];
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -153,6 +161,25 @@ export default async function RequirementDetailPage({
               Requirement not found or Supabase is not configured.
             </p>
           )}
+          {requirement ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Badge variant="outline">Status: {requirement.status}</Badge>
+              {statusActions.map((action) => (
+                <form key={action.status} action={updateRequirementStatus}>
+                  <input type="hidden" name="requirementId" value={requirement.id} />
+                  <input type="hidden" name="status" value={action.status} />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant={requirement.status === action.status ? "default" : "outline"}
+                    disabled={!adminAuthenticated || requirement.status === action.status}
+                  >
+                    {action.label}
+                  </Button>
+                </form>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         {requirement?.details ? (
