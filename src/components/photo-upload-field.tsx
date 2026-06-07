@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const MAX_DIRECT_UPLOAD_BYTES = 10 * 1024 * 1024;
 const TARGET_UPLOAD_BYTES = 2 * 1024 * 1024;
@@ -176,6 +176,26 @@ export function PhotoUploadField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploadedUrl, setUploadedUrl] = useState("");
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [fileName, setFileName] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  function replacePreview(url: string) {
+    setPreviewUrl((current) => {
+      if (current.startsWith("blob:")) {
+        URL.revokeObjectURL(current);
+      }
+
+      return url;
+    });
+  }
 
   async function handleChange() {
     const input = inputRef.current;
@@ -184,6 +204,7 @@ export function PhotoUploadField({
     if (!input || !file) {
       setMessage(DEFAULT_MESSAGE);
       setUploadedUrl("");
+      setFileName("");
       if (input) {
         setInputError(input);
       }
@@ -195,17 +216,23 @@ export function PhotoUploadField({
       setInputError(input, error);
       setMessage(error);
       setUploadedUrl("");
+      setFileName("");
+      replacePreview("");
       return;
     }
 
     setInputError(input);
     setUploadedUrl("");
+    setFileName(file.name);
+    replacePreview(URL.createObjectURL(file));
 
     if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
       setMessage(
         `This photo is ${formatSize(file.size)}. Please choose one under 10MB.`,
       );
       setInputError(input, "Please choose a photo under 10MB.");
+      setFileName("");
+      replacePreview("");
       return;
     }
 
@@ -222,12 +249,15 @@ export function PhotoUploadField({
         uploadTags,
       );
       setUploadedUrl(publicUrl);
+      replacePreview(publicUrl);
       clearSelectedFile(input);
       setInputError(input);
-      setMessage("Photo uploaded. Continue registration.");
+      setMessage("Photo attached. Continue registration.");
     } catch {
       clearSelectedFile(input);
       setUploadedUrl("");
+      setFileName("");
+      replacePreview("");
       setInputError(input);
       setMessage("Photo upload failed. You can submit without photo and add it later.");
     }
@@ -246,6 +276,24 @@ export function PhotoUploadField({
         className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
       />
       <input type="hidden" name="profilePhotoUrl" value={uploadedUrl} />
+      {previewUrl ? (
+        <div className="flex items-center gap-3 rounded-lg border border-sky-200 bg-sky-50 p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={previewUrl}
+            alt="Selected profile preview"
+            className="size-16 rounded-lg object-cover"
+          />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-sky-950">
+              {fileName || "Photo attached"}
+            </p>
+            <p className="text-xs text-sky-800">
+              Saved for this registration.
+            </p>
+          </div>
+        </div>
+      ) : null}
       <span className="text-xs text-muted-foreground">{message}</span>
       {helpText ? <span className="text-xs text-muted-foreground">{helpText}</span> : null}
     </label>
