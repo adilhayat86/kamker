@@ -24,6 +24,9 @@ export function ProfessionalCard({
   const companyHref = professional.company_id
     ? `/companies/${professional.company_id}`
     : null;
+  const isVerified = professional.is_company_managed
+    ? Boolean(professional.company_verified)
+    : Boolean(professional.is_cnic_verified || professional.is_phone_verified);
   const tagline = professional.tagline?.trim() || (
     professional.is_company_managed ? "Company managed worker" : "Trusted local professional"
   );
@@ -69,10 +72,12 @@ export function ProfessionalCard({
                     Featured
                   </Badge>
                 ) : null}
-                <Badge className="gap-1 bg-primary text-primary-foreground">
-                  <BadgeCheck className="size-3" aria-hidden="true" />
-                  Verified
-                </Badge>
+                {isVerified ? (
+                  <Badge className="gap-1 bg-primary text-primary-foreground">
+                    <BadgeCheck className="size-3" aria-hidden="true" />
+                    Verified
+                  </Badge>
+                ) : null}
                 {professional.is_company_managed ? (
                   <Badge variant="outline">Company Managed</Badge>
                 ) : null}
@@ -117,8 +122,15 @@ export function ProfessionalCard({
             )
           ) : (
             <>
-              <Badge variant="outline">CNIC Verified</Badge>
-              <Badge variant="outline">Phone Verified</Badge>
+              {professional.is_cnic_verified ? (
+                <Badge variant="outline">CNIC Verified</Badge>
+              ) : null}
+              {professional.is_phone_verified ? (
+                <Badge variant="outline">Phone Verified</Badge>
+              ) : null}
+              {professional.phone || professional.whatsapp ? (
+                <Badge variant="outline">Direct Contact</Badge>
+              ) : null}
             </>
           )}
         </div>

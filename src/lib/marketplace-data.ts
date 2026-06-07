@@ -170,6 +170,8 @@ export type Professional = {
   featured_until: string | null;
   phone?: string | null;
   whatsapp?: string | null;
+  is_cnic_verified?: boolean;
+  is_phone_verified?: boolean;
   profileHref?: string;
   is_company_managed?: boolean;
   company_id?: string | null;

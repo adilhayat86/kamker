@@ -57,7 +57,35 @@ export function phoneFieldWithCountry(formData: FormData, key: string) {
 }
 
 export function whatsappDigits(value: string | null | undefined) {
-  return normalizePakistanPhoneNumber(value).replace(/\D/g, "");
+  const raw = (value ?? "").trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  const digits = raw.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  if (raw.startsWith("00")) {
+    return digits.slice(2);
+  }
+
+  if (raw.startsWith("+")) {
+    return digits;
+  }
+
+  const knownCountry = countryCodeOptions.find((option) =>
+    digits.startsWith(option.value.replace(/\D/g, "")),
+  );
+
+  if (knownCountry) {
+    return digits;
+  }
+
+  return normalizePakistanPhoneNumber(raw).replace(/\D/g, "");
 }
 
 export function whatsappHref(
