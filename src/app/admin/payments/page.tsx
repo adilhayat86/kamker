@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { activateCompanyPackage } from "@/app/admin/actions";
+import {
+  activateCompanyPackage,
+  activateFeaturedProfileProof,
+} from "@/app/admin/actions";
 import {
   AdminEmptyState,
   AdminMetaGrid,
@@ -137,10 +140,22 @@ export default async function AdminPaymentsPage() {
                     <p className="mt-1 text-sm text-muted-foreground">
                       Created {new Date(proof.created_at).toLocaleString("en-PK")}
                     </p>
+                    {proof.review_type === "featured_profile" ? (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Worker featured payment proof
+                      </p>
+                    ) : null}
                   </div>
-                  <Button asChild variant="outline">
-                    <Link href={proof.image_url}>Open Proof Image</Link>
-                  </Button>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    {proof.review_type === "featured_profile" && proof.related_id ? (
+                      <Button asChild variant="outline">
+                        <Link href={`/professionals/${proof.related_id}`}>Worker Profile</Link>
+                      </Button>
+                    ) : null}
+                    <Button asChild variant="outline">
+                      <Link href={proof.image_url}>Open Proof Image</Link>
+                    </Button>
+                  </div>
                 </div>
                 <div className="mt-4">
                   <AdminMetaGrid
@@ -152,6 +167,23 @@ export default async function AdminPaymentsPage() {
                     ]}
                   />
                 </div>
+                {proof.review_type === "featured_profile" &&
+                proof.related_id &&
+                proof.audit_status !== "approved" &&
+                proof.audit_status !== "auto_approved" ? (
+                  <form
+                    action={activateFeaturedProfileProof}
+                    className="mt-4 grid gap-2 rounded-lg border bg-slate-50 p-3 sm:grid-cols-[1fr_auto]"
+                  >
+                    <input type="hidden" name="proofReviewId" value={proof.id} />
+                    <p className="text-sm text-muted-foreground">
+                      Approve this proof and activate the worker featured profile.
+                    </p>
+                    <Button type="submit" disabled={!adminAuthenticated}>
+                      Activate Featured Profile
+                    </Button>
+                  </form>
+                ) : null}
               </div>
             ))
           ) : (

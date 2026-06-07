@@ -250,6 +250,109 @@ export async function removeProfessionalFeatured(formData: FormData) {
   revalidatePath("/professionals");
 }
 
+function featuredDurationFromAmount(amountPkr: number) {
+  return amountPkr >= 2500 ? 365 : 30;
+}
+
+function extendFeaturedUntil(currentValue: string | null, durationDays: number) {
+  const now = new Date();
+  const currentExpiry = currentValue ? new Date(currentValue) : null;
+  const startsAt =
+    currentExpiry && currentExpiry > now ? currentExpiry.getTime() : now.getTime();
+
+  return new Date(startsAt + durationDays * 24 * 60 * 60 * 1000).toISOString();
+}
+
+export async function activateFeaturedProfileProof(formData: FormData) {
+  const proofReviewId = formData.get("proofReviewId");
+
+  if (
+    typeof proofReviewId !== "string" ||
+    !proofReviewId ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data: proofReview, error: proofError } = await supabase
+    .from("proof_reviews")
+    .select("id, review_type, related_id, expected_amount_pkr")
+    .eq("id", proofReviewId)
+    .maybeSingle();
+
+  if (
+    proofError ||
+    !proofReview ||
+    proofReview.review_type !== "featured_profile" ||
+    !proofReview.related_id
+  ) {
+    console.error("Failed to load featured profile proof for activation", proofError);
+    return;
+  }
+
+  const professionalId = String(proofReview.related_id);
+  const { data: professional, error: professionalError } = await supabase
+    .from("professionals")
+    .select("featured_until")
+    .eq("id", professionalId)
+    .maybeSingle();
+
+  if (professionalError || !professional) {
+    console.error("Failed to load professional for featured activation", professionalError);
+    return;
+  }
+
+  const durationDays = featuredDurationFromAmount(
+    Number(proofReview.expected_amount_pkr ?? 0),
+  );
+  const nextFeaturedUntil = extendFeaturedUntil(
+    (professional.featured_until as string | null) ?? null,
+    durationDays,
+  );
+
+  const { error: updateError } = await supabase
+    .from("professionals")
+    .update({
+      is_featured: true,
+      featured_until: nextFeaturedUntil,
+    })
+    .eq("id", professionalId);
+
+  if (updateError) {
+    console.error("Failed to activate featured profile proof", updateError);
+    return;
+  }
+
+  const { error: proofUpdateError } = await supabase
+    .from("proof_reviews")
+    .update({ audit_status: "approved" })
+    .eq("id", proofReviewId);
+
+  if (proofUpdateError) {
+    console.error("Failed to approve featured profile proof review", proofUpdateError);
+  }
+
+  await recordAdminAudit({
+    action: "activate_featured_profile_proof",
+    targetType: "professional",
+    targetId: professionalId,
+    metadata: {
+      proofReviewId,
+      durationDays,
+      featuredUntil: nextFeaturedUntil,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/payments");
+  revalidatePath("/admin/featured");
+  revalidatePath("/admin/workers");
+  revalidatePath("/professionals");
+  revalidatePath(`/professionals/${professionalId}`);
+}
+
 export async function deleteProfessional(formData: FormData) {
   const id = formData.get("professionalId");
   const confirmation = formData.get("confirmDelete");
