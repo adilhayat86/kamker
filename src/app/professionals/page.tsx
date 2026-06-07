@@ -177,6 +177,8 @@ function matchesCompanyProfessionalFilters(
     category: string;
     gender: string;
     age: string;
+    availabilityTime: string;
+    availabilityDays: string;
     rate: string;
     verified: boolean;
   },
@@ -193,6 +195,18 @@ function matchesCompanyProfessionalFilters(
   const categoryMatch = filters.category ? professional.role === filters.category : true;
   const genderMatch = filters.gender ? normalise(professional.gender) === normalise(filters.gender) : true;
   const ageMatch = matchesAgeRange(professional.age, filters.age);
+  const availabilityTimeMatch = filters.availabilityTime
+    ? matches(
+        professional.availability,
+        workerTimeAvailabilityLabel(filters.availabilityTime),
+      )
+    : true;
+  const availabilityDaysMatch = filters.availabilityDays
+    ? matches(
+        professional.availability,
+        workerDayAvailabilityLabel(filters.availabilityDays),
+      )
+    : true;
   const hourlyRateMatch = matchesHourlyRate(professional.rate, filters.rate);
   const verifiedMatch = filters.verified
     ? professional.is_company_managed
@@ -200,7 +214,17 @@ function matchesCompanyProfessionalFilters(
       : true
     : true;
 
-  return keywordMatch && cityMatch && categoryMatch && genderMatch && ageMatch && hourlyRateMatch && verifiedMatch;
+  return (
+    keywordMatch &&
+    cityMatch &&
+    categoryMatch &&
+    genderMatch &&
+    ageMatch &&
+    availabilityTimeMatch &&
+    availabilityDaysMatch &&
+    hourlyRateMatch &&
+    verifiedMatch
+  );
 }
 
 function isDbFeatured(professional: DirectoryProfessional) {
@@ -559,6 +583,8 @@ export default async function ProfessionalsPage({
       category,
       gender,
       age,
+      availabilityTime,
+      availabilityDays,
       rate,
       verified,
     }),
@@ -570,6 +596,8 @@ export default async function ProfessionalsPage({
       category,
       gender,
       age,
+      availabilityTime,
+      availabilityDays,
       rate,
       verified,
     }),
