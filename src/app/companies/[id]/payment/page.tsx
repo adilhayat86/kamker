@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MessageCircle, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
@@ -121,6 +122,15 @@ export default async function CompanyPaymentPage({
   const { id } = await params;
   const query = await searchParams;
   const packageKey = query?.package ?? "";
+
+  if (query?.status === "auto_approved") {
+    redirect(`/companies/${id}/dashboard?status=package-active`);
+  }
+
+  if (query?.status === "needs_review") {
+    redirect(`/companies/${id}/dashboard?status=payment-under-review`);
+  }
+
   const statusMessage = query?.status ? statusMessages[query.status] : null;
   const [company, companyPackage] = await Promise.all([
     getCompany(id),
