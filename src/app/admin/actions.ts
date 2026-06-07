@@ -68,6 +68,59 @@ export async function createAdminCategory(formData: FormData) {
   revalidatePath("/categories");
 }
 
+export async function updateAdminCategory(formData: FormData) {
+  const id = formData.get("categoryId");
+  const name = textField(formData, "name");
+  const icon = textField(formData, "icon") || "wrench";
+  const description = textField(formData, "description");
+  const parentId = textField(formData, "parentId");
+  const sortOrder = numberField(formData, "sortOrder");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !name ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("categories")
+    .update({
+      name,
+      slug: categorySlug(name),
+      icon,
+      description: description || null,
+      parent_id: parentId ? Number(parentId) : null,
+      sort_order: sortOrder,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to update admin category", error);
+    return;
+  }
+
+  await recordAdminAudit({
+    action: parentId ? "update_subcategory" : "update_category",
+    targetType: "category",
+    targetId: id,
+    metadata: { name, parentId: parentId || null },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/categories");
+  revalidatePath("/categories");
+  revalidatePath(`/categories/${categorySlug(name)}`);
+  revalidatePath("/professionals");
+  revalidatePath("/register/professional");
+  revalidatePath("/register/company");
+  revalidatePath("/send-requirement");
+}
+
 export async function createAdminCity(formData: FormData) {
   const name = textField(formData, "name").replace(/\s+/g, " ");
 
