@@ -254,7 +254,7 @@ export async function generateMetadata({ params }: CategoryDetailPageProps) {
   return {
     title: name ? `${name} Professionals | Kamker` : "Category | Kamker",
     description: name
-      ? `Find and send requirements to ${name} professionals on Kamker.`
+      ? `Find ${name} professionals on Kamker and prepare reviewed customer requirements.`
       : "Find professionals on Kamker.",
   };
 }
@@ -287,10 +287,10 @@ export default async function CategoryDetailPage({
   const pageDescription = serviceGroup
     ? serviceGroup.description
     : dbCategory
-      ? dbCategory.description ?? "Send one requirement and reach approved professionals matching this service category."
+      ? dbCategory.description ?? "Browse approved professionals and prepare a reviewed requirement for this service category."
     : parentGroup
-      ? `${category?.name} are part of ${parentGroup.name}. Send one requirement and reach approved matching professionals.`
-      : "Send one requirement and reach approved professionals matching this service category.";
+      ? `${category?.name} are part of ${parentGroup.name}. Browse matching professionals and prepare a reviewed requirement when needed.`
+      : "Browse approved professionals and prepare a reviewed requirement for this service category.";
   const subcategoryCards = serviceGroup
     ? getGroupSubcategoryCards(serviceGroup).map((subcategory) => ({
         ...subcategory,
@@ -427,7 +427,7 @@ export default async function CategoryDetailPage({
                 Choose a specific service
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Message the full {serviceGroup?.name ?? dbCategory?.name} group, or choose one professional type for a more targeted requirement.
+                Browse the full {serviceGroup?.name ?? dbCategory?.name} group, or choose one professional type for a more targeted requirement review.
               </p>
               <CategoryGrid categories={subcategoryCards} city={city} area={area} />
             </CardContent>
@@ -439,7 +439,7 @@ export default async function CategoryDetailPage({
                 Parent service group
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                {category?.name ?? dbCategory?.name} belongs to {parentGroup?.name ?? dbParentCategory?.name}. You can also send one broader requirement to every approved professional in this group.
+                {category?.name ?? dbCategory?.name} belongs to {parentGroup?.name ?? dbParentCategory?.name}. You can also prepare one broader reviewed requirement for this group.
               </p>
               <Button asChild className="mt-4 h-11 w-full sm:w-auto" variant="outline">
                 <Link href={`/categories/${parentGroup ? categorySlug(parentGroup.name) : dbParentCategory?.slug}`}>

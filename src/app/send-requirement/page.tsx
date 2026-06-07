@@ -15,7 +15,7 @@ import { submitRequirement } from "./actions";
 
 export const metadata = {
   title: "Send Requirement | Kamker",
-  description: "Send your service requirement to matching Kamker professionals.",
+  description: "Submit your service requirement for Kamker matching and reviewed outreach.",
 };
 
 const urgencyOptions = ["Today", "Within 2 days", "This week", "Flexible"];
@@ -107,13 +107,15 @@ export default async function SendRequirementPage({
           <Card className="mt-5 border-primary/20 bg-accent text-accent-foreground shadow-sm">
             <CardContent className="p-5">
               <p className="font-semibold">
-                Your requirement will be sent to matching professionals in this
-                category.
+                Your requirement is prepared for matching professionals in this
+                category after Kamker review.
               </p>
               {recipientCount !== null ? (
                 <p className="mt-1 text-sm">
-                  Estimated recipients: {recipientCount.toLocaleString()}{" "}
-                  professionals
+                  Estimated matching pool:{" "}
+                  {recipientCount > 0
+                    ? `${recipientCount.toLocaleString()} professionals`
+                    : "professionals will be matched after review"}
                 </p>
               ) : null}
             </CardContent>
