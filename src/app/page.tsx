@@ -18,7 +18,8 @@ import { SearchPanel } from "@/components/search-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { cities, parentCategories } from "@/lib/marketplace-data";
+import { categories, cities, parentCategories } from "@/lib/marketplace-data";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 const bottomNavItems = [
   { label: "Home", icon: Home, href: "/" },
@@ -26,13 +27,6 @@ const bottomNavItems = [
   { label: "Professionals", icon: Users, href: "/professionals" },
   { label: "Register", icon: BriefcaseBusiness, href: "/register" },
   { label: "Account", icon: User, href: "/account" },
-];
-
-const stats = [
-  ["50,000+", "Professionals"],
-  ["120+", "Categories"],
-  ["25+", "Cities"],
-  ["Fast", "Response"],
 ];
 
 const trustItems = [
@@ -48,7 +42,83 @@ const steps = [
   ["Register", "Workers, companies, and customers choose the right registration path."],
 ];
 
-export default function HomePage() {
+function formatStatCount(value: number) {
+  return value.toLocaleString("en-PK");
+}
+
+async function countRows(table: string, filters?: Record<string, string | boolean>) {
+  if (!supabase) {
+    return null;
+  }
+
+  let query = supabase.from(table).select("id", { count: "exact", head: true });
+
+  Object.entries(filters ?? {}).forEach(([key, value]) => {
+    query = query.eq(key, value);
+  });
+
+  const { count, error } = await query;
+
+  if (error) {
+    console.error(`Failed to load homepage ${table} count`, error);
+    return null;
+  }
+
+  return count ?? 0;
+}
+
+async function getHomepageStats() {
+  if (!isSupabaseConfigured || !supabase) {
+    return [
+      ["Live", "Directory"],
+      ["Verified", "Profiles"],
+      ["City", "Filters"],
+      ["Direct", "Contact"],
+    ];
+  }
+
+  const [
+    professionalCount,
+    companyStaffCount,
+    categoryCount,
+    cityCount,
+    requirementCount,
+  ] = await Promise.all([
+    countRows("professionals", { is_active: true }),
+    countRows("company_listings", { status: "approved" }),
+    countRows("categories"),
+    countRows("cities"),
+    countRows("requirements"),
+  ]);
+
+  const totalProfessionals =
+    professionalCount === null && companyStaffCount === null
+      ? null
+      : (professionalCount ?? 0) + (companyStaffCount ?? 0);
+
+  return [
+    [
+      totalProfessionals === null ? "Live" : formatStatCount(totalProfessionals),
+      totalProfessionals === null ? "Directory" : "Professionals",
+    ],
+    [
+      categoryCount === null ? formatStatCount(categories.length) : formatStatCount(categoryCount),
+      "Categories",
+    ],
+    [
+      cityCount === null ? formatStatCount(cities.length) : formatStatCount(cityCount),
+      "Cities",
+    ],
+    [
+      requirementCount === null ? "Growing" : formatStatCount(requirementCount),
+      requirementCount === null ? "Requests" : "Requirements",
+    ],
+  ];
+}
+
+export default async function HomePage() {
+  const stats = await getHomepageStats();
+
   return (
     <main className="min-h-screen overflow-hidden pb-24 md:pb-0">
       <header className="border-b bg-background/95">
@@ -83,9 +153,6 @@ export default function HomePage() {
       <section className="border-b bg-background px-4 py-4 shadow-sm sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <SearchPanel />
-          <div className="-mx-4 mt-3 flex snap-x gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
-            {cities.map((city) => <Badge key={city} variant="outline" className="shrink-0 snap-start bg-white px-4 py-1.5">{city}</Badge>)}
-          </div>
         </div>
       </section>
 
