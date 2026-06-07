@@ -154,6 +154,11 @@ export default async function AdminPaymentsPage() {
                         <Link href={`/professionals/${proof.related_id}`}>Worker Profile</Link>
                       </Button>
                     ) : null}
+                    {proof.review_type === "company_package" && proof.related_id ? (
+                      <Button asChild variant="outline">
+                        <Link href={`#payment-${proof.related_id}`}>Review Payment</Link>
+                      </Button>
+                    ) : null}
                     <Button asChild variant="outline">
                       <Link href={proof.image_url}>Open Proof Image</Link>
                     </Button>
@@ -202,7 +207,7 @@ export default async function AdminPaymentsPage() {
                   >
                     <input type="hidden" name="proofReviewId" value={proof.id} />
                     <p className="text-sm text-muted-foreground">
-                      Mark this proof review as rejected if the screenshot is invalid or unrelated.
+                      Review the linked manual payment below to activate the package, or reject this proof if the screenshot is invalid or unrelated.
                     </p>
                     <Button type="submit" variant="outline" disabled={!adminAuthenticated}>
                       Reject Proof
@@ -221,7 +226,11 @@ export default async function AdminPaymentsPage() {
         <div className="grid gap-3">
           {payments.length > 0 ? (
             payments.map((payment) => (
-              <div key={payment.id} className="rounded-lg border p-4">
+              <div
+                key={payment.id}
+                id={`payment-${payment.id}`}
+                className="scroll-mt-24 rounded-lg border p-4"
+              >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
