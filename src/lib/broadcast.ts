@@ -1,4 +1,8 @@
-import { categories, categoryCountValue } from "@/lib/marketplace-data";
+import {
+  categories,
+  categoryCountValue,
+  serviceGroups,
+} from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type BroadcastCountInput = {
@@ -12,6 +16,13 @@ type CountableProfessional = {
   area: string | null;
   cities: { name: string } | null;
   categories: { name: string } | null;
+};
+
+type CountableCompanyListing = {
+  area: string | null;
+  city: string | null;
+  service_group: string | null;
+  category: string | null;
 };
 
 function locationLabel(city?: string, area?: string) {
@@ -40,36 +51,132 @@ function demoCountFor(input: BroadcastCountInput) {
   return baseCount;
 }
 
+function normalizeMatchValue(value?: string | null) {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function singularize(value: string) {
+  return value.endsWith("s") ? value.slice(0, -1) : value;
+}
+
+function textMatchesTarget(value: string | null | undefined, targets: string[]) {
+  const normalizedValue = normalizeMatchValue(value);
+
+  if (!targets.length) {
+    return true;
+  }
+
+  if (!normalizedValue) {
+    return false;
+  }
+
+  return targets.some((target) => {
+    const normalizedTarget = normalizeMatchValue(target);
+    const singularTarget = singularize(normalizedTarget);
+    const singularValue = singularize(normalizedValue);
+
+    return (
+      normalizedValue === normalizedTarget ||
+      singularValue === singularTarget ||
+      normalizedValue.includes(normalizedTarget) ||
+      normalizedValue.includes(singularTarget) ||
+      normalizedTarget.includes(normalizedValue)
+    );
+  });
+}
+
+function areaMatches(value: string | null | undefined, area?: string) {
+  if (!area) {
+    return true;
+  }
+
+  const normalizedValue = normalizeMatchValue(value);
+  const normalizedArea = normalizeMatchValue(area);
+
+  return (
+    normalizedValue === normalizedArea ||
+    normalizedValue.includes(normalizedArea) ||
+    normalizedArea.includes(normalizedValue)
+  );
+}
+
+function targetServicesFor(input: BroadcastCountInput) {
+  if (input.subcategory) {
+    return [input.subcategory];
+  }
+
+  if (!input.category) {
+    return [];
+  }
+
+  const serviceGroup = serviceGroups.find(
+    (group) => normalizeMatchValue(group.name) === normalizeMatchValue(input.category),
+  );
+
+  return serviceGroup ? serviceGroup.subcategories : [input.category];
+}
+
 export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
   if (!isSupabaseConfigured || !supabase) {
     return demoCountFor(input);
   }
 
-  const { data, error } = await supabase
-    .from("professionals")
-    .select("area, cities(name), categories(name)")
-    .eq("is_active", true)
-    .limit(1000);
+  const [professionalsResult, companyListingsResult] = await Promise.all([
+    supabase
+      .from("professionals")
+      .select("area, cities(name), categories(name)")
+      .eq("is_active", true)
+      .limit(1000),
+    supabase
+      .from("company_listings")
+      .select("area, city, service_group, category")
+      .eq("status", "approved")
+      .limit(1000),
+  ]);
 
-  if (error) {
-    console.error("Failed to count broadcast recipients", error);
+  if (professionalsResult.error || companyListingsResult.error) {
+    console.error(
+      "Failed to count broadcast recipients",
+      professionalsResult.error ?? companyListingsResult.error,
+    );
     return demoCountFor(input);
   }
 
-  const serviceName = input.subcategory || input.category;
-  const professionals = (data ?? []) as unknown as CountableProfessional[];
+  const targets = targetServicesFor(input);
+  const professionals = (professionalsResult.data ?? []) as unknown as CountableProfessional[];
+  const companyListings = (companyListingsResult.data ?? []) as unknown as CountableCompanyListing[];
 
-  return professionals.filter((professional) => {
-    const categoryMatch = serviceName
-      ? professional.categories?.name === serviceName
+  const professionalCount = professionals.filter((professional) => {
+    const categoryMatch = textMatchesTarget(professional.categories?.name, targets);
+    const cityMatch = input.city
+      ? textMatchesTarget(professional.cities?.name, [input.city])
       : true;
-    const cityMatch = input.city ? professional.cities?.name === input.city : true;
-    const areaMatch = input.area
-      ? professional.area?.toLowerCase() === input.area.toLowerCase()
-      : true;
+    const professionalAreaMatches = areaMatches(professional.area, input.area);
 
-    return categoryMatch && cityMatch && areaMatch;
+    return categoryMatch && cityMatch && professionalAreaMatches;
   }).length;
+
+  const companyListingCount = companyListings.filter((listing) => {
+    const categoryMatch =
+      textMatchesTarget(listing.category, targets) ||
+      textMatchesTarget(listing.service_group, input.category ? [input.category] : []);
+    const cityMatch = input.city ? textMatchesTarget(listing.city, [input.city]) : true;
+    const listingAreaMatches = areaMatches(listing.area, input.area);
+
+    return categoryMatch && cityMatch && listingAreaMatches;
+  }).length;
+
+  const recipientCount = professionalCount + companyListingCount;
+
+  if (recipientCount === 0 && professionals.length + companyListings.length === 0) {
+    return demoCountFor(input);
+  }
+
+  return recipientCount;
 }
 
 export function buildSendRequirementHref(input: BroadcastCountInput) {
