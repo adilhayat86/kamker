@@ -99,6 +99,9 @@ export default async function AdminCompanyListingsPage() {
       title="Company Staff Profiles"
       description="Approve, reject, and feature company-managed worker profiles submitted under active packages."
     >
+        <DismissibleNotice className="mt-6 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950" closeLabel="Close company staff rule note">
+          Approving a company staff profile publishes it as a regular listing. Use Make Featured separately, and only within the company package featured limit.
+        </DismissibleNotice>
         <div className="mt-6 grid gap-4">
           {listingsWithUsage.length > 0 ? (
             listingsWithUsage.map(({ listing, subscription, usage }) => {
@@ -120,6 +123,9 @@ export default async function AdminCompanyListingsPage() {
                           <h2 className="text-xl font-semibold">{listing.title}</h2>
                           <Badge variant="outline">{listing.status}</Badge>
                           {listing.is_featured ? <Badge>Featured</Badge> : null}
+                          {listing.status === "approved" && !listing.is_featured ? (
+                            <Badge variant="secondary">Regular listing</Badge>
+                          ) : null}
                           {listing.companies?.verification_status === "verified" ? (
                             <Badge variant="outline">Verified company</Badge>
                           ) : null}
