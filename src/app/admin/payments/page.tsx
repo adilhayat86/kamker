@@ -57,7 +57,22 @@ type ManualPayment = {
   companies: { company_name: string } | null;
 };
 
-async function getProofReviews() {
+type PaymentsPageProps = {
+  searchParams?: Promise<{
+    proofType?: string;
+    proofStatus?: string;
+    paymentStatus?: string;
+    q?: string;
+  }>;
+};
+
+async function getProofReviews({
+  proofType,
+  proofStatus,
+}: {
+  proofType?: string;
+  proofStatus?: string;
+}) {
   if (!isSupabaseConfigured || !supabase) {
     return [] as ProofReview[];
   }
@@ -66,17 +81,28 @@ async function getProofReviews() {
     .from("proof_reviews")
     .select("id, review_type, related_id, expected_amount_pkr, image_url, ai_detected_amount_pkr, ai_confidence, ai_decision, audit_status, created_at")
     .order("created_at", { ascending: false })
-    .limit(60);
+    .limit(120);
 
   if (error) {
     console.error("Failed to load proof reviews", error);
     return [] as ProofReview[];
   }
 
-  return (data ?? []) as ProofReview[];
+  return ((data ?? []) as ProofReview[]).filter((proof) => {
+    const matchesType = proofType ? proof.review_type === proofType : true;
+    const matchesStatus = proofStatus ? proof.audit_status === proofStatus : true;
+
+    return matchesType && matchesStatus;
+  });
 }
 
-async function getManualPayments() {
+async function getManualPayments({
+  paymentStatus,
+  q,
+}: {
+  paymentStatus?: string;
+  q?: string;
+}) {
   if (!isSupabaseConfigured || !supabase) {
     return [] as ManualPayment[];
   }
@@ -85,17 +111,34 @@ async function getManualPayments() {
     .from("manual_payments")
     .select("id, company_id, package_key, amount_pkr, payment_method, payer_name, sender_phone, transaction_reference, status, created_at, companies(company_name)")
     .order("created_at", { ascending: false })
-    .limit(60);
+    .limit(120);
 
   if (error) {
     console.error("Failed to load manual payments", error);
     return [] as ManualPayment[];
   }
 
-  return (data ?? []) as unknown as ManualPayment[];
+  return ((data ?? []) as unknown as ManualPayment[]).filter((payment) => {
+    const query = q?.trim().toLowerCase();
+    const matchesQuery = query
+      ? [
+          payment.companies?.company_name,
+          payment.package_key,
+          payment.payment_method,
+          payment.payer_name,
+          payment.sender_phone,
+          payment.transaction_reference,
+        ].some((value) => value?.toLowerCase().includes(query))
+      : true;
+    const matchesStatus = paymentStatus ? payment.status === paymentStatus : true;
+
+    return matchesQuery && matchesStatus;
+  });
 }
 
-export default async function AdminPaymentsPage() {
+export default async function AdminPaymentsPage({
+  searchParams,
+}: PaymentsPageProps) {
   const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
@@ -103,10 +146,17 @@ export default async function AdminPaymentsPage() {
     redirect("/admin/login");
   }
 
+  const params = await searchParams;
   const [summary, proofs, payments] = await Promise.all([
     getAdminCountSummary(),
-    getProofReviews(),
-    getManualPayments(),
+    getProofReviews({
+      proofType: params?.proofType,
+      proofStatus: params?.proofStatus,
+    }),
+    getManualPayments({
+      paymentStatus: params?.paymentStatus,
+      q: params?.q,
+    }),
   ]);
 
   return (
@@ -126,6 +176,51 @@ export default async function AdminPaymentsPage() {
         <AdminStatCard label="Manual Payments Loaded" value={payments.length} />
         <AdminStatCard label="Proof Reviews Loaded" value={proofs.length} />
       </div>
+
+      <AdminSection
+        title="Search & Filters"
+        description="Narrow payment and proof queues during package activation or featured-profile review."
+      >
+        <form className="grid gap-3 lg:grid-cols-[1fr_190px_190px_190px_auto]">
+          <input
+            name="q"
+            defaultValue={params?.q ?? ""}
+            placeholder="Search company, payer, phone, reference"
+            className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+          />
+          <select
+            name="proofType"
+            defaultValue={params?.proofType ?? ""}
+            className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+          >
+            <option value="">All proof types</option>
+            <option value="company_package">Company packages</option>
+            <option value="featured_profile">Featured profiles</option>
+          </select>
+          <select
+            name="proofStatus"
+            defaultValue={params?.proofStatus ?? ""}
+            className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+          >
+            <option value="">All proof status</option>
+            <option value="unchecked">Needs review</option>
+            <option value="approved">Approved</option>
+            <option value="auto_approved">Auto approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <select
+            name="paymentStatus"
+            defaultValue={params?.paymentStatus ?? ""}
+            className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+          >
+            <option value="">All payment status</option>
+            <option value="pending_review">Pending review</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <Button>Filter</Button>
+        </form>
+      </AdminSection>
 
       <AdminSection title="Proof Reviews" description="AI-readable proof checks and manual review status.">
         <div className="grid gap-3">
