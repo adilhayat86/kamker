@@ -200,7 +200,7 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
                     {listing.years_experience ?? 0} years experience
                   </span>
                   <span>Availability: {listing.availability ?? "Ask company"}</span>
-                  <span>Age: {listing.age ? `Age ${listing.age}` : "Age not added"}</span>
+                  <span>Age: {listing.age ?? "Age not added"}</span>
                   <span>
                     Managed by:{" "}
                     {listing.companies?.id ? (

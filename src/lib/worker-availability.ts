@@ -28,7 +28,6 @@ const workerDayAvailabilityLabels = new Map<string, string>([
   ["Weekends", "Weekend"],
   ["Weekdays", "Weekdays"],
   ["7 days a week", "7 days a week"],
-  ["Full Time", "7 days a week"],
 ]);
 
 export function isWorkerTimeAvailability(value: string): value is WorkerTimeAvailability {
