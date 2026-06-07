@@ -244,6 +244,8 @@ export default async function CompanyListingNewPage({
                 <PhotoUploadField
                   label="Staff profile photo"
                   helpText="Choose a photo from phone gallery. Large images are compressed before upload."
+                  uploadFolder="company-staff"
+                  uploadTags={["company-staff-photo"]}
                 />
                 <FormField label="Phone optional" name="phone" type="tel" defaultValue={draft.phone} />
                 <CountryPhoneField label="WhatsApp optional" name="whatsapp" defaultValue={draft.whatsapp} />

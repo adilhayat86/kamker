@@ -13,6 +13,8 @@ type PhotoUploadFieldProps = {
   disabled?: boolean;
   label?: string;
   helpText?: string;
+  uploadFolder?: "professional-photos" | "company-staff";
+  uploadTags?: string[];
 };
 
 function formatSize(bytes: number) {
@@ -24,6 +26,14 @@ function setInputError(input: HTMLInputElement, message = "") {
     input.setCustomValidity(message);
   } catch {
     // Some older mobile webviews have partial constraint-validation support.
+  }
+}
+
+function clearSelectedFile(input: HTMLInputElement) {
+  try {
+    input.value = "";
+  } catch {
+    // Some older mobile webviews do not allow programmatic file clearing.
   }
 }
 
@@ -96,10 +106,72 @@ async function compressImage(file: File) {
   return file;
 }
 
+async function uploadPhotoToCloudinary(
+  file: File,
+  folder: PhotoUploadFieldProps["uploadFolder"],
+  tags: string[],
+) {
+  const signResponse = await fetch("/api/cloudinary/sign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      folder,
+      tags,
+    }),
+  });
+
+  if (!signResponse.ok) {
+    throw new Error("cloudinary-sign-error");
+  }
+
+  const signed = (await signResponse.json()) as {
+    cloudName: string;
+    apiKey: string;
+    folder: string;
+    publicId: string;
+    timestamp: string;
+    tags: string;
+    signature: string;
+  };
+  const body = new FormData();
+  body.append("file", file);
+  body.append("api_key", signed.apiKey);
+  body.append("folder", signed.folder);
+  body.append("public_id", signed.publicId);
+  body.append("timestamp", signed.timestamp);
+  body.append("signature", signed.signature);
+
+  if (signed.tags) {
+    body.append("tags", signed.tags);
+  }
+
+  const uploadResponse = await fetch(
+    `https://api.cloudinary.com/v1_1/${signed.cloudName}/image/upload`,
+    {
+      method: "POST",
+      body,
+    },
+  );
+
+  if (!uploadResponse.ok) {
+    throw new Error("cloudinary-upload-error");
+  }
+
+  const result = (await uploadResponse.json()) as { secure_url?: string };
+
+  if (!result.secure_url) {
+    throw new Error("cloudinary-upload-error");
+  }
+
+  return result.secure_url;
+}
+
 export function PhotoUploadField({
   disabled = false,
   label = "Profile photo",
   helpText = "If registration needs correction, keep this page open so the selected photo stays attached.",
+  uploadFolder = "professional-photos",
+  uploadTags = ["professional-photo"],
 }: PhotoUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploadedUrl, setUploadedUrl] = useState("");
@@ -138,25 +210,26 @@ export function PhotoUploadField({
     }
 
     setMessage(`Preparing ${formatSize(file.size)} photo...`);
+    setInputError(input, "Please wait for the photo upload to finish.");
 
     try {
       const prepared =
         file.size > TARGET_UPLOAD_BYTES ? await compressImage(file) : file;
-
-      if (prepared !== file && typeof DataTransfer !== "undefined") {
-        const transfer = new DataTransfer();
-        transfer.items.add(prepared);
-        input.files = transfer.files;
-      }
-
-      if (prepared.size <= TARGET_UPLOAD_BYTES) {
-        setMessage(`Prepared photo (${formatSize(prepared.size)}). It will upload when you submit.`);
-        return;
-      }
-
-      setMessage(`Selected ${file.name} (${formatSize(file.size)}). It will upload when you submit.`);
+      setMessage(`Uploading photo (${formatSize(prepared.size)})...`);
+      const publicUrl = await uploadPhotoToCloudinary(
+        prepared,
+        uploadFolder,
+        uploadTags,
+      );
+      setUploadedUrl(publicUrl);
+      clearSelectedFile(input);
+      setInputError(input);
+      setMessage("Photo uploaded. Continue registration.");
     } catch {
-      setMessage(`Selected ${file.name} (${formatSize(file.size)}). It will upload when you submit.`);
+      clearSelectedFile(input);
+      setUploadedUrl("");
+      setInputError(input);
+      setMessage("Photo upload failed. You can submit without photo and add it later.");
     }
   }
 

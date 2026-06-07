@@ -78,16 +78,18 @@ export async function updateProfessionalProfile(formData: FormData) {
     .select("id")
     .eq("name", categoryName)
     .maybeSingle();
-  let profilePhotoUrl: string | null = null;
+  let profilePhotoUrl: string | null = field(formData, "profilePhotoUrl") || null;
 
-  try {
-    profilePhotoUrl = await uploadProfessionalPhoto(formData);
-  } catch (error) {
-    redirect(
-      error instanceof Error && error.message === "invalid-photo"
-        ? "/account/edit?status=invalid-photo"
-        : "/account/edit?status=photo-error",
-    );
+  if (!profilePhotoUrl) {
+    try {
+      profilePhotoUrl = await uploadProfessionalPhoto(formData);
+    } catch (error) {
+      redirect(
+        error instanceof Error && error.message === "invalid-photo"
+          ? "/account/edit?status=invalid-photo"
+          : "/account/edit?status=photo-error",
+      );
+    }
   }
 
   const updates: Record<string, string | number | null> = {

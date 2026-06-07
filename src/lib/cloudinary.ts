@@ -22,7 +22,7 @@ const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
 export const isCloudinaryConfigured = Boolean(cloudName && apiKey && apiSecret);
 
-function signCloudinaryParams(params: Record<string, string>) {
+export function signCloudinaryParams(params: Record<string, string>) {
   const payload = Object.keys(params)
     .sort()
     .map((key) => `${key}=${params[key]}`)
@@ -31,6 +31,41 @@ function signCloudinaryParams(params: Record<string, string>) {
   return createHash("sha1")
     .update(`${payload}${apiSecret}`)
     .digest("hex");
+}
+
+export function getCloudinaryUploadSignature({
+  folder,
+  publicId,
+  tags = [],
+}: {
+  folder: string;
+  publicId: string;
+  tags?: string[];
+}) {
+  if (!isCloudinaryConfigured || !cloudName || !apiKey) {
+    return null;
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const params: Record<string, string> = {
+    folder: `kamker/${folder}`,
+    public_id: publicId,
+    timestamp,
+  };
+
+  if (tags.length > 0) {
+    params.tags = tags.join(",");
+  }
+
+  return {
+    cloudName,
+    apiKey,
+    folder: params.folder,
+    publicId,
+    timestamp,
+    tags: params.tags ?? "",
+    signature: signCloudinaryParams(params),
+  };
 }
 
 export async function uploadPublicMediaToCloudinary({

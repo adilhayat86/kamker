@@ -199,17 +199,20 @@ export async function createCompanyListing(formData: FormData) {
     redirect(`/companies/${companyId}/listings/new?status=quota-full`);
   }
 
+  const browserUploadedPhotoUrl = field(formData, "profilePhotoUrl");
   let uploadedStaffPhoto: Awaited<ReturnType<typeof uploadCompanyStaffPhoto>> = null;
 
-  try {
-    uploadedStaffPhoto = await uploadCompanyStaffPhoto(formData, companyId);
-  } catch (error) {
-    await saveCompanyListingDraft(companyId, draft);
-    redirect(
-      error instanceof Error && error.message === "invalid-company-media"
-        ? `/companies/${companyId}/listings/new?status=invalid-photo`
-        : `/companies/${companyId}/listings/new?status=photo-error`,
-    );
+  if (!browserUploadedPhotoUrl) {
+    try {
+      uploadedStaffPhoto = await uploadCompanyStaffPhoto(formData, companyId);
+    } catch (error) {
+      await saveCompanyListingDraft(companyId, draft);
+      redirect(
+        error instanceof Error && error.message === "invalid-company-media"
+          ? `/companies/${companyId}/listings/new?status=invalid-photo`
+          : `/companies/${companyId}/listings/new?status=photo-error`,
+      );
+    }
   }
 
   const { data: listing, error } = await supabase
@@ -229,7 +232,7 @@ export async function createCompanyListing(formData: FormData) {
       description,
       hourly_rate: hourlyRate,
       monthly_rate: monthlyRate,
-      profile_photo_url: uploadedStaffPhoto?.publicUrl ?? null,
+      profile_photo_url: browserUploadedPhotoUrl || uploadedStaffPhoto?.publicUrl || null,
       phone: phone || null,
       whatsapp: whatsapp || null,
       status: "pending",
