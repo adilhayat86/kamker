@@ -30,7 +30,7 @@ const adminLinks = [
   { href: "/admin/workers", label: "Workers", icon: Users },
   { href: "/admin/companies", label: "Companies", icon: Building2 },
   { href: "/admin/company-listings", label: "Company Staff", icon: BriefcaseBusiness },
-  { href: "/admin#requirements", label: "Requirements", icon: ClipboardList },
+  { href: "/admin/requirements", label: "Requirements", icon: ClipboardList },
   { href: "/admin/payments", label: "Payments & Proofs", icon: CreditCard },
   { href: "/admin/featured", label: "Featured", icon: Sparkles },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },

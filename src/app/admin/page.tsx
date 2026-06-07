@@ -183,7 +183,7 @@ export default async function AdminPage() {
               { label: "Companies", count: summary.pendingCompanies, href: "/admin/companies?status=pending" },
               { label: "Staff", count: summary.pendingCompanyStaff, href: "/admin/company-listings?status=pending" },
               { label: "Proofs", count: summary.pendingProofs, href: "/admin/payments?status=pending" },
-              { label: "Requirements", count: summary.newRequirements, href: "/admin#requirements" },
+              { label: "Requirements", count: summary.newRequirements, href: "/admin/requirements" },
             ].map((item) => (
               <Link
                 key={item.label}
@@ -230,9 +230,14 @@ export default async function AdminPage() {
           title="Recent Requirements"
           description="Latest 3 customer requests."
           action={
-            <Button asChild size="sm" variant="outline">
-              <Link href="/send-requirement">Submit Test</Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button asChild size="sm" variant="outline">
+                <Link href="/admin/requirements">View All</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/send-requirement">Submit Test</Link>
+              </Button>
+            </div>
           }
         >
           <div id="requirements" className="grid gap-2">
