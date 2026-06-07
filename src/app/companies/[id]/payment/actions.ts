@@ -23,6 +23,10 @@ function redirectToPayment(companyId: string, packageKey: string, status: string
   );
 }
 
+function redirectToDashboard(companyId: string, status: string): never {
+  redirect(`/companies/${companyId}/dashboard?status=${status}`);
+}
+
 function packageExpiry(durationDays: number) {
   const startsAt = new Date();
   const expiresAt = new Date(startsAt);
@@ -267,5 +271,5 @@ export async function submitCompanyPackagePayment(formData: FormData) {
     savedPayment.id as string,
   );
 
-  redirectToPayment(companyId, packageKey, autoApproved ? "auto_approved" : "needs_review");
+  redirectToDashboard(companyId, autoApproved ? "package-active" : "payment-under-review");
 }

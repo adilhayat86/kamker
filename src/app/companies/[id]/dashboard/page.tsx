@@ -83,7 +83,9 @@ type CompanyDashboardPageProps = {
       | "invalid-media"
       | "media-error"
       | "not-configured"
-      | "local-listing-added";
+      | "local-listing-added"
+      | "package-active"
+      | "payment-under-review";
   }>;
 };
 
@@ -95,6 +97,8 @@ const statusMessages = {
   "media-error": "Could not save company media. Please try again.",
   "not-configured": "Supabase is not configured yet.",
   "local-listing-added": "Local demo professional added to this company.",
+  "package-active": "Payment approved by AI. Your package is active and you can add staff profiles now.",
+  "payment-under-review": "Receipt uploaded. AI could not safely verify it, so payment is under review. You can still complete your company profile while waiting.",
 } as const;
 
 async function getCompany(companyId: string) {
