@@ -34,6 +34,7 @@ type CompanyListingNewPageProps = {
       | "invalid-photo"
       | "photo-error"
       | "error";
+    source?: string;
   }>;
 };
 
@@ -76,6 +77,7 @@ export default async function CompanyListingNewPage({
   const { id } = await params;
   const query = await searchParams;
   const status = query?.status;
+  const source = query?.source?.trim() ?? "";
   const statusMessage = status ? statusMessages[status] : null;
   const missingRequired = status === "missing";
   const requiredError = (message: string) =>
@@ -153,6 +155,7 @@ export default async function CompanyListingNewPage({
               </div>
               <form action={createCompanyListing} className="grid gap-4 sm:grid-cols-2">
                 <input type="hidden" name="companyId" value={id} />
+                <input type="hidden" name="source" value={source} />
                 <FormField
                   label="Staff name or title"
                   name="title"

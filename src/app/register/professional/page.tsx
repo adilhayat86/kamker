@@ -58,6 +58,7 @@ type ProfessionalDraft = {
 type ProfessionalRegisterPageProps = {
   searchParams?: Promise<{
     status?: keyof typeof statusMessages;
+    source?: string;
   }>;
 };
 
@@ -66,6 +67,7 @@ export default async function ProfessionalRegisterPage({
 }: ProfessionalRegisterPageProps) {
   const params = await searchParams;
   const status = params?.status;
+  const source = params?.source?.trim() ?? "";
   const statusMessage = status ? statusMessages[status] : null;
   const draft = await getFormDraft<ProfessionalDraft>("professional");
   const failedFields = new Set(
@@ -142,6 +144,7 @@ export default async function ProfessionalRegisterPage({
               </div>
             </div>
             <form action={registerProfessional} className="grid gap-6">
+              <input type="hidden" name="source" value={source} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Basic info</p>

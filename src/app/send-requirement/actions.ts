@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { trackAnalyticsEvent } from "@/lib/analytics";
 import { createRequirementMatches } from "@/lib/requirement-matching";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
@@ -22,6 +23,7 @@ export async function submitRequirement(formData: FormData) {
   const whatsappNumber = requiredValue(formData, "whatsapp");
   const urgency = requiredValue(formData, "urgency");
   const details = requiredValue(formData, "details");
+  const source = requiredValue(formData, "source") || "unknown";
 
   if (!requiredService || !cityName || !phoneNumber || !urgency || !details) {
     redirect("/send-requirement?status=missing");
@@ -66,6 +68,18 @@ export async function submitRequirement(formData: FormData) {
     cityName,
     area: area || null,
     availability: availability || null,
+  });
+
+  await trackAnalyticsEvent({
+    eventType: "requirement_submission",
+    targetType: "requirement",
+    targetId: requirement.id as string,
+    metadata: {
+      category: requiredService,
+      city: cityName,
+      source,
+      path: "/send-requirement",
+    },
   });
 
   await sendAdminWhatsappAlert(

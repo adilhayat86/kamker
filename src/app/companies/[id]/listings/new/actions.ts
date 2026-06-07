@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { trackAnalyticsEvent } from "@/lib/analytics";
 import {
   getActiveCompanySubscription,
   getPublishedCompanyListingUsage,
@@ -49,6 +50,7 @@ export async function createCompanyListing(formData: FormData) {
   const monthlyRate = optionalNumber(formData, "monthlyRate");
   const phone = field(formData, "phone");
   const whatsapp = field(formData, "whatsapp");
+  const source = field(formData, "source") || "unknown";
 
   if (!companyId || !title || !serviceGroup || !category || !city || age === null || !tagline || !description || tagline.length > 30) {
     redirect(`/companies/${companyId || "missing"}/listings/new?status=missing`);
@@ -166,6 +168,19 @@ export async function createCompanyListing(formData: FormData) {
     console.error("Failed to create company listing", error);
     redirect(`/companies/${companyId}/listings/new?status=error`);
   }
+
+  await trackAnalyticsEvent({
+    eventType: "company_staff_registration",
+    targetType: "company_listing",
+    targetId: listing.id as string,
+    metadata: {
+      category,
+      city,
+      source,
+      path: `/companies/${companyId}/listings/new`,
+      companyId,
+    },
+  });
 
   await sendAdminWhatsappAlert(
     [

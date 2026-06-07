@@ -33,6 +33,7 @@ type SendRequirementPageProps = {
     subcategory?: string;
     city?: string;
     area?: string;
+    source?: string;
   }>;
 };
 
@@ -46,6 +47,7 @@ export default async function SendRequirementPage({
   const subcategory = params?.subcategory?.trim() || undefined;
   const city = params?.city?.trim();
   const area = params?.area?.trim();
+  const source = params?.source?.trim() ?? "";
   const selectedService = serviceFromBroadcastQuery({
     category,
     subcategory,
@@ -118,6 +120,7 @@ export default async function SendRequirementPage({
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5 sm:p-6">
             <form action={submitRequirement} className="grid gap-6">
+              <input type="hidden" name="source" value={source} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Service details</p>

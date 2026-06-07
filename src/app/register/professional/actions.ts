@@ -11,6 +11,7 @@ import {
   workerAvailabilitySummary,
 } from "@/lib/worker-availability";
 import { createProfessionalSession, hashSecret } from "@/lib/auth";
+import { trackAnalyticsEvent } from "@/lib/analytics";
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import {
   isLocalDemoStoreEnabled,
@@ -94,6 +95,7 @@ export async function registerProfessional(formData: FormData) {
   const password = field(formData, "password");
   const secretQuestion = field(formData, "secretQuestion");
   const secretAnswer = field(formData, "secretAnswer");
+  const source = field(formData, "source") || "unknown";
   const draftInput = {
     fullName,
     phoneNumber,
@@ -249,6 +251,18 @@ export async function registerProfessional(formData: FormData) {
     await saveProfessionalDraft(draftInput);
     redirect("/register/professional?status=error");
   }
+
+  await trackAnalyticsEvent({
+    eventType: "worker_registration",
+    targetType: "professional",
+    targetId: professional.id as string,
+    metadata: {
+      category: categoryName,
+      city: cityName,
+      source,
+      path: "/register/professional",
+    },
+  });
 
   await createProfessionalSession(professional.id as string);
   await clearFormDraft("professional");
