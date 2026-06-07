@@ -261,6 +261,10 @@ function paymentStateLabel(activeSubscription: Awaited<ReturnType<typeof getActi
 
 function paymentStateDescription(activeSubscription: Awaited<ReturnType<typeof getActiveCompanySubscription>>, payment: CompanyPaymentStatus | null) {
   if (activeSubscription) {
+    if (!payment) {
+      return "Your package is active. This package was activated without a receipt on file, so you can add staff profiles now.";
+    }
+
     return "Your package is active. Add staff profiles and publish them after review.";
   }
 
@@ -275,12 +279,13 @@ function onboardingSteps(activeSubscription: Awaited<ReturnType<typeof getActive
   const receiptUploaded = Boolean(payment);
   const underReview = Boolean(payment?.status === "pending_review" || payment?.proof_decision === "needs_review");
   const packageActive = Boolean(activeSubscription);
+  const manuallyActivated = packageActive && !receiptUploaded;
 
   return [
     { label: "Company registered", complete: true, current: false },
     { label: "Package selected", complete: receiptUploaded || packageActive, current: !receiptUploaded && !packageActive },
-    { label: "Receipt uploaded", complete: receiptUploaded || packageActive, current: false },
-    { label: "AI review", complete: packageActive, current: underReview },
+    { label: "Receipt uploaded", complete: receiptUploaded, current: false },
+    { label: manuallyActivated ? "Admin activation" : "AI review", complete: packageActive, current: underReview },
     { label: "Package active", complete: packageActive, current: packageActive },
     { label: "Add staff profiles", complete: false, current: packageActive },
   ];
@@ -671,7 +676,9 @@ export default async function CompanyDashboardPage({
               </div>
             ) : (
               <p className="mt-4 text-sm text-muted-foreground">
-                No company package receipt has been uploaded yet.
+                {activeSubscription
+                  ? "Package is active through admin activation. No receipt is attached to this package record."
+                  : "No company package receipt has been uploaded yet."}
               </p>
             )}
 
