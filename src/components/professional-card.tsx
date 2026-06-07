@@ -14,12 +14,48 @@ type ProfessionalCardProps = {
   featured?: boolean;
 };
 
+function trackedContactHref({
+  href,
+  eventType,
+  professional,
+}: {
+  href: string | null;
+  eventType: "call_click" | "whatsapp_click";
+  professional: Professional;
+}) {
+  if (!href) {
+    return null;
+  }
+
+  const params = new URLSearchParams({
+    eventType,
+    targetType: professional.is_company_managed ? "company_listing" : "professional",
+    targetId: professional.id,
+    href,
+    path: professional.profileHref ?? `/professionals/${professional.id}`,
+    category: professional.role,
+    city: professional.city,
+  });
+
+  return `/api/analytics/contact?${params.toString()}`;
+}
+
 export function ProfessionalCard({
   professional,
   featured = false,
 }: ProfessionalCardProps) {
   const phoneHref = professional.phone ? `tel:${professional.phone}` : null;
   const whatsappHref = buildWhatsappHref(professional.whatsapp);
+  const trackedPhoneHref = trackedContactHref({
+    href: phoneHref,
+    eventType: "call_click",
+    professional,
+  });
+  const trackedWhatsappHref = trackedContactHref({
+    href: whatsappHref,
+    eventType: "whatsapp_click",
+    professional,
+  });
   const profileHref = professional.profileHref ?? `/professionals/${professional.id}`;
   const companyHref = professional.company_id
     ? `/companies/${professional.company_id}`
@@ -135,9 +171,9 @@ export function ProfessionalCard({
           )}
         </div>
         <div className={actionGridClass}>
-          <Button asChild={Boolean(phoneHref)} variant="outline" className="h-10 px-2" disabled={!phoneHref}>
-            {phoneHref ? (
-              <a href={phoneHref}>
+          <Button asChild={Boolean(trackedPhoneHref)} variant="outline" className="h-10 px-2" disabled={!trackedPhoneHref}>
+            {trackedPhoneHref ? (
+              <a href={trackedPhoneHref}>
                 <Phone aria-hidden="true" />
                 Call
               </a>
@@ -148,9 +184,9 @@ export function ProfessionalCard({
               </span>
             )}
           </Button>
-          <Button asChild={Boolean(whatsappHref)} className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!whatsappHref}>
-            {whatsappHref ? (
-              <a href={whatsappHref}>
+          <Button asChild={Boolean(trackedWhatsappHref)} className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappHref}>
+            {trackedWhatsappHref ? (
+              <a href={trackedWhatsappHref}>
                 <MessageCircle aria-hidden="true" />
                 WhatsApp
               </a>
