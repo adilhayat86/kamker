@@ -40,8 +40,12 @@ export type SystemHealth = {
   adminAuth: boolean;
   supabase: boolean;
   databaseSchema: boolean;
+  storageBuckets: boolean;
   openai: boolean;
   whatsapp: boolean;
+  missingTables: string[];
+  missingColumns: string[];
+  missingBuckets: string[];
 };
 
 async function countRows(table: string, filters: Record<string, string | boolean | null> = {}) {
@@ -246,15 +250,28 @@ export async function getSystemHealth() {
     adminAuth: isAdminPasswordConfigured(),
     supabase: isSupabaseConfigured,
     databaseSchema: false,
+    storageBuckets: false,
     openai: Boolean(process.env.OPENAI_API_KEY),
     whatsapp:
       Boolean(process.env.WHATSAPP_ACCESS_TOKEN) &&
       Boolean(process.env.WHATSAPP_PHONE_NUMBER_ID) &&
       Boolean(process.env.KAMKER_ADMIN_WHATSAPP),
+    missingTables: [],
+    missingColumns: [],
+    missingBuckets: [],
   };
 
   if (isSupabaseConfigured && supabase) {
-    configured.databaseSchema = await isDatabaseSchemaReady();
+    const [databaseReadiness, storageReadiness] = await Promise.all([
+      getDatabaseSchemaReadiness(),
+      getStorageBucketReadiness(),
+    ]);
+
+    configured.databaseSchema = databaseReadiness.ready;
+    configured.storageBuckets = storageReadiness.ready;
+    configured.missingTables = databaseReadiness.missingTables;
+    configured.missingColumns = databaseReadiness.missingColumns;
+    configured.missingBuckets = storageReadiness.missingBuckets;
   }
 
   return configured;
@@ -299,7 +316,7 @@ async function hasCompanyStaffRequirementMatchColumn() {
   return true;
 }
 
-async function isDatabaseSchemaReady() {
+async function getDatabaseSchemaReadiness() {
   const requiredTables = [
     "professionals",
     "customers",
@@ -313,10 +330,60 @@ async function isDatabaseSchemaReady() {
     "whatsapp_messages",
   ];
 
-  const checks = await Promise.all([
-    ...requiredTables.map(hasReadableTable),
-    hasCompanyStaffRequirementMatchColumn(),
+  const tableChecks = await Promise.all(
+    requiredTables.map(async (table) => ({
+      table,
+      ready: await hasReadableTable(table),
+    })),
+  );
+  const columnChecks = await Promise.all([
+    {
+      column: "requirement_matches.company_listing_id",
+      ready: await hasCompanyStaffRequirementMatchColumn(),
+    },
   ]);
 
-  return checks.every(Boolean);
+  return {
+    ready:
+      tableChecks.every((check) => check.ready) &&
+      columnChecks.every((check) => check.ready),
+    missingTables: tableChecks
+      .filter((check) => !check.ready)
+      .map((check) => check.table),
+    missingColumns: columnChecks
+      .filter((check) => !check.ready)
+      .map((check) => check.column),
+  };
+}
+
+async function hasStorageBucket(bucket: string) {
+  if (!supabase) {
+    return false;
+  }
+
+  const { error } = await supabase.storage.getBucket(bucket);
+
+  if (error) {
+    console.error(`Admin system health bucket check failed for ${bucket}`, error);
+    return false;
+  }
+
+  return true;
+}
+
+async function getStorageBucketReadiness() {
+  const requiredBuckets = ["professional-photos", "proof-images", "company-images"];
+  const bucketChecks = await Promise.all(
+    requiredBuckets.map(async (bucket) => ({
+      bucket,
+      ready: await hasStorageBucket(bucket),
+    })),
+  );
+
+  return {
+    ready: bucketChecks.every((check) => check.ready),
+    missingBuckets: bucketChecks
+      .filter((check) => !check.ready)
+      .map((check) => check.bucket),
+  };
 }

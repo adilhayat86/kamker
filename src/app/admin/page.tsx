@@ -108,7 +108,15 @@ export default async function AdminPage() {
     summary.pendingCompanyStaff +
     summary.pendingProofs +
     summary.newRequirements;
-  const healthyCount = Object.values(systemHealth).filter(Boolean).length;
+  const systemChecks = [
+    ["Admin auth", systemHealth.adminAuth],
+    ["Supabase", systemHealth.supabase],
+    ["Database schema", systemHealth.databaseSchema],
+    ["Storage buckets", systemHealth.storageBuckets],
+    ["OpenAI", systemHealth.openai],
+    ["WhatsApp", systemHealth.whatsapp],
+  ] as const;
+  const healthyCount = systemChecks.filter(([, ready]) => ready).length;
 
   return (
     <AdminShell
@@ -158,8 +166,8 @@ export default async function AdminPage() {
         />
         <CompactStatCard
           label="System Health"
-          value={`${healthyCount}/5`}
-          tone={healthyCount === 5 ? "good" : "warning"}
+          value={`${healthyCount}/6`}
+          tone={healthyCount === 6 ? "good" : "warning"}
           helper="Core setup checks"
         />
       </div>
@@ -268,13 +276,7 @@ export default async function AdminPage() {
           }
         >
           <div className="grid gap-2 sm:grid-cols-2">
-            {[
-              ["Admin auth", systemHealth.adminAuth],
-              ["Supabase", systemHealth.supabase],
-              ["Database schema", systemHealth.databaseSchema],
-              ["OpenAI", systemHealth.openai],
-              ["WhatsApp", systemHealth.whatsapp],
-            ].map(([label, ok]) => (
+            {systemChecks.map(([label, ok]) => (
               <div
                 key={String(label)}
                 className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"
