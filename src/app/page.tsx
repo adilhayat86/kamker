@@ -46,6 +46,13 @@ function formatStatCount(value: number) {
   return value.toLocaleString("en-PK");
 }
 
+function isExpectedStatsFetchFailure(error: { message?: string; details?: string }) {
+  return (
+    error.message?.includes("fetch failed") ||
+    error.details?.includes("fetch failed")
+  );
+}
+
 async function countRows(table: string, filters?: Record<string, string | boolean>) {
   if (!supabase) {
     return null;
@@ -60,7 +67,10 @@ async function countRows(table: string, filters?: Record<string, string | boolea
   const { count, error } = await query;
 
   if (error) {
-    console.error(`Failed to load homepage ${table} count`, error);
+    if (!isExpectedStatsFetchFailure(error)) {
+      console.error(`Failed to load homepage ${table} count`, error);
+    }
+
     return null;
   }
 
