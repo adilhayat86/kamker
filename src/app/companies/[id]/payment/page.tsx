@@ -44,6 +44,7 @@ type CompanyPaymentPageProps = {
       | "save-error"
       | "upload-error"
       | "proof-save-error"
+      | "activation-error"
       | "auto_approved"
       | "needs_review";
   }>;
@@ -69,8 +70,9 @@ const statusMessages = {
   "save-error": "Could not save the manual payment record. Please try again.",
   "upload-error": "Could not upload the receipt image. Please try again.",
   "proof-save-error": "Receipt uploaded, but AI proof review could not be saved. Kamker admin should review manually.",
-  auto_approved: "Receipt uploaded and AI review completed. Kamker admin will confirm package activation.",
-  needs_review: "Receipt uploaded. Kamker admin will review it before activating the package.",
+  "activation-error": "Receipt was approved by AI, but package activation failed. Kamker admin should review this payment.",
+  auto_approved: "Receipt approved by AI. Your company package is active and you can add staff profiles now.",
+  needs_review: "Receipt uploaded. AI could not safely verify it, so Kamker admin will review it.",
 } as const;
 
 async function getCompany(companyId: string) {
@@ -162,7 +164,7 @@ export default async function CompanyPaymentPage({
             Activate {companyPackage.title}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Upload your payment receipt so Kamker admin can verify the package and activate staff profile publishing.
+            Upload your payment receipt. Clear matching receipts are approved by AI automatically, so your company can start adding staff profiles without waiting for admin.
           </p>
         </div>
 
@@ -221,7 +223,7 @@ export default async function CompanyPaymentPage({
                 <div>
                   <h2 className="text-xl font-bold">Upload payment receipt</h2>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Submit the receipt or transfer screenshot here. Kamker AI records visible payment details and admin reviews it before activation.
+                    Submit the receipt or transfer screenshot here. Kamker AI checks the visible amount and reference. If it matches, the package activates automatically.
                   </p>
                 </div>
               </div>
@@ -310,7 +312,7 @@ export default async function CompanyPaymentPage({
               <div className="mt-5 flex gap-3 rounded-lg border bg-secondary/40 p-4 text-sm leading-6 text-muted-foreground">
                 <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
                 <p>
-                  Package benefits start after Kamker confirms company details and payment. Once active, the company dashboard allows adding staff profiles according to this package limit.
+                  Package benefits start automatically when AI verifies the receipt. If the receipt is unclear, it stays pending for manual admin review.
                 </p>
               </div>
             </CardContent>
