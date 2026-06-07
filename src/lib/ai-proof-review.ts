@@ -33,6 +33,21 @@ export function canAutoApproveProof(review: AiProofReviewResult, expectedAmountP
   );
 }
 
+function hasStrongApprovalEvidence(input: {
+  confidence: number;
+  detectedAmountPkr: number | null;
+  detectedReference: string | null;
+  expectedAmountPkr: number;
+}) {
+  return (
+    input.confidence >=
+      Number(process.env.AI_REVIEW_AUTO_APPROVE_CONFIDENCE ?? 0.85) &&
+    input.detectedAmountPkr !== null &&
+    input.detectedAmountPkr >= input.expectedAmountPkr &&
+    Boolean(input.detectedReference)
+  );
+}
+
 export async function reviewProofWithAi({
   imageUrl,
   expectedAmountPkr,
@@ -119,17 +134,17 @@ export async function reviewProofWithAi({
     const confidence = safeNumber(parsed.confidence) ?? 0;
     const detectedAmountPkr = safeNumber(parsed.detectedAmountPkr);
     const detectedReference = safeString(parsed.detectedReference);
-    const decision =
-      parsed.decision === "auto_approved" &&
-      Boolean(parsed.readable) &&
-      detectedAmountPkr !== null &&
-      detectedAmountPkr >= expectedAmountPkr &&
-      detectedReference
-        ? "auto_approved"
-        : "needs_review";
+    const strongApprovalEvidence = hasStrongApprovalEvidence({
+      confidence,
+      detectedAmountPkr,
+      detectedReference,
+      expectedAmountPkr,
+    });
+    const readable = Boolean(parsed.readable) || strongApprovalEvidence;
+    const decision = strongApprovalEvidence ? "auto_approved" : "needs_review";
 
     return {
-      readable: Boolean(parsed.readable),
+      readable,
       detectedAmountPkr,
       detectedReference,
       detectedMethod: safeString(parsed.detectedMethod),
