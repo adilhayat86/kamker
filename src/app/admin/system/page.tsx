@@ -29,7 +29,7 @@ export default async function AdminSystemPage() {
   const readinessChecks = [
     ["Owner/manager admin password and KAMKER_AUTH_SECRET are set", health.adminAuth],
     ["NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set", health.supabase],
-    ["Required Supabase tables and latest matching columns exist", health.databaseSchema],
+    ["Required Supabase tables and MVP columns exist", health.databaseSchema],
     ["Storage buckets professional-photos, proof-images, company-images exist", health.storageBuckets],
     ["OpenAI proof review key is set if proof automation is required", health.openai],
     ["WhatsApp admin alert env vars are set", health.whatsapp],
@@ -46,7 +46,7 @@ export default async function AdminSystemPage() {
     <AdminShell
       active="/admin/system"
       title="System Health"
-      description="Deployment readiness checks for admin auth, database, AI proof review, and WhatsApp alerts."
+      description="Deployment readiness checks for admin auth, Supabase tables, storage, AI proof review, and WhatsApp alerts."
     >
       <div className="mt-6 grid gap-4 sm:grid-cols-5">
         <AdminStatCard label="Ready Checks" value={`${readyCount}/6`} tone={readyCount === 6 ? "good" : "warning"} />
@@ -105,6 +105,11 @@ export default async function AdminSystemPage() {
             <li>sql/20260607_storage_upload_limits.sql</li>
             <li>sql/20260607_disable_mvp_rls.sql</li>
           </ol>
+          <p className="mt-3 text-xs leading-5 text-muted-foreground">
+            This check covers core marketplace tables, company packages/payments,
+            staff profiles, proof reviews, analytics, WhatsApp logs, admin passwords,
+            audit logs, and the newer age/tagline/photo/company-media columns.
+          </p>
         </div>
       </AdminSection>
     </AdminShell>

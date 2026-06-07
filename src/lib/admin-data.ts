@@ -319,18 +319,40 @@ async function hasCompanyStaffRequirementMatchColumn() {
   return true;
 }
 
+async function hasReadableColumn(table: string, column: string) {
+  if (!supabase) {
+    return false;
+  }
+
+  const { error } = await supabase.from(table).select(column).limit(1);
+
+  if (error) {
+    console.error(`Admin system health column check failed for ${table}.${column}`, error);
+    return false;
+  }
+
+  return true;
+}
+
 async function getDatabaseSchemaReadiness() {
   const requiredTables = [
     "professionals",
     "customers",
+    "categories",
+    "cities",
     "requirements",
     "requirement_matches",
     "companies",
+    "company_packages",
+    "manual_payments",
     "company_package_subscriptions",
     "company_listings",
+    "company_media",
     "proof_reviews",
     "analytics_events",
     "whatsapp_messages",
+    "admin_passwords",
+    "admin_audit_logs",
   ];
 
   const tableChecks = await Promise.all(
@@ -343,6 +365,34 @@ async function getDatabaseSchemaReadiness() {
     {
       column: "requirement_matches.company_listing_id",
       ready: await hasCompanyStaffRequirementMatchColumn(),
+    },
+    {
+      column: "professionals.age",
+      ready: await hasReadableColumn("professionals", "age"),
+    },
+    {
+      column: "professionals.tagline",
+      ready: await hasReadableColumn("professionals", "tagline"),
+    },
+    {
+      column: "professionals.profile_photo_url",
+      ready: await hasReadableColumn("professionals", "profile_photo_url"),
+    },
+    {
+      column: "company_listings.service_group",
+      ready: await hasReadableColumn("company_listings", "service_group"),
+    },
+    {
+      column: "company_listings.age",
+      ready: await hasReadableColumn("company_listings", "age"),
+    },
+    {
+      column: "company_listings.profile_photo_url",
+      ready: await hasReadableColumn("company_listings", "profile_photo_url"),
+    },
+    {
+      column: "companies.logo_url",
+      ready: await hasReadableColumn("companies", "logo_url"),
     },
   ]);
 
