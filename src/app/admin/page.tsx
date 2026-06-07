@@ -201,7 +201,7 @@ export default async function AdminPage() {
         >
           <div className="grid gap-2">
             {[
-              ["New Requirements", summary.newRequirements],
+              ["Open Requirements", summary.newRequirements],
               ["Call Clicks", summary.todayCallClicks],
               ["WhatsApp Clicks", summary.todayWhatsappClicks],
             ].map(([label, value]) => (

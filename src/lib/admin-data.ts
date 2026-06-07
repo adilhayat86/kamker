@@ -65,6 +65,24 @@ async function countRows(table: string, filters: Record<string, string | boolean
   return count ?? 0;
 }
 
+async function countRowsIn(table: string, column: string, values: string[]) {
+  if (!isSupabaseConfigured || !supabase) {
+    return 0;
+  }
+
+  const { count, error } = await supabase
+    .from(table)
+    .select("id", { count: "exact", head: true })
+    .in(column, values);
+
+  if (error) {
+    console.error(`Failed to count ${table} where ${column} is in list`, error);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
 export async function getAdminCountSummary(): Promise<AdminCountSummary> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -109,7 +127,7 @@ export async function getAdminCountSummary(): Promise<AdminCountSummary> {
     countRows("company_listings", { status: "pending" }),
     countRows("company_listings", { status: "approved" }),
     countRows("proof_reviews", { audit_status: "unchecked" }),
-    countRows("requirements", { status: "new" }),
+    countRowsIn("requirements", "status", ["open", "new"]),
     countRows("professionals", { is_featured: true }),
     countRows("company_listings", { is_featured: true }),
     countRows("company_package_subscriptions", { status: "active" }),
