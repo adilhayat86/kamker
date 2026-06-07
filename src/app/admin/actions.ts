@@ -395,6 +395,10 @@ export async function activateCompanyPackage(formData: FormData) {
     .insert({
       company_id: companyId,
       package_id: companyPackage.id,
+      manual_payment_id:
+        typeof manualPaymentId === "string" && manualPaymentId
+          ? manualPaymentId
+          : null,
       package_key: companyPackage.package_key,
       listings_limit: companyPackage.listings_limit,
       featured_limit: companyPackage.featured_limit,
