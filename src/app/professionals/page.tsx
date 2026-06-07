@@ -36,6 +36,7 @@ import {
   getLocalProfessionalRecords,
   type LocalProfessionalRecord,
 } from "@/lib/local-demo-store";
+import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
@@ -288,7 +289,9 @@ function DbProfessionalCard({
   professional: DbProfessional;
   featured?: boolean;
 }) {
-  const whatsappNumber = professional.whatsapp_number ?? professional.phone_number;
+  const whatsappLink = buildWhatsappHref(
+    professional.whatsapp_number ?? professional.phone_number,
+  );
   const { timeLabel, daysLabel, combinedLabel } = availabilityLabels(professional);
   const tagline = professional.tagline?.trim() || "Trusted local professional";
   const verifiedLabel = professional.is_cnic_verified
@@ -386,11 +389,18 @@ function DbProfessionalCard({
               Call
             </a>
           </Button>
-          <Button asChild className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-            <a href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}>
+          <Button asChild={Boolean(whatsappLink)} className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]" disabled={!whatsappLink}>
+            {whatsappLink ? (
+            <a href={whatsappLink}>
               <MessageCircle aria-hidden="true" />
               WhatsApp
             </a>
+            ) : (
+              <span>
+                <MessageCircle aria-hidden="true" />
+                WhatsApp
+              </span>
+            )}
           </Button>
         </div>
         <Button asChild className="mt-2 h-11 w-full" variant="outline">
@@ -410,7 +420,9 @@ function ConversionProfessionalCard({
   professional: DirectoryProfessional;
   featured?: boolean;
 }) {
-  const whatsappNumber = professional.whatsapp_number ?? professional.phone_number;
+  const whatsappLink = buildWhatsappHref(
+    professional.whatsapp_number ?? professional.phone_number,
+  );
   const tagline = professional.tagline?.trim() || "Trusted local professional";
   const { combinedLabel } = availabilityLabels(professional);
 
@@ -496,11 +508,18 @@ function ConversionProfessionalCard({
               Call
             </a>
           </Button>
-          <Button asChild className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
-            <a href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}>
+          <Button asChild={Boolean(whatsappLink)} className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!whatsappLink}>
+            {whatsappLink ? (
+            <a href={whatsappLink}>
               <MessageCircle aria-hidden="true" />
               WhatsApp
             </a>
+            ) : (
+              <span>
+                <MessageCircle aria-hidden="true" />
+                WhatsApp
+              </span>
+            )}
           </Button>
           <Button asChild className="h-10 px-2" variant="outline">
             <Link href={`/professionals/${professional.id}`}>View Profile</Link>

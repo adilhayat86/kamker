@@ -8,6 +8,7 @@ import {
   isLocalDemoStoreEnabled,
   saveLocalCompany,
 } from "@/lib/local-demo-store";
+import { phoneFieldWithCountry } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
@@ -23,7 +24,7 @@ export async function registerCompany(formData: FormData) {
   const area = field(formData, "area");
   const contactPerson = field(formData, "contactPerson");
   const phone = field(formData, "phone");
-  const whatsapp = field(formData, "whatsapp");
+  const whatsapp = phoneFieldWithCountry(formData, "whatsapp");
   const licenseNumber = field(formData, "licenseNumber");
   const description = field(formData, "description");
   const draft = {

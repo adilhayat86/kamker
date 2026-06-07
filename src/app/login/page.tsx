@@ -72,7 +72,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                     name="phone"
                     type="tel"
                     className="h-11 w-full rounded-md border border-input bg-background px-3 pl-9 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    placeholder="+92 300 0000000"
+                    placeholder="Phone number"
                   />
                 </div>
               </label>

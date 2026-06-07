@@ -17,6 +17,7 @@ import {
   isLocalDemoStoreEnabled,
   saveLocalProfessional,
 } from "@/lib/local-demo-store";
+import { phoneFieldWithCountry } from "@/lib/phone";
 import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -78,7 +79,7 @@ async function saveProfessionalDraft(input: {
 export async function registerProfessional(formData: FormData) {
   const fullName = field(formData, "fullName");
   const phoneNumber = field(formData, "phone");
-  const whatsappNumber = field(formData, "whatsapp");
+  const whatsappNumber = phoneFieldWithCountry(formData, "whatsapp");
   const cityName = field(formData, "city");
   const area = field(formData, "area");
   const categoryName = field(formData, "category");

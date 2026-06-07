@@ -26,6 +26,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { logoutProfessional } from "@/app/logout/actions";
 import { PageNavigation } from "@/components/page-navigation";
 import { fallbackProfessionalImage } from "@/lib/professional-photo";
+import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
 
 export const metadata = {
   title: "My Account | Kamker",
@@ -100,7 +101,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
     : Boolean(demoProfessional?.is_featured);
   const publicProfileHref = `/professionals/${dbProfessional?.id ?? demoProfessional?.id}`;
   const isNewRegistration = status === "registered" || status === "registered-photo-skipped";
-  const cleanWhatsappNumber = whatsappNumber?.replace(/\D/g, "");
+  const whatsappLink = buildWhatsappHref(whatsappNumber);
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
@@ -343,9 +344,9 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                     Call
                   </a>
                 </Button>
-                {cleanWhatsappNumber ? (
+                {whatsappLink ? (
                   <Button asChild className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                    <a href={`https://wa.me/${cleanWhatsappNumber}`}>
+                    <a href={whatsappLink}>
                       <MessageCircle aria-hidden="true" />
                       WhatsApp
                     </a>

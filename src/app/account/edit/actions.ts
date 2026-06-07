@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getSessionProfessional } from "@/lib/auth";
+import { phoneFieldWithCountry } from "@/lib/phone";
 import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -28,7 +29,7 @@ function ageField(formData: FormData) {
 export async function updateProfessionalProfile(formData: FormData) {
   const fullName = field(formData, "fullName");
   const phoneNumber = field(formData, "phone");
-  const whatsappNumber = field(formData, "whatsapp");
+  const whatsappNumber = phoneFieldWithCountry(formData, "whatsapp");
   const cityName = field(formData, "city");
   const area = field(formData, "area");
   const categoryName = field(formData, "category");

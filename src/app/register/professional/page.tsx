@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Camera } from "lucide-react";
 
+import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
@@ -153,7 +154,7 @@ export default async function ProfessionalRegisterPage({
                 <PhotoUploadField />
                 <FormField label="Full name" name="fullName" defaultValue={draft.fullName} error={errorFor("fullName")} required />
                 <FormField label="Phone number" name="phone" type="tel" defaultValue={draft.phone} error={errorFor("phone")} required />
-                <FormField label="WhatsApp number" name="whatsapp" type="tel" defaultValue={draft.whatsapp} />
+                <CountryPhoneField label="WhatsApp number" name="whatsapp" defaultValue={draft.whatsapp} />
                 <SelectField label="City" name="city" options={cities} defaultValue={draft.city} error={errorFor("city")} required />
                 <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" defaultValue={draft.area} />
                 <SelectField label="Gender" name="gender" options={genderOptions} defaultValue={draft.gender} error={errorFor("gender")} required />

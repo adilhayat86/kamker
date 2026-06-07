@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Save, UserCog } from "lucide-react";
 
+import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { PhotoUploadField } from "@/components/photo-upload-field";
@@ -179,20 +180,38 @@ export default async function EditAccountPage({
                 value={fullName}
                 disabled={isDemo}
               />
-              <TextInput
-                label="Phone number"
-                name="phone"
-                type="tel"
-                value={phoneNumber}
-                disabled={isDemo}
-              />
-              <TextInput
-                label="WhatsApp number"
-                name="whatsapp"
-                type="tel"
-                value={whatsappNumber}
-                disabled={isDemo}
-              />
+              {isDemo ? (
+                <>
+                  <TextInput
+                    label="Phone number"
+                    name="phone"
+                    type="tel"
+                    value={phoneNumber}
+                    disabled
+                  />
+                  <TextInput
+                    label="WhatsApp number"
+                    name="whatsapp"
+                    type="tel"
+                    value={whatsappNumber}
+                    disabled
+                  />
+                </>
+              ) : (
+                <>
+                  <TextInput
+                    label="Phone number"
+                    name="phone"
+                    type="tel"
+                    value={phoneNumber}
+                  />
+                  <CountryPhoneField
+                    label="WhatsApp number"
+                    name="whatsapp"
+                    defaultValue={whatsappNumber}
+                  />
+                </>
+              )}
               <SelectInput
                 label="City"
                 name="city"

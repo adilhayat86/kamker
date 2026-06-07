@@ -13,6 +13,7 @@ import {
   isLocalDemoStoreEnabled,
   saveLocalCompanyListing,
 } from "@/lib/local-demo-store";
+import { phoneFieldWithCountry } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
@@ -49,7 +50,7 @@ export async function createCompanyListing(formData: FormData) {
   const hourlyRate = optionalNumber(formData, "hourlyRate");
   const monthlyRate = optionalNumber(formData, "monthlyRate");
   const phone = field(formData, "phone");
-  const whatsapp = field(formData, "whatsapp");
+  const whatsapp = phoneFieldWithCountry(formData, "whatsapp");
   const source = field(formData, "source") || "unknown";
 
   if (!companyId || !title || !serviceGroup || !category || !city || age === null || !tagline || !description || tagline.length > 30) {

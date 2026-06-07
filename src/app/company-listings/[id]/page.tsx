@@ -15,6 +15,7 @@ import {
   getLocalCompanyListingRecords,
   getLocalCompanyRecordById,
 } from "@/lib/local-demo-store";
+import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -36,11 +37,7 @@ function formatRate(listing: Pick<CompanyListingCardRow, "hourly_rate" | "monthl
 }
 
 function whatsappHref(value: string | null, title: string) {
-  if (!value) {
-    return null;
-  }
-
-  return `https://wa.me/${value.replace(/\D/g, "")}?text=${encodeURIComponent(`Hello, I found ${title} on Kamker.`)}`;
+  return buildWhatsappHref(value, `Hello, I found ${title} on Kamker.`);
 }
 
 async function getListing(id: string) {

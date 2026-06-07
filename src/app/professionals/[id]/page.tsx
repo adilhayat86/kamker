@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { recentProfessionals } from "@/lib/marketplace-data";
+import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
 import {
   getLocalProfessionalRecordById,
   localRecordToProfessional,
@@ -117,6 +118,7 @@ export default async function ProfessionalProfilePage({
 
   if (dbProfessional) {
     const whatsappNumber = dbProfessional.whatsapp_number ?? dbProfessional.phone_number;
+    const whatsappLink = buildWhatsappHref(whatsappNumber);
 
     return (
       <main className="min-h-screen bg-background px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
@@ -225,11 +227,18 @@ export default async function ProfessionalProfilePage({
                     Call
                   </a>
                 </Button>
-                <Button asChild className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                  <a href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}>
+                <Button asChild={Boolean(whatsappLink)} className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]" disabled={!whatsappLink}>
+                  {whatsappLink ? (
+                  <a href={whatsappLink}>
                     <MessageCircle aria-hidden="true" />
                     WhatsApp
                   </a>
+                  ) : (
+                    <span>
+                      <MessageCircle aria-hidden="true" />
+                      WhatsApp
+                    </span>
+                  )}
                 </Button>
                 <Button asChild className="h-12">
                   <Link href="/send-requirement">
@@ -248,11 +257,18 @@ export default async function ProfessionalProfilePage({
               Call
             </a>
           </Button>
-          <Button asChild className="h-12 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
-            <a href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}>
+          <Button asChild={Boolean(whatsappLink)} className="h-12 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!whatsappLink}>
+            {whatsappLink ? (
+            <a href={whatsappLink}>
               <MessageCircle aria-hidden="true" />
               WhatsApp
             </a>
+            ) : (
+              <span>
+                <MessageCircle aria-hidden="true" />
+                WhatsApp
+              </span>
+            )}
           </Button>
           <Button asChild className="h-12 px-2">
             <Link href="/send-requirement">

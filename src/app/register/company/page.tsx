@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Building2, ShieldCheck } from "lucide-react";
 
+import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
@@ -189,7 +190,11 @@ export default async function CompanyRegisterPage({
                   error={errorFor("phone")}
                   required
                 />
-                <FormField label="WhatsApp number" name="whatsapp" type="tel" defaultValue={draft.whatsapp} />
+                <CountryPhoneField
+                  label="WhatsApp number"
+                  name="whatsapp"
+                  defaultValue={draft.whatsapp}
+                />
                 <FormField
                   label="License number optional"
                   name="licenseNumber"

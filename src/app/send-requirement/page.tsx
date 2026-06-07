@@ -1,3 +1,4 @@
+import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
@@ -170,7 +171,7 @@ export default async function SendRequirementPage({
                   required
                   error={requiredError("Phone number is required.")}
                 />
-                <FormField label="WhatsApp number" name="whatsapp" type="tel" />
+                <CountryPhoneField label="WhatsApp number" name="whatsapp" />
               </div>
 
               <div className="grid gap-4 border-t pt-5">

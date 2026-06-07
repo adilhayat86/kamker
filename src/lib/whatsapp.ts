@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { whatsappDigits } from "@/lib/phone";
 
 type SendWhatsappTextInput = {
   to: string;
@@ -8,7 +9,7 @@ type SendWhatsappTextInput = {
 };
 
 function cleanPhoneNumber(value: string) {
-  return value.replace(/\D/g, "");
+  return whatsappDigits(value);
 }
 
 function whatsappConfig() {

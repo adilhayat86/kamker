@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Professional } from "@/lib/marketplace-data";
+import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
 import { workerAvailabilityLabel } from "@/lib/worker-availability";
 
 type ProfessionalCardProps = {
@@ -18,9 +19,7 @@ export function ProfessionalCard({
   featured = false,
 }: ProfessionalCardProps) {
   const phoneHref = professional.phone ? `tel:${professional.phone}` : null;
-  const whatsappHref = professional.whatsapp
-    ? `https://wa.me/${professional.whatsapp.replace(/\D/g, "")}`
-    : null;
+  const whatsappHref = buildWhatsappHref(professional.whatsapp);
   const profileHref = professional.profileHref ?? `/professionals/${professional.id}`;
   const companyHref = professional.company_id
     ? `/companies/${professional.company_id}`

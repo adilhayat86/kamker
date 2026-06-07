@@ -31,6 +31,7 @@ import {
   getLocalCompanyListingRecords,
   getLocalCompanyRecordById,
 } from "@/lib/local-demo-store";
+import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -181,11 +182,7 @@ async function getCompanyMedia(companyId: string) {
 }
 
 function whatsappHref(value: string | null, companyName: string) {
-  if (!value) {
-    return null;
-  }
-
-  return `https://wa.me/${value.replace(/\D/g, "")}?text=${encodeURIComponent(`Hello, I found ${companyName} on Kamker.`)}`;
+  return buildWhatsappHref(value, `Hello, I found ${companyName} on Kamker.`);
 }
 
 export async function generateMetadata({ params }: CompanyProfilePageProps) {

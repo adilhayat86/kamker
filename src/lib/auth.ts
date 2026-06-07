@@ -14,6 +14,7 @@ import {
   getLocalProfessionalRecordById,
   getLocalProfessionalRecords,
 } from "@/lib/local-demo-store";
+import { normalizePakistanPhoneNumber } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 const scrypt = promisify(scryptCallback);
@@ -33,7 +34,7 @@ type AuthProfessional = {
 };
 
 export function normalizePhoneNumber(phoneNumber: string) {
-  return phoneNumber.replace(/[^\d+]/g, "").replace(/(?!^)\+/g, "");
+  return normalizePakistanPhoneNumber(phoneNumber).replace(/\D/g, "");
 }
 
 function hashToken(token: string) {

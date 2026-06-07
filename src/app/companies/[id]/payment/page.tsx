@@ -270,7 +270,7 @@ export default async function CompanyPaymentPage({
                   <input
                     name="senderPhone"
                     className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    placeholder="03..."
+                    placeholder="Any payment sender number"
                   />
                 </label>
 

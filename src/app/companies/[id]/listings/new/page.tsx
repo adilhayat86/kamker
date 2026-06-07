@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BriefcaseBusiness, LockKeyhole, PackageCheck } from "lucide-react";
 
+import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleCard, DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
@@ -213,7 +214,7 @@ export default async function CompanyListingNewPage({
                   helpText="Choose a photo from phone gallery. Large images are compressed before upload."
                 />
                 <FormField label="Phone optional" name="phone" type="tel" />
-                <FormField label="WhatsApp optional" name="whatsapp" type="tel" />
+                <CountryPhoneField label="WhatsApp optional" name="whatsapp" />
                 <div className="sm:col-span-2">
                   <TextAreaField
                     label="Staff profile details"

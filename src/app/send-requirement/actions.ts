@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { trackAnalyticsEvent } from "@/lib/analytics";
+import { phoneFieldWithCountry } from "@/lib/phone";
 import { createRequirementMatches } from "@/lib/requirement-matching";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
@@ -20,7 +21,7 @@ export async function submitRequirement(formData: FormData) {
   const availability = requiredValue(formData, "availability");
   const budget = requiredValue(formData, "budget");
   const phoneNumber = requiredValue(formData, "phone");
-  const whatsappNumber = requiredValue(formData, "whatsapp");
+  const whatsappNumber = phoneFieldWithCountry(formData, "whatsapp");
   const urgency = requiredValue(formData, "urgency");
   const details = requiredValue(formData, "details");
   const source = requiredValue(formData, "source") || "unknown";
