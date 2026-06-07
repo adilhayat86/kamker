@@ -35,6 +35,8 @@ export const metadata = {
 const statusMessages = {
   updated: "Profile updated successfully.",
   registered: "Welcome to Kamker. Your professional profile has been created.",
+  "registered-photo-skipped":
+    "Welcome to Kamker. Your profile was created, but the photo could not be saved. You can add it later from Edit Profile.",
 } as const;
 
 type AccountPageProps = {
@@ -97,7 +99,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
     ? isAccountFeatured(dbProfessional)
     : Boolean(demoProfessional?.is_featured);
   const publicProfileHref = `/professionals/${dbProfessional?.id ?? demoProfessional?.id}`;
-  const isNewRegistration = status === "registered";
+  const isNewRegistration = status === "registered" || status === "registered-photo-skipped";
   const cleanWhatsappNumber = whatsappNumber?.replace(/\D/g, "");
 
   return (

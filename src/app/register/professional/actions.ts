@@ -190,6 +190,7 @@ export async function registerProfessional(formData: FormData) {
 
   const autoApprove = await getAutoApproveProfessionals();
   let profilePhotoUrl: string | null = null;
+  let photoSkipped = false;
   const availability = workerAvailabilitySummary(
     validatedAvailabilityTime,
     validatedAvailabilityDays,
@@ -198,12 +199,13 @@ export async function registerProfessional(formData: FormData) {
   try {
     profilePhotoUrl = await uploadProfessionalPhoto(formData);
   } catch (error) {
-    await saveProfessionalDraft(draftInput);
-    redirect(
-      error instanceof Error && error.message === "invalid-photo"
-        ? "/register/professional?status=invalid-photo"
-        : "/register/professional?status=photo-error",
-    );
+    if (error instanceof Error && error.message === "invalid-photo") {
+      await saveProfessionalDraft(draftInput);
+      redirect("/register/professional?status=invalid-photo");
+    }
+
+    photoSkipped = true;
+    console.error("Professional photo upload failed; continuing registration without photo", error);
   }
 
   const { data: professional, error } = await supabase
@@ -245,5 +247,5 @@ export async function registerProfessional(formData: FormData) {
 
   await createProfessionalSession(professional.id as string);
   await clearFormDraft("professional");
-  redirect("/account?status=registered");
+  redirect(photoSkipped ? "/account?status=registered-photo-skipped" : "/account?status=registered");
 }
