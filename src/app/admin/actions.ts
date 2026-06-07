@@ -353,6 +353,54 @@ export async function activateFeaturedProfileProof(formData: FormData) {
   revalidatePath(`/professionals/${professionalId}`);
 }
 
+export async function rejectProofReview(formData: FormData) {
+  const proofReviewId = formData.get("proofReviewId");
+
+  if (
+    typeof proofReviewId !== "string" ||
+    !proofReviewId ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data: proofReview, error: loadError } = await supabase
+    .from("proof_reviews")
+    .select("id, review_type, related_id")
+    .eq("id", proofReviewId)
+    .maybeSingle();
+
+  if (loadError || !proofReview) {
+    console.error("Failed to load proof review before rejection", loadError);
+    return;
+  }
+
+  const { error } = await supabase
+    .from("proof_reviews")
+    .update({ audit_status: "rejected" })
+    .eq("id", proofReviewId);
+
+  if (error) {
+    console.error("Failed to reject proof review", error);
+    return;
+  }
+
+  await recordAdminAudit({
+    action: "reject_proof_review",
+    targetType: "proof_review",
+    targetId: proofReviewId,
+    metadata: {
+      reviewType: proofReview.review_type,
+      relatedId: proofReview.related_id,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/payments");
+}
+
 export async function deleteProfessional(formData: FormData) {
   const id = formData.get("professionalId");
   const confirmation = formData.get("confirmDelete");
@@ -569,6 +617,81 @@ export async function activateCompanyPackage(formData: FormData) {
   revalidatePath("/admin/payments");
   revalidatePath(`/companies/${companyId}/dashboard`);
   revalidatePath(`/companies/${companyId}/packages`);
+}
+
+export async function rejectManualPayment(formData: FormData) {
+  const manualPaymentId = formData.get("manualPaymentId");
+
+  if (
+    typeof manualPaymentId !== "string" ||
+    !manualPaymentId ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data: payment, error: loadError } = await supabase
+    .from("manual_payments")
+    .select("id, company_id, package_key, status")
+    .eq("id", manualPaymentId)
+    .maybeSingle();
+
+  if (loadError || !payment) {
+    console.error("Failed to load manual payment before rejection", loadError);
+    return;
+  }
+
+  const reviewedAt = new Date().toISOString();
+  const { error: paymentError } = await supabase
+    .from("manual_payments")
+    .update({
+      status: "rejected",
+      reviewed_at: reviewedAt,
+      admin_notes: "Rejected by admin payment review.",
+    })
+    .eq("id", manualPaymentId);
+
+  if (paymentError) {
+    console.error("Failed to reject manual payment", paymentError);
+    return;
+  }
+
+  const { error: companyError } = await supabase
+    .from("companies")
+    .update({ payment_status: "rejected" })
+    .eq("id", payment.company_id);
+
+  if (companyError) {
+    console.error("Failed to mark company payment rejected", companyError);
+  }
+
+  const { error: proofError } = await supabase
+    .from("proof_reviews")
+    .update({ audit_status: "rejected" })
+    .eq("related_id", manualPaymentId)
+    .eq("review_type", "company_package");
+
+  if (proofError) {
+    console.error("Failed to reject linked company proof review", proofError);
+  }
+
+  await recordAdminAudit({
+    action: "reject_manual_payment",
+    targetType: "manual_payment",
+    targetId: manualPaymentId,
+    metadata: {
+      companyId: payment.company_id,
+      packageKey: payment.package_key,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/payments");
+  revalidatePath("/admin/companies");
+  revalidatePath(`/companies/${payment.company_id}/dashboard`);
+  revalidatePath(`/companies/${payment.company_id}/packages`);
 }
 
 export async function approveCompanyListing(formData: FormData) {

@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import {
   activateCompanyPackage,
   activateFeaturedProfileProof,
+  rejectManualPayment,
+  rejectProofReview,
 } from "@/app/admin/actions";
 import {
   AdminEmptyState,
@@ -170,17 +172,40 @@ export default async function AdminPaymentsPage() {
                 {proof.review_type === "featured_profile" &&
                 proof.related_id &&
                 proof.audit_status !== "approved" &&
-                proof.audit_status !== "auto_approved" ? (
+                proof.audit_status !== "auto_approved" &&
+                proof.audit_status !== "rejected" ? (
+                  <div className="mt-4 grid gap-2 rounded-lg border bg-slate-50 p-3 sm:grid-cols-[1fr_auto_auto]">
+                    <p className="text-sm text-muted-foreground">
+                      Approve this proof and activate the worker featured profile, or reject the proof.
+                    </p>
+                    <form action={activateFeaturedProfileProof}>
+                      <input type="hidden" name="proofReviewId" value={proof.id} />
+                      <Button type="submit" disabled={!adminAuthenticated}>
+                        Activate Featured Profile
+                      </Button>
+                    </form>
+                    <form action={rejectProofReview}>
+                      <input type="hidden" name="proofReviewId" value={proof.id} />
+                      <Button type="submit" variant="outline" disabled={!adminAuthenticated}>
+                        Reject Proof
+                      </Button>
+                    </form>
+                  </div>
+                ) : null}
+                {proof.review_type !== "featured_profile" &&
+                proof.audit_status !== "approved" &&
+                proof.audit_status !== "auto_approved" &&
+                proof.audit_status !== "rejected" ? (
                   <form
-                    action={activateFeaturedProfileProof}
+                    action={rejectProofReview}
                     className="mt-4 grid gap-2 rounded-lg border bg-slate-50 p-3 sm:grid-cols-[1fr_auto]"
                   >
                     <input type="hidden" name="proofReviewId" value={proof.id} />
                     <p className="text-sm text-muted-foreground">
-                      Approve this proof and activate the worker featured profile.
+                      Mark this proof review as rejected if the screenshot is invalid or unrelated.
                     </p>
-                    <Button type="submit" disabled={!adminAuthenticated}>
-                      Activate Featured Profile
+                    <Button type="submit" variant="outline" disabled={!adminAuthenticated}>
+                      Reject Proof
                     </Button>
                   </form>
                 ) : null}
@@ -221,21 +246,26 @@ export default async function AdminPaymentsPage() {
                     ]}
                   />
                 </div>
-                {payment.status !== "approved" ? (
-                  <form
-                    action={activateCompanyPackage}
-                    className="mt-4 grid gap-2 rounded-lg border bg-slate-50 p-3 sm:grid-cols-[1fr_auto]"
-                  >
-                    <input type="hidden" name="companyId" value={payment.company_id} />
-                    <input type="hidden" name="packageKey" value={payment.package_key} />
-                    <input type="hidden" name="manualPaymentId" value={payment.id} />
+                {payment.status === "pending_review" ? (
+                  <div className="mt-4 grid gap-2 rounded-lg border bg-slate-50 p-3 sm:grid-cols-[1fr_auto_auto]">
                     <p className="text-sm text-muted-foreground">
-                      Approve this payment and activate the selected company package.
+                      Approve this payment and activate the selected company package, or reject the payment proof.
                     </p>
-                    <Button type="submit" disabled={!adminAuthenticated}>
-                      Activate Package
-                    </Button>
-                  </form>
+                    <form action={activateCompanyPackage}>
+                      <input type="hidden" name="companyId" value={payment.company_id} />
+                      <input type="hidden" name="packageKey" value={payment.package_key} />
+                      <input type="hidden" name="manualPaymentId" value={payment.id} />
+                      <Button type="submit" disabled={!adminAuthenticated}>
+                        Activate Package
+                      </Button>
+                    </form>
+                    <form action={rejectManualPayment}>
+                      <input type="hidden" name="manualPaymentId" value={payment.id} />
+                      <Button type="submit" variant="outline" disabled={!adminAuthenticated}>
+                        Reject Payment
+                      </Button>
+                    </form>
+                  </div>
                 ) : null}
               </div>
             ))
