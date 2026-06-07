@@ -46,6 +46,7 @@ export type SystemHealth = {
   missingTables: string[];
   missingColumns: string[];
   missingBuckets: string[];
+  bucketIssues: string[];
 };
 
 async function countRows(table: string, filters: Record<string, string | boolean | null> = {}) {
@@ -259,6 +260,7 @@ export async function getSystemHealth() {
     missingTables: [],
     missingColumns: [],
     missingBuckets: [],
+    bucketIssues: [],
   };
 
   if (isSupabaseConfigured && supabase) {
@@ -272,6 +274,7 @@ export async function getSystemHealth() {
     configured.missingTables = databaseReadiness.missingTables;
     configured.missingColumns = databaseReadiness.missingColumns;
     configured.missingBuckets = storageReadiness.missingBuckets;
+    configured.bucketIssues = storageReadiness.bucketIssues;
   }
 
   return configured;
@@ -356,34 +359,52 @@ async function getDatabaseSchemaReadiness() {
   };
 }
 
-async function hasStorageBucket(bucket: string) {
+type RequiredBucket = {
+  name: string;
+  minFileSizeLimit: number;
+};
+
+async function checkStorageBucket(bucket: RequiredBucket) {
   if (!supabase) {
-    return false;
+    return { bucket: bucket.name, ready: false, issue: null };
   }
 
-  const { error } = await supabase.storage.getBucket(bucket);
+  const { data, error } = await supabase.storage.getBucket(bucket.name);
 
   if (error) {
-    console.error(`Admin system health bucket check failed for ${bucket}`, error);
-    return false;
+    console.error(`Admin system health bucket check failed for ${bucket.name}`, error);
+    return { bucket: bucket.name, ready: false, issue: null };
   }
 
-  return true;
+  const fileSizeLimit =
+    typeof data?.file_size_limit === "number" ? data.file_size_limit : null;
+
+  if (fileSizeLimit !== null && fileSizeLimit < bucket.minFileSizeLimit) {
+    return {
+      bucket: bucket.name,
+      ready: false,
+      issue: `${bucket.name} limit is ${(fileSizeLimit / 1024 / 1024).toFixed(1)}MB; expected at least ${(bucket.minFileSizeLimit / 1024 / 1024).toFixed(0)}MB`,
+    };
+  }
+
+  return { bucket: bucket.name, ready: true, issue: null };
 }
 
 async function getStorageBucketReadiness() {
-  const requiredBuckets = ["professional-photos", "proof-images", "company-images"];
-  const bucketChecks = await Promise.all(
-    requiredBuckets.map(async (bucket) => ({
-      bucket,
-      ready: await hasStorageBucket(bucket),
-    })),
-  );
+  const requiredBuckets: RequiredBucket[] = [
+    { name: "professional-photos", minFileSizeLimit: 10 * 1024 * 1024 },
+    { name: "proof-images", minFileSizeLimit: 8 * 1024 * 1024 },
+    { name: "company-images", minFileSizeLimit: 20 * 1024 * 1024 },
+  ];
+  const bucketChecks = await Promise.all(requiredBuckets.map(checkStorageBucket));
 
   return {
     ready: bucketChecks.every((check) => check.ready),
     missingBuckets: bucketChecks
-      .filter((check) => !check.ready)
+      .filter((check) => !check.ready && !check.issue)
       .map((check) => check.bucket),
+    bucketIssues: bucketChecks
+      .map((check) => check.issue)
+      .filter((issue): issue is string => Boolean(issue)),
   };
 }

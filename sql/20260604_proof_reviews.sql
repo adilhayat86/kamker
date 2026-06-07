@@ -21,7 +21,7 @@ values (
   'proof-images',
   'proof-images',
   true,
-  3145728,
+  8388608,
   array['image/jpeg', 'image/png', 'image/webp']
 )
 on conflict (id) do update set

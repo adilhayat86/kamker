@@ -39,6 +39,7 @@ export default async function AdminSystemPage() {
     ...health.missingTables.map((table) => `Missing table: ${table}`),
     ...health.missingColumns.map((column) => `Missing column: ${column}`),
     ...health.missingBuckets.map((bucket) => `Missing storage bucket: ${bucket}`),
+    ...health.bucketIssues,
   ];
 
   return (
@@ -101,6 +102,7 @@ export default async function AdminSystemPage() {
             <li>sql/20260607_admin_audit_logs.sql</li>
             <li>sql/20260607_admin_passwords.sql</li>
             <li>sql/20260607_company_staff_requirement_matches.sql</li>
+            <li>sql/20260607_storage_upload_limits.sql</li>
             <li>sql/20260607_disable_mvp_rls.sql</li>
           </ol>
         </div>
