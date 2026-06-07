@@ -7,6 +7,7 @@ import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { trackedContactHref } from "@/lib/contact-tracking";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { recentProfessionals } from "@/lib/marketplace-data";
 import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
@@ -119,6 +120,26 @@ export default async function ProfessionalProfilePage({
   if (dbProfessional) {
     const whatsappNumber = dbProfessional.whatsapp_number ?? dbProfessional.phone_number;
     const whatsappLink = buildWhatsappHref(whatsappNumber);
+    const phoneLink = `tel:${dbProfessional.phone_number}`;
+    const profilePath = `/professionals/${dbProfessional.id}`;
+    const trackedPhoneLink = trackedContactHref({
+      href: phoneLink,
+      eventType: "call_click",
+      targetType: "professional",
+      targetId: dbProfessional.id,
+      path: profilePath,
+      category: dbProfessional.categories?.name ?? "Professional",
+      city: dbProfessional.cities?.name ?? "Pakistan",
+    });
+    const trackedWhatsappLink = trackedContactHref({
+      href: whatsappLink,
+      eventType: "whatsapp_click",
+      targetType: "professional",
+      targetId: dbProfessional.id,
+      path: profilePath,
+      category: dbProfessional.categories?.name ?? "Professional",
+      city: dbProfessional.cities?.name ?? "Pakistan",
+    });
 
     return (
       <main className="min-h-screen bg-background px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
@@ -222,14 +243,14 @@ export default async function ProfessionalProfilePage({
 
               <div className="mt-6 hidden gap-2 sm:grid sm:grid-cols-3">
                 <Button asChild variant="outline" className="h-12">
-                  <a href={`tel:${dbProfessional.phone_number}`}>
+                  <a href={trackedPhoneLink ?? phoneLink}>
                     <Phone aria-hidden="true" />
                     Call
                   </a>
                 </Button>
-                <Button asChild={Boolean(whatsappLink)} className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]" disabled={!whatsappLink}>
-                  {whatsappLink ? (
-                  <a href={whatsappLink}>
+                <Button asChild={Boolean(trackedWhatsappLink)} className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
+                  {trackedWhatsappLink ? (
+                  <a href={trackedWhatsappLink}>
                     <MessageCircle aria-hidden="true" />
                     WhatsApp
                   </a>
@@ -252,14 +273,14 @@ export default async function ProfessionalProfilePage({
         </section>
         <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 gap-2 border-t bg-white/95 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
           <Button asChild variant="outline" className="h-12">
-            <a href={`tel:${dbProfessional.phone_number}`}>
+            <a href={trackedPhoneLink ?? phoneLink}>
               <Phone aria-hidden="true" />
               Call
             </a>
           </Button>
-          <Button asChild={Boolean(whatsappLink)} className="h-12 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!whatsappLink}>
-            {whatsappLink ? (
-            <a href={whatsappLink}>
+          <Button asChild={Boolean(trackedWhatsappLink)} className="h-12 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
+            {trackedWhatsappLink ? (
+            <a href={trackedWhatsappLink}>
               <MessageCircle aria-hidden="true" />
               WhatsApp
             </a>

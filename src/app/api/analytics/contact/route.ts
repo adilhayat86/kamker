@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { trackAnalyticsEvent } from "@/lib/analytics";
 
 const allowedEvents = new Set(["call_click", "whatsapp_click"]);
-const allowedTargetTypes = new Set(["professional", "company_listing"]);
+const allowedTargetTypes = new Set(["professional", "company", "company_listing"]);
 
 function safeDestination(value: string | null) {
   if (!value) {
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   if (allowedEvents.has(eventType) && allowedTargetTypes.has(targetType)) {
     await trackAnalyticsEvent({
       eventType: eventType as "call_click" | "whatsapp_click",
-      targetType: targetType as "professional" | "company_listing",
+      targetType: targetType as "professional" | "company" | "company_listing",
       targetId,
       metadata: {
         path: params.get("path") ?? "",

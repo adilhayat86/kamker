@@ -5,6 +5,7 @@ import { BadgeCheck, Clock, MapPin, MessageCircle, Phone, Sparkles, Star } from 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { trackedProfessionalContactHref } from "@/lib/contact-tracking";
 import type { Professional } from "@/lib/marketplace-data";
 import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
 import { workerAvailabilityLabel } from "@/lib/worker-availability";
@@ -14,44 +15,18 @@ type ProfessionalCardProps = {
   featured?: boolean;
 };
 
-function trackedContactHref({
-  href,
-  eventType,
-  professional,
-}: {
-  href: string | null;
-  eventType: "call_click" | "whatsapp_click";
-  professional: Professional;
-}) {
-  if (!href) {
-    return null;
-  }
-
-  const params = new URLSearchParams({
-    eventType,
-    targetType: professional.is_company_managed ? "company_listing" : "professional",
-    targetId: professional.id,
-    href,
-    path: professional.profileHref ?? `/professionals/${professional.id}`,
-    category: professional.role,
-    city: professional.city,
-  });
-
-  return `/api/analytics/contact?${params.toString()}`;
-}
-
 export function ProfessionalCard({
   professional,
   featured = false,
 }: ProfessionalCardProps) {
   const phoneHref = professional.phone ? `tel:${professional.phone}` : null;
   const whatsappHref = buildWhatsappHref(professional.whatsapp);
-  const trackedPhoneHref = trackedContactHref({
+  const trackedPhoneHref = trackedProfessionalContactHref({
     href: phoneHref,
     eventType: "call_click",
     professional,
   });
-  const trackedWhatsappHref = trackedContactHref({
+  const trackedWhatsappHref = trackedProfessionalContactHref({
     href: whatsappHref,
     eventType: "whatsapp_click",
     professional,

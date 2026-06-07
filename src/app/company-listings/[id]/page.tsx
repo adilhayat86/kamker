@@ -11,6 +11,7 @@ import {
   getMockCompanyListingById,
   type CompanyListingCardRow,
 } from "@/lib/company-listing-cards";
+import { trackedContactHref } from "@/lib/contact-tracking";
 import {
   getLocalCompanyListingRecords,
   getLocalCompanyRecordById,
@@ -127,6 +128,26 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
   }
 
   const whatsapp = whatsappHref(listing.whatsapp, listing.title);
+  const listingPath = `/company-listings/${listing.id}`;
+  const phoneHref = listing.phone ? `tel:${listing.phone}` : null;
+  const trackedPhoneHref = trackedContactHref({
+    href: phoneHref,
+    eventType: "call_click",
+    targetType: "company_listing",
+    targetId: listing.id,
+    path: listingPath,
+    category: listing.category,
+    city: listing.city,
+  });
+  const trackedWhatsappHref = trackedContactHref({
+    href: whatsapp,
+    eventType: "whatsapp_click",
+    targetType: "company_listing",
+    targetId: listing.id,
+    path: listingPath,
+    category: listing.category,
+    city: listing.city,
+  });
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -217,17 +238,17 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
             ) : null}
 
             <div className="mt-6 grid gap-2 sm:grid-cols-3">
-              {listing.phone ? (
+              {trackedPhoneHref ? (
                 <Button asChild variant="outline" className="h-12">
-                  <a href={`tel:${listing.phone}`}>
+                  <a href={trackedPhoneHref}>
                     <Phone className="size-4" aria-hidden="true" />
                     Call
                   </a>
                 </Button>
               ) : null}
-              {whatsapp ? (
+              {trackedWhatsappHref ? (
                 <Button asChild className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                  <a href={whatsapp}>
+                  <a href={trackedWhatsappHref}>
                     <MessageCircle className="size-4" aria-hidden="true" />
                     WhatsApp
                   </a>

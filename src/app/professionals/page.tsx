@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { trackedContactHref } from "@/lib/contact-tracking";
 import {
   workerAvailabilitySummary,
   workerDayAvailabilityLabel,
@@ -317,6 +318,26 @@ function DbProfessionalCard({
   const whatsappLink = buildWhatsappHref(
     professional.whatsapp_number ?? professional.phone_number,
   );
+  const profilePath = `/professionals/${professional.id}`;
+  const phoneLink = `tel:${professional.phone_number}`;
+  const trackedPhoneLink = trackedContactHref({
+    href: phoneLink,
+    eventType: "call_click",
+    targetType: "professional",
+    targetId: professional.id,
+    path: profilePath,
+    category: professional.categories?.name ?? "Professional",
+    city: professional.cities?.name ?? "Pakistan",
+  });
+  const trackedWhatsappLink = trackedContactHref({
+    href: whatsappLink,
+    eventType: "whatsapp_click",
+    targetType: "professional",
+    targetId: professional.id,
+    path: profilePath,
+    category: professional.categories?.name ?? "Professional",
+    city: professional.cities?.name ?? "Pakistan",
+  });
   const { timeLabel, daysLabel, combinedLabel } = availabilityLabels(professional);
   const tagline = professional.tagline?.trim() || "Trusted local professional";
   const verifiedLabel = professional.is_cnic_verified
@@ -409,14 +430,14 @@ function DbProfessionalCard({
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2">
           <Button asChild variant="outline" className="h-11">
-            <a href={`tel:${professional.phone_number}`}>
+            <a href={trackedPhoneLink ?? phoneLink}>
               <Phone aria-hidden="true" />
               Call
             </a>
           </Button>
-          <Button asChild={Boolean(whatsappLink)} className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]" disabled={!whatsappLink}>
-            {whatsappLink ? (
-            <a href={whatsappLink}>
+          <Button asChild={Boolean(trackedWhatsappLink)} className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
+            {trackedWhatsappLink ? (
+            <a href={trackedWhatsappLink}>
               <MessageCircle aria-hidden="true" />
               WhatsApp
             </a>
@@ -448,6 +469,26 @@ function ConversionProfessionalCard({
   const whatsappLink = buildWhatsappHref(
     professional.whatsapp_number ?? professional.phone_number,
   );
+  const profilePath = `/professionals/${professional.id}`;
+  const phoneLink = `tel:${professional.phone_number}`;
+  const trackedPhoneLink = trackedContactHref({
+    href: phoneLink,
+    eventType: "call_click",
+    targetType: "professional",
+    targetId: professional.id,
+    path: profilePath,
+    category: professional.categories?.name ?? "Professional",
+    city: professional.cities?.name ?? "Pakistan",
+  });
+  const trackedWhatsappLink = trackedContactHref({
+    href: whatsappLink,
+    eventType: "whatsapp_click",
+    targetType: "professional",
+    targetId: professional.id,
+    path: profilePath,
+    category: professional.categories?.name ?? "Professional",
+    city: professional.cities?.name ?? "Pakistan",
+  });
   const tagline = professional.tagline?.trim() || "Trusted local professional";
   const { combinedLabel } = availabilityLabels(professional);
 
@@ -528,14 +569,14 @@ function ConversionProfessionalCard({
 
         <div className="mt-auto grid grid-cols-3 gap-2 pt-3">
           <Button asChild variant="outline" className="h-10 px-2">
-            <a href={`tel:${professional.phone_number}`}>
+            <a href={trackedPhoneLink ?? phoneLink}>
               <Phone aria-hidden="true" />
               Call
             </a>
           </Button>
-          <Button asChild={Boolean(whatsappLink)} className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!whatsappLink}>
-            {whatsappLink ? (
-            <a href={whatsappLink}>
+          <Button asChild={Boolean(trackedWhatsappLink)} className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
+            {trackedWhatsappLink ? (
+            <a href={trackedWhatsappLink}>
               <MessageCircle aria-hidden="true" />
               WhatsApp
             </a>

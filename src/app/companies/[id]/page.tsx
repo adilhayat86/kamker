@@ -27,6 +27,7 @@ import {
   type CompanyListingCardRow,
 } from "@/lib/company-listing-cards";
 import { getActiveCompanySubscription } from "@/lib/company-packages";
+import { trackedContactHref } from "@/lib/contact-tracking";
 import {
   getLocalCompanyListingRecords,
   getLocalCompanyRecordById,
@@ -236,6 +237,26 @@ export default async function CompanyProfilePage({
   });
   const staffCards = filteredStaff.map(companyListingToProfessionalCard);
   const whatsapp = whatsappHref(company.whatsapp, company.company_name);
+  const companyPath = `/companies/${company.id}`;
+  const phoneHref = company.phone ? `tel:${company.phone}` : null;
+  const trackedPhoneHref = trackedContactHref({
+    href: phoneHref,
+    eventType: "call_click",
+    targetType: "company",
+    targetId: company.id,
+    path: companyPath,
+    category: company.category,
+    city: company.city,
+  });
+  const trackedWhatsappHref = trackedContactHref({
+    href: whatsapp,
+    eventType: "whatsapp_click",
+    targetType: "company",
+    targetId: company.id,
+    path: companyPath,
+    category: company.category,
+    city: company.city,
+  });
   const verificationLabel =
     company.verification_status === "verified" ? "Verified Company" : "Verification Pending";
 
@@ -334,17 +355,17 @@ export default async function CompanyProfilePage({
                 Contact directly for staff availability, rates, and service areas.
               </p>
               <div className="mt-5 grid gap-2">
-                {company.phone ? (
+                {trackedPhoneHref ? (
                   <Button asChild variant="outline" className="h-12 justify-start bg-white">
-                    <a href={`tel:${company.phone}`}>
+                    <a href={trackedPhoneHref}>
                       <Phone className="size-4" aria-hidden="true" />
                       {company.phone}
                     </a>
                   </Button>
                 ) : null}
-                {whatsapp ? (
+                {trackedWhatsappHref ? (
                   <Button asChild className="h-12 justify-start bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                    <a href={whatsapp}>
+                    <a href={trackedWhatsappHref}>
                       <MessageCircle className="size-4" aria-hidden="true" />
                       WhatsApp
                     </a>
