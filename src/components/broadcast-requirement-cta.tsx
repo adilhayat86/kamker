@@ -43,10 +43,10 @@ export function BroadcastRequirementCta({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-normal text-white/80">
-              Broadcast requirement
+              Send Requirement
             </p>
             <p className="mt-1 text-lg font-bold leading-snug sm:text-xl">
-              Message matching professionals quickly.
+              Reach matching professionals quickly.
             </p>
           </div>
           <Button
