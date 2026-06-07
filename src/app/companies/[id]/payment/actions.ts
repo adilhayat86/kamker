@@ -10,7 +10,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
 const allowedProofTypes = ["image/jpeg", "image/png", "image/webp"];
-const maxProofSize = 3 * 1024 * 1024;
+const maxProofSize = 8 * 1024 * 1024;
 
 function field(formData: FormData, key: string) {
   const value = formData.get(key);

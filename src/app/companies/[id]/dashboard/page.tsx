@@ -2,11 +2,15 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Building2,
+  CheckCircle2,
+  Clock3,
   ExternalLink,
   ImageIcon,
   ListChecks,
   PackageCheck,
   PlusCircle,
+  ReceiptText,
+  RefreshCcw,
   Sparkles,
   Upload,
   Video,
@@ -71,6 +75,17 @@ type CompanyMedia = {
   media_type: "image" | "video";
   caption: string | null;
   sort_order: number | null;
+};
+
+type CompanyPaymentStatus = {
+  id: string;
+  package_key: string | null;
+  amount_pkr: number;
+  status: string;
+  created_at: string;
+  proof_decision: string | null;
+  proof_confidence: number | null;
+  proof_notes: string | null;
 };
 
 type CompanyDashboardPageProps = {
@@ -185,6 +200,92 @@ async function getCompanyMedia(companyId: string) {
   return (data ?? []) as CompanyMedia[];
 }
 
+async function getLatestCompanyPaymentStatus(companyId: string) {
+  if (!isSupabaseConfigured || !supabase) {
+    return null;
+  }
+
+  const { data: payment, error: paymentError } = await supabase
+    .from("manual_payments")
+    .select("id, package_key, amount_pkr, status, created_at")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (paymentError || !payment) {
+    if (paymentError) {
+      console.error("Failed to load latest company payment", paymentError);
+    }
+
+    return null;
+  }
+
+  const { data: proofReview, error: proofError } = await supabase
+    .from("proof_reviews")
+    .select("ai_decision, ai_confidence, ai_notes")
+    .eq("related_id", payment.id)
+    .eq("review_type", "company_package")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (proofError) {
+    console.error("Failed to load latest company proof review", proofError);
+  }
+
+  return {
+    id: payment.id as string,
+    package_key: (payment.package_key as string | null) ?? null,
+    amount_pkr: Number(payment.amount_pkr ?? 0),
+    status: String(payment.status ?? "pending_review"),
+    created_at: String(payment.created_at),
+    proof_decision: proofReview?.ai_decision ? String(proofReview.ai_decision) : null,
+    proof_confidence:
+      typeof proofReview?.ai_confidence === "number" ? proofReview.ai_confidence : null,
+    proof_notes: proofReview?.ai_notes ? String(proofReview.ai_notes) : null,
+  } satisfies CompanyPaymentStatus;
+}
+
+function paymentStateLabel(activeSubscription: Awaited<ReturnType<typeof getActiveCompanySubscription>>, payment: CompanyPaymentStatus | null) {
+  if (activeSubscription) {
+    return "Package Active";
+  }
+
+  if (payment?.status === "pending_review" || payment?.proof_decision === "needs_review") {
+    return "Payment Under Review";
+  }
+
+  return "Package Required";
+}
+
+function paymentStateDescription(activeSubscription: Awaited<ReturnType<typeof getActiveCompanySubscription>>, payment: CompanyPaymentStatus | null) {
+  if (activeSubscription) {
+    return "Your package is active. Add staff profiles and publish them after review.";
+  }
+
+  if (payment?.status === "pending_review" || payment?.proof_decision === "needs_review") {
+    return "Your receipt was uploaded, but AI could not safely verify it. You can upload a clearer receipt or wait for review.";
+  }
+
+  return "Choose a package and upload a receipt to unlock company staff profiles.";
+}
+
+function onboardingSteps(activeSubscription: Awaited<ReturnType<typeof getActiveCompanySubscription>>, payment: CompanyPaymentStatus | null) {
+  const receiptUploaded = Boolean(payment);
+  const underReview = Boolean(payment?.status === "pending_review" || payment?.proof_decision === "needs_review");
+  const packageActive = Boolean(activeSubscription);
+
+  return [
+    { label: "Company registered", complete: true, current: false },
+    { label: "Package selected", complete: receiptUploaded || packageActive, current: !receiptUploaded && !packageActive },
+    { label: "Receipt uploaded", complete: receiptUploaded || packageActive, current: false },
+    { label: "AI review", complete: packageActive, current: underReview },
+    { label: "Package active", complete: packageActive, current: packageActive },
+    { label: "Add staff profiles", complete: false, current: packageActive },
+  ];
+}
+
 export default async function CompanyDashboardPage({
   params,
   searchParams,
@@ -193,12 +294,13 @@ export default async function CompanyDashboardPage({
   const query = await searchParams;
   const status = query?.status;
   const statusMessage = status ? statusMessages[status] : null;
-  const [company, listings, activeSubscription, usage, media] = await Promise.all([
+  const [company, listings, activeSubscription, usage, media, latestPayment] = await Promise.all([
     getCompany(id),
     getCompanyListings(id),
     getActiveCompanySubscription(id),
     getPublishedCompanyListingUsage(id),
     getCompanyMedia(id),
+    getLatestCompanyPaymentStatus(id),
   ]);
 
   if (!company) {
@@ -220,6 +322,10 @@ export default async function CompanyDashboardPage({
     );
   }
 
+  const openAiConfigured = Boolean(process.env.OPENAI_API_KEY);
+  const stateLabel = paymentStateLabel(activeSubscription, latestPayment);
+  const stateDescription = paymentStateDescription(activeSubscription, latestPayment);
+  const steps = onboardingSteps(activeSubscription, latestPayment);
   const canAddProfessional = Boolean(activeSubscription) && (
     !activeSubscription || usage.published < activeSubscription.listings_limit
   );
@@ -227,7 +333,7 @@ export default async function CompanyDashboardPage({
     ? usage.published >= activeSubscription.listings_limit
       ? "Package Limit Reached"
       : "Add Staff Profile"
-    : "Package Required";
+    : stateLabel;
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -271,18 +377,81 @@ export default async function CompanyDashboardPage({
           </DismissibleNotice>
         ) : null}
 
+        <Card className="mt-5 bg-white shadow-sm">
+          <CardContent className="p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <ReceiptText className="size-5 text-primary" aria-hidden="true" />
+                  <h2 className="text-xl font-semibold">Company setup progress</h2>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{stateDescription}</p>
+              </div>
+              <Badge
+                variant={activeSubscription ? "default" : latestPayment ? "secondary" : "outline"}
+                className="w-fit"
+              >
+                {stateLabel}
+              </Badge>
+            </div>
+
+            <div className="mt-5 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+              {steps.map((step) => (
+                <div
+                  key={step.label}
+                  className={`rounded-lg border p-3 text-xs font-medium ${
+                    step.complete
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : step.current
+                        ? "border-amber-300 bg-amber-50 text-amber-950"
+                        : "bg-secondary/40 text-muted-foreground"
+                  }`}
+                >
+                  <div className="mb-2 flex items-center gap-1.5">
+                    {step.complete ? (
+                      <CheckCircle2 className="size-4" aria-hidden="true" />
+                    ) : step.current ? (
+                      <Clock3 className="size-4" aria-hidden="true" />
+                    ) : (
+                      <span className="size-4 rounded-full border" aria-hidden="true" />
+                    )}
+                    <span>{step.complete ? "Done" : step.current ? "Now" : "Next"}</span>
+                  </div>
+                  {step.label}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {!openAiConfigured ? (
+          <DismissibleNotice className="mt-5 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950" closeLabel="Close local AI warning">
+            <p className="font-semibold">Local AI proof review is not configured</p>
+            <p className="mt-1">
+              OPENAI_API_KEY is missing in this local setup, so uploaded receipts stay under review here. After production AI is configured, clear matching receipts can activate packages automatically.
+            </p>
+          </DismissibleNotice>
+        ) : null}
+
         {!activeSubscription ? (
           <Card className="mt-5 border-amber-200 bg-amber-50 shadow-sm">
             <CardContent className="grid gap-3 p-4 text-sm leading-6 text-amber-950 sm:flex sm:items-center sm:justify-between">
               <div>
-                <p className="font-semibold">Package activation needed</p>
+                <p className="font-semibold">{stateLabel}</p>
                 <p className="mt-1">
-                  Choose a package and upload payment proof. Clear receipts activate automatically through AI review.
+                  {stateDescription}
                 </p>
               </div>
               <Button asChild variant="outline" className="h-11 shrink-0 bg-white">
                 <Link href={`/companies/${company.id}/packages`}>
-                  Choose Package
+                  {latestPayment ? (
+                    <>
+                      <RefreshCcw className="size-4" aria-hidden="true" />
+                      Upload Clearer Receipt
+                    </>
+                  ) : (
+                    "Choose Package"
+                  )}
                 </Link>
               </Button>
             </CardContent>
@@ -294,7 +463,7 @@ export default async function CompanyDashboardPage({
             <CardContent className="p-5">
               <ListChecks className="size-6 text-primary" aria-hidden="true" />
               <p className="mt-4 text-2xl font-bold">{usage.published}</p>
-              <p className="mt-1 text-sm text-muted-foreground">Published professionals</p>
+              <p className="mt-1 text-sm text-muted-foreground">Published staff profiles</p>
             </CardContent>
           </Card>
           <Card className="bg-white shadow-sm">
@@ -443,21 +612,82 @@ export default async function CompanyDashboardPage({
           <CardContent className="p-5">
             <h2 className="text-xl font-semibold">Package access</h2>
             {activeSubscription ? (
-              <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
-                <span>Package: {activeSubscription.package_title}</span>
-                <span>Published: {usage.published}/{activeSubscription.listings_limit}</span>
-                <span>Featured: {usage.featured}/{activeSubscription.featured_limit}</span>
-                <span>Expires: {new Date(activeSubscription.expires_at).toLocaleDateString("en-PK")}</span>
-              </div>
+              <>
+                <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
+                  <span>Package: {activeSubscription.package_title}</span>
+                  <span>Published: {usage.published}/{activeSubscription.listings_limit}</span>
+                  <span>Featured: {usage.featured}/{activeSubscription.featured_limit}</span>
+                  <span>Expires: {new Date(activeSubscription.expires_at).toLocaleDateString("en-PK")}</span>
+                </div>
+                <Button
+                  asChild={canAddProfessional}
+                  className="mt-5 h-12 w-full sm:w-auto"
+                  disabled={!canAddProfessional}
+                >
+                  {canAddProfessional ? (
+                    <Link href={`/companies/${company.id}/listings/new`}>
+                      <PlusCircle className="size-4" aria-hidden="true" />
+                      {usage.published === 0 ? "Add First Staff Profile" : "Add Staff Profile"}
+                    </Link>
+                  ) : (
+                    <span>Package Limit Reached</span>
+                  )}
+                </Button>
+              </>
             ) : (
               <DismissibleNotice className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950" closeLabel="Close package warning">
-                <p className="font-semibold">No active package</p>
-              <p className="mt-1">Choose and activate a package before adding company-managed staff profiles.</p>
+                <p className="font-semibold">{stateLabel}</p>
+              <p className="mt-1">{stateDescription}</p>
                 <Button asChild className="mt-4 h-11 w-full sm:w-auto">
-                  <Link href={`/companies/${company.id}/packages`}>Choose Package</Link>
+                  <Link href={`/companies/${company.id}/packages`}>
+                    {latestPayment ? "Upload Clearer Receipt" : "Choose Package"}
+                  </Link>
                 </Button>
               </DismissibleNotice>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="mt-6 bg-white shadow-sm">
+          <CardContent className="p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">Payment Status</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Latest package receipt and AI proof review result.
+                </p>
+              </div>
+              <Badge variant={activeSubscription ? "default" : latestPayment ? "secondary" : "outline"}>
+                {stateLabel}
+              </Badge>
+            </div>
+
+            {latestPayment ? (
+              <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
+                <span>Amount: Rs {latestPayment.amount_pkr.toLocaleString("en-PK")}</span>
+                <span>Status: {latestPayment.status.replaceAll("_", " ")}</span>
+                <span>AI decision: {latestPayment.proof_decision?.replaceAll("_", " ") ?? "Not reviewed"}</span>
+                <span>Uploaded: {new Date(latestPayment.created_at).toLocaleDateString("en-PK")}</span>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-muted-foreground">
+                No company package receipt has been uploaded yet.
+              </p>
+            )}
+
+            {latestPayment?.proof_notes ? (
+              <p className="mt-4 rounded-lg bg-secondary/50 p-3 text-sm leading-6 text-muted-foreground">
+                {latestPayment.proof_notes}
+              </p>
+            ) : null}
+
+            {!activeSubscription ? (
+              <Button asChild variant="outline" className="mt-5 h-11 w-full sm:w-auto">
+                <Link href={`/companies/${company.id}/packages`}>
+                  {latestPayment ? "Upload Clearer Receipt" : "Choose Package"}
+                </Link>
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -480,7 +710,7 @@ export default async function CompanyDashboardPage({
           <CardContent className="p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-xl font-semibold">Professionals</h2>
+                <h2 className="text-xl font-semibold">Staff Profiles</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Add worker profiles owned by this company account.</p>
               </div>
               <Button asChild={canAddProfessional} variant="outline" className="w-full sm:w-auto" disabled={!canAddProfessional}>
@@ -517,7 +747,7 @@ export default async function CompanyDashboardPage({
               </div>
             ) : (
               <div className="mt-5 rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
-                No company listings yet. Add your first staff or service listing.
+                No staff profiles yet. Add your first company-managed worker profile after the package is active.
               </div>
             )}
           </CardContent>

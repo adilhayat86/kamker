@@ -65,7 +65,7 @@ function whatsappLink(message: string) {
 
 const statusMessages = {
   missing: "Add payment details and upload a receipt screenshot before submitting.",
-  "invalid-proof": "Upload a jpg, png, or webp receipt screenshot under 3MB.",
+  "invalid-proof": "Upload a jpg, png, or webp receipt screenshot under 8MB.",
   "not-configured": "Supabase is not configured, so payment proof cannot be saved yet.",
   "not-found": "Company or package details were not found. Please choose the package again.",
   "save-error": "Could not save the manual payment record. Please try again.",
@@ -292,7 +292,7 @@ export default async function CompanyPaymentPage({
                     className="rounded-md border border-dashed border-input bg-background px-3 py-3 text-sm shadow-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
                   />
                   <span className="text-xs text-muted-foreground">
-                    JPG, PNG, or WebP. Maximum 3MB.
+                    JPG, PNG, or WebP. Maximum 8MB.
                   </span>
                 </label>
 
