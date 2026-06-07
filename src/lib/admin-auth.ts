@@ -5,7 +5,8 @@ import { cookies } from "next/headers";
 import { hashSecret, verifySecret } from "@/lib/auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
-const ADMIN_SESSION_COOKIE = "kamker_admin_session";
+const LEGACY_ADMIN_SESSION_COOKIE = "kamker_admin_session";
+const ADMIN_SESSION_COOKIE = "kamker_admin_session_v2";
 const ADMIN_SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
 const ADMIN_RESET_MAX_AGE_SECONDS = 60 * 15;
 const OWNER_EMAIL = "adilhayat@yahoo.com";
@@ -140,14 +141,18 @@ export async function createAdminSession(role: AdminRole) {
 export async function clearAdminSession() {
   const cookieStore = await cookies();
   const options = {
+    expires: new Date(0),
     httpOnly: true,
     maxAge: 0,
     sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
   };
 
-  cookieStore.set(ADMIN_SESSION_COOKIE, "", { ...options, path: "/" });
-  cookieStore.set(ADMIN_SESSION_COOKIE, "", { ...options, path: "/admin" });
+  for (const cookieName of [ADMIN_SESSION_COOKIE, LEGACY_ADMIN_SESSION_COOKIE]) {
+    cookieStore.delete(cookieName);
+    cookieStore.set(cookieName, "", { ...options, path: "/" });
+    cookieStore.set(cookieName, "", { ...options, path: "/admin" });
+  }
 }
 
 export async function getAdminSessionRole() {
