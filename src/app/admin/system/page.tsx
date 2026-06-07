@@ -30,7 +30,8 @@ export default async function AdminSystemPage() {
     ["Owner/manager admin password and KAMKER_AUTH_SECRET are set", health.adminAuth],
     ["NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set", health.supabase],
     ["Required Supabase tables and MVP columns exist", health.databaseSchema],
-    ["Storage buckets professional-photos, proof-images, company-images exist", health.storageBuckets],
+    ["Supabase proof-images bucket exists for payment receipts", health.storageBuckets],
+    ["Cloudinary public media env vars are set", health.cloudinary],
     ["OpenAI proof review key is set if proof automation is required", health.openai],
     ["WhatsApp admin alert env vars are set", health.whatsapp],
   ] as const;
@@ -49,11 +50,11 @@ export default async function AdminSystemPage() {
       description="Deployment readiness checks for admin auth, Supabase tables, storage, AI proof review, and WhatsApp alerts."
     >
       <div className="mt-6 grid gap-4 sm:grid-cols-5">
-        <AdminStatCard label="Ready Checks" value={`${readyCount}/6`} tone={readyCount === 6 ? "good" : "warning"} />
+        <AdminStatCard label="Ready Checks" value={`${readyCount}/7`} tone={readyCount === 7 ? "good" : "warning"} />
         <AdminStatCard label="Admin Auth" value={health.adminAuth ? "Ready" : "Missing"} />
         <AdminStatCard label="Supabase" value={health.supabase ? "Ready" : "Missing"} />
         <AdminStatCard label="Database Schema" value={health.databaseSchema ? "Ready" : "Check"} />
-        <AdminStatCard label="Storage Buckets" value={health.storageBuckets ? "Ready" : "Check"} />
+        <AdminStatCard label="Public Media" value={health.cloudinary ? "Ready" : "Check"} />
       </div>
 
       <AdminSection title="Production Checklist" description="Apply before calling Kamker production-ready.">
@@ -83,7 +84,7 @@ export default async function AdminSystemPage() {
           </div>
         ) : (
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-900">
-            Required tables, latest matching column, and storage buckets are visible to the app.
+            Required tables, latest matching column, and proof storage bucket are visible to the app.
           </div>
         )}
 

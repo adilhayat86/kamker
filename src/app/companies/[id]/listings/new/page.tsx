@@ -47,7 +47,7 @@ const statusMessages = {
   "company-missing": "Company was not found.",
   "no-package": "An active company package is required before adding staff profiles.",
   "quota-full": "This company has reached the published listing limit for its active package.",
-  "invalid-photo": "Please choose a jpg, png, or webp staff photo under 2MB after compression.",
+  "invalid-photo": "Please choose a jpg, png, or webp staff photo under 10MB.",
   "photo-error": "Could not upload staff photo. Please try again.",
   error: "Could not save professional. Please try again.",
 } as const;

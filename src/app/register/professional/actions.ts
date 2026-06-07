@@ -193,12 +193,18 @@ export async function registerProfessional(formData: FormData) {
     validatedAvailabilityDays,
   );
   const browserUploadedPhotoUrl = field(formData, "profilePhotoUrl");
+  const submittedPhoto = formData.get("photo");
+  const hasSubmittedPhoto =
+    submittedPhoto instanceof File && submittedPhoto.size > 0;
 
   if (browserUploadedPhotoUrl) {
     profilePhotoUrl = browserUploadedPhotoUrl;
   } else {
     try {
       profilePhotoUrl = await uploadProfessionalPhoto(formData);
+      if (!profilePhotoUrl && hasSubmittedPhoto) {
+        photoSkipped = true;
+      }
     } catch (error) {
       if (error instanceof Error && error.message === "invalid-photo") {
         await saveProfessionalDraft(draftInput);

@@ -109,7 +109,7 @@ const statusMessages = {
   "logo-updated": "Company logo updated.",
   "media-added": "Company media added to the public profile.",
   "missing-media": "Please choose a logo, image, or video file.",
-  "invalid-media": "Upload jpg, png, or webp images under 2MB, or mp4/webm videos under 20MB.",
+  "invalid-media": "Upload jpg, png, or webp images under 10MB, or mp4/webm videos under 20MB.",
   "media-error": "Could not save company media. Please try again.",
   "not-configured": "Supabase is not configured yet.",
   "local-listing-added": "Local demo professional added to this company.",
@@ -573,7 +573,7 @@ export default async function CompanyDashboardPage({
                   </Button>
                 </form>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Images: jpg/png/webp under 2MB. Videos: mp4/webm under 20MB.
+                  Images: jpg/png/webp under 10MB. Videos: mp4/webm under 20MB.
                 </p>
                 {media.length > 0 ? (
                   <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

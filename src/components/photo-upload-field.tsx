@@ -1,18 +1,11 @@
 "use client";
 
-import { createClient } from "@supabase/supabase-js";
 import { useRef, useState } from "react";
 
-const PHOTO_BUCKET = "professional-photos";
 const MAX_DIRECT_UPLOAD_BYTES = 10 * 1024 * 1024;
 const TARGET_UPLOAD_BYTES = 2 * 1024 * 1024;
 const MAX_IMAGE_DIMENSION = 1600;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const FILE_EXTENSIONS = new Map([
-  ["image/jpeg", "jpg"],
-  ["image/png", "png"],
-  ["image/webp", "webp"],
-]);
 const DEFAULT_MESSAGE =
   "Phone photos are accepted. If photo upload causes trouble, register without photo first and add it later.";
 
@@ -103,48 +96,6 @@ async function compressImage(file: File) {
   return file;
 }
 
-function makePhotoPath(file: File) {
-  const extension = FILE_EXTENSIONS.get(file.type) ?? "jpg";
-  const id =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-  return `${new Date().toISOString().slice(0, 10)}/${id}.${extension}`;
-}
-
-function clearSelectedFile(input: HTMLInputElement) {
-  try {
-    input.value = "";
-  } catch {
-    // Some older mobile webviews do not allow programmatic file clearing.
-  }
-}
-
-async function uploadPhotoFromBrowser(file: File) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return null;
-  }
-
-  const client = createClient(supabaseUrl, supabaseAnonKey);
-  const path = makePhotoPath(file);
-  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, file, {
-    cacheControl: "31536000",
-    contentType: file.type,
-    upsert: false,
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  const { data } = client.storage.from(PHOTO_BUCKET).getPublicUrl(path);
-  return data.publicUrl;
-}
-
 export function PhotoUploadField({
   disabled = false,
   label = "Profile photo",
@@ -182,8 +133,7 @@ export function PhotoUploadField({
       setMessage(
         `This photo is ${formatSize(file.size)}. Please choose one under 10MB.`,
       );
-      clearSelectedFile(input);
-      setInputError(input);
+      setInputError(input, "Please choose a photo under 10MB.");
       return;
     }
 
@@ -192,14 +142,6 @@ export function PhotoUploadField({
     try {
       const prepared =
         file.size > TARGET_UPLOAD_BYTES ? await compressImage(file) : file;
-      const publicUrl = await uploadPhotoFromBrowser(prepared);
-
-      if (publicUrl) {
-        setUploadedUrl(publicUrl);
-        clearSelectedFile(input);
-        setMessage(`Photo uploaded (${formatSize(prepared.size)}). Continue registration.`);
-        return;
-      }
 
       if (prepared !== file && typeof DataTransfer !== "undefined") {
         const transfer = new DataTransfer();
@@ -208,20 +150,13 @@ export function PhotoUploadField({
       }
 
       if (prepared.size <= TARGET_UPLOAD_BYTES) {
-        setMessage(`Prepared photo (${formatSize(prepared.size)}). Continue registration.`);
+        setMessage(`Prepared photo (${formatSize(prepared.size)}). It will upload when you submit.`);
         return;
       }
 
-      clearSelectedFile(input);
-      setMessage("Photo was too large for this browser. Continue without photo and add it later.");
+      setMessage(`Selected ${file.name} (${formatSize(file.size)}). It will upload when you submit.`);
     } catch {
-      if (file.size <= TARGET_UPLOAD_BYTES) {
-        setMessage(`Selected ${file.name} (${formatSize(file.size)}). Continue registration.`);
-        return;
-      }
-
-      clearSelectedFile(input);
-      setMessage("Photo upload did not finish. Continue without photo and add it later.");
+      setMessage(`Selected ${file.name} (${formatSize(file.size)}). It will upload when you submit.`);
     }
   }
 

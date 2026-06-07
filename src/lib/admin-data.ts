@@ -1,4 +1,5 @@
 import { isAdminPasswordConfigured } from "@/lib/admin-auth";
+import { isCloudinaryConfigured } from "@/lib/cloudinary";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export type AdminCountSummary = {
@@ -41,6 +42,7 @@ export type SystemHealth = {
   supabase: boolean;
   databaseSchema: boolean;
   storageBuckets: boolean;
+  cloudinary: boolean;
   openai: boolean;
   whatsapp: boolean;
   missingTables: string[];
@@ -252,6 +254,7 @@ export async function getSystemHealth() {
     supabase: isSupabaseConfigured,
     databaseSchema: false,
     storageBuckets: false,
+    cloudinary: isCloudinaryConfigured,
     openai: Boolean(process.env.OPENAI_API_KEY),
     whatsapp:
       Boolean(process.env.WHATSAPP_ACCESS_TOKEN) &&
@@ -442,9 +445,7 @@ async function checkStorageBucket(bucket: RequiredBucket) {
 
 async function getStorageBucketReadiness() {
   const requiredBuckets: RequiredBucket[] = [
-    { name: "professional-photos", minFileSizeLimit: 10 * 1024 * 1024 },
     { name: "proof-images", minFileSizeLimit: 8 * 1024 * 1024 },
-    { name: "company-images", minFileSizeLimit: 20 * 1024 * 1024 },
   ];
   const bucketChecks = await Promise.all(requiredBuckets.map(checkStorageBucket));
 
