@@ -1,7 +1,10 @@
 import Link from "next/link";
 import {
+  BarChart3,
   Building2,
   ClipboardList,
+  CreditCard,
+  HeartPulse,
   Home,
   LayoutDashboard,
   LogIn,
@@ -140,8 +143,13 @@ export async function GlobalMenu() {
           {adminAuthenticated ? (
             <>
               <MenuItem href="/admin" label="Admin Dashboard" icon={LayoutDashboard} />
+              <MenuItem href="/admin/workers" label="Admin Workers" icon={Users} />
               <MenuItem href="/admin/companies" label="Admin Companies" icon={Building2} />
               <MenuItem href="/admin/company-listings" label="Admin Listings" icon={ClipboardList} />
+              <MenuItem href="/admin/requirements" label="Admin Requirements" icon={Send} />
+              <MenuItem href="/admin/payments" label="Admin Payments" icon={CreditCard} />
+              <MenuItem href="/admin/analytics" label="Admin Analytics" icon={BarChart3} />
+              <MenuItem href="/admin/system" label="System Health" icon={HeartPulse} />
               <LogoutButton label="Admin Logout" action={logoutAdmin} />
             </>
           ) : (
