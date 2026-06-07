@@ -6,6 +6,8 @@ const MAX_DIRECT_UPLOAD_BYTES = 20 * 1024 * 1024;
 const TARGET_UPLOAD_BYTES = 2 * 1024 * 1024;
 const MAX_IMAGE_DIMENSION = 1600;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const DEFAULT_MESSAGE =
+  "Phone photos are accepted. If photo upload causes trouble, register without photo first and add it later.";
 
 type PhotoUploadFieldProps = {
   disabled?: boolean;
@@ -18,7 +20,11 @@ function formatSize(bytes: number) {
 }
 
 function setInputError(input: HTMLInputElement, message = "") {
-  input.setCustomValidity(message);
+  try {
+    input.setCustomValidity(message);
+  } catch {
+    // Some older mobile webviews have partial constraint-validation support.
+  }
 }
 
 function imageFromDataUrl(dataUrl: string) {
@@ -41,6 +47,16 @@ function canvasToBlob(
 }
 
 async function compressImage(file: File) {
+  if (
+    typeof window === "undefined" ||
+    typeof FileReader === "undefined" ||
+    typeof Image === "undefined" ||
+    typeof document === "undefined" ||
+    typeof document.createElement !== "function"
+  ) {
+    return file;
+  }
+
   const reader = new FileReader();
   const dataUrl = await new Promise<string>((resolve, reject) => {
     reader.onload = () => resolve(String(reader.result));
@@ -55,10 +71,15 @@ async function compressImage(file: File) {
   const width = Math.max(1, Math.round(image.width * scale));
   const height = Math.max(1, Math.round(image.height * scale));
   const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+
+  if (!context || typeof canvas.toBlob !== "function") {
+    return file;
+  }
 
   canvas.width = width;
   canvas.height = height;
-  canvas.getContext("2d")?.drawImage(image, 0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
 
   for (const quality of [0.82, 0.72, 0.62, 0.54]) {
     const blob = await canvasToBlob(canvas, quality);
@@ -80,18 +101,14 @@ export function PhotoUploadField({
   helpText = "If registration needs correction, keep this page open so the selected photo stays attached.",
 }: PhotoUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [message, setMessage] = useState(
-    "Phone photos are accepted. Large images will be compressed before upload.",
-  );
+  const [message, setMessage] = useState(DEFAULT_MESSAGE);
 
   async function handleChange() {
     const input = inputRef.current;
     const file = input?.files?.[0];
 
     if (!input || !file) {
-      setMessage(
-        "Phone photos are accepted. Large images will be compressed before upload.",
-      );
+      setMessage(DEFAULT_MESSAGE);
       if (input) {
         setInputError(input);
       }
@@ -121,21 +138,25 @@ export function PhotoUploadField({
       return;
     }
 
-    setMessage(`Compressing ${formatSize(file.size)} phone photo...`);
+    setMessage(`Preparing ${formatSize(file.size)} phone photo...`);
 
     try {
       const compressed = await compressImage(file);
-      const transfer = new DataTransfer();
-      transfer.items.add(compressed);
-      input.files = transfer.files;
+
+      if (compressed !== file && typeof DataTransfer !== "undefined") {
+        const transfer = new DataTransfer();
+        transfer.items.add(compressed);
+        input.files = transfer.files;
+      }
+
       setMessage(
         compressed.size < file.size
-          ? `Compressed to ${formatSize(compressed.size)} and ready to upload.`
+          ? `Prepared photo (${formatSize(compressed.size)}). If it fails, register without photo and add it later.`
           : `Selected ${file.name} (${formatSize(file.size)}).`,
       );
     } catch {
       setMessage(
-        `Selected ${file.name} (${formatSize(file.size)}). It will upload if under 8MB.`,
+        `Selected ${file.name} (${formatSize(file.size)}). If it fails, register without photo and add it later.`,
       );
     }
   }

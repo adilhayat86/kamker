@@ -105,6 +105,9 @@ export default async function ProfessionalRegisterPage({
         <p className="mt-2 text-sm text-muted-foreground">
           Create an hourly-rate profile so customers can find and contact you directly.
         </p>
+        <div className="mt-5 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
+          If photo upload causes trouble, register without photo first and add it later.
+        </div>
         {statusMessage ? (
           <DismissibleNotice className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close registration message">
             {statusMessage}
