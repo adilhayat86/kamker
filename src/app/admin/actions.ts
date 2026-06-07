@@ -733,9 +733,14 @@ export async function approveCompanyListing(formData: FormData) {
     return;
   }
 
+  const updatePayload =
+    existingListing.status === "approved"
+      ? { status: "approved" }
+      : { status: "approved", is_featured: false };
+
   const { data, error } = await supabase
     .from("company_listings")
-    .update({ status: "approved" })
+    .update(updatePayload)
     .eq("id", id)
     .select("company_id")
     .maybeSingle();
