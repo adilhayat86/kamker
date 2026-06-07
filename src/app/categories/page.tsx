@@ -6,6 +6,7 @@ import { CategoryGrid } from "@/components/category-grid";
 import { KamkerLogo } from "@/components/kamker-logo";
 import { Button } from "@/components/ui/button";
 import { getBroadcastRecipientCount } from "@/lib/broadcast";
+import { countForCategory, getLiveCategoryCountMap } from "@/lib/category-counts";
 import { categories, cities, parentCategories } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -23,6 +24,7 @@ type CategoriesPageProps = {
 };
 
 type DbCategoryCard = {
+  id: number;
   name: string;
   count: string;
   icon: string;
@@ -36,7 +38,7 @@ async function getSupabaseCategoryCards() {
 
   const { data, error } = await supabase
     .from("categories")
-    .select("name, icon, parent_id")
+    .select("id, name, icon, parent_id")
     .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
 
@@ -45,10 +47,11 @@ async function getSupabaseCategoryCards() {
     return [] as DbCategoryCard[];
   }
 
-  return ((data ?? []) as Array<{ name: string; icon: string | null; parent_id: number | null }>).map((category) => ({
+  return ((data ?? []) as Array<{ id: number; name: string; icon: string | null; parent_id: number | null }>).map((category) => ({
+    id: category.id,
     name: category.name,
     icon: category.icon ?? "wrench",
-    count: "0",
+    count: "",
     parent_id: category.parent_id,
   }));
 }
@@ -76,13 +79,30 @@ export default async function CategoriesPage({
   const area = params?.area?.trim() || undefined;
   const q = params?.q?.trim() || "";
   const dbCategories = await getSupabaseCategoryCards();
-  const dbParentCategories = dbCategories.filter((category) => category.parent_id === null);
-  const dbSubcategories = dbCategories.filter((category) => category.parent_id !== null);
+  const liveCountMap = await getLiveCategoryCountMap([
+    ...dbCategories,
+    ...categories,
+    ...parentCategories,
+  ]);
+  const countedDbCategories = dbCategories.map((category) => ({
+    ...category,
+    count: countForCategory(category, liveCountMap),
+  }));
+  const countedLocalCategories = categories.map((category) => ({
+    ...category,
+    count: countForCategory(category, liveCountMap),
+  }));
+  const countedParentCategories = parentCategories.map((category) => ({
+    ...category,
+    count: countForCategory(category, liveCountMap),
+  }));
+  const dbParentCategories = countedDbCategories.filter((category) => category.parent_id === null);
+  const dbSubcategories = countedDbCategories.filter((category) => category.parent_id !== null);
   const recipientCount = await getBroadcastRecipientCount({ city, area });
   const normalizedQuery = q.toLowerCase();
   const searchableCategories = q
-    ? uniqueCategoryCards([...dbSubcategories, ...dbParentCategories, ...categories, ...parentCategories])
-    : uniqueCategoryCards([...dbParentCategories, ...parentCategories]);
+    ? uniqueCategoryCards([...dbSubcategories, ...dbParentCategories, ...countedLocalCategories, ...countedParentCategories])
+    : uniqueCategoryCards([...dbParentCategories, ...countedParentCategories]);
   const visibleCategories = q
     ? searchableCategories.filter((category) =>
         category.name.toLowerCase().includes(normalizedQuery),

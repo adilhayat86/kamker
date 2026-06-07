@@ -213,16 +213,17 @@ export function broadcastButtonText({
   count: number;
 }) {
   const place = locationLabel(city, area);
+  const countLabel = count > 0 ? `${count.toLocaleString()} ` : "";
 
   if (subcategory) {
-    return `Send Requirement to ${count.toLocaleString()} ${subcategory}${place ? ` in ${place}` : ""}`;
+    return `Send Requirement to ${countLabel}${subcategory}${place ? ` in ${place}` : ""}`;
   }
 
   if (category) {
-    return `Send Requirement to ${count.toLocaleString()} ${category} Professionals${place ? ` in ${place}` : ""}`;
+    return `Send Requirement to ${countLabel}${category} Professionals${place ? ` in ${place}` : ""}`;
   }
 
-  return `Send Requirement to ${count.toLocaleString()} Kamker Professionals${place ? ` in ${place}` : ""}`;
+  return `Send Requirement to ${countLabel}Kamker Professionals${place ? ` in ${place}` : ""}`;
 }
 
 export function serviceFromBroadcastQuery({
