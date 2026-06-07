@@ -85,7 +85,8 @@ type CompanyDashboardPageProps = {
       | "not-configured"
       | "local-listing-added"
       | "package-active"
-      | "payment-under-review";
+      | "payment-under-review"
+      | "staff-profile-submitted";
   }>;
 };
 
@@ -99,6 +100,7 @@ const statusMessages = {
   "local-listing-added": "Local demo professional added to this company.",
   "package-active": "Payment approved by AI. Your package is active and you can add staff profiles now.",
   "payment-under-review": "Receipt uploaded. AI could not safely verify it, so payment is under review. You can still complete your company profile while waiting.",
+  "staff-profile-submitted": "Staff profile submitted. It will appear publicly after review and approval.",
 } as const;
 
 async function getCompany(companyId: string) {

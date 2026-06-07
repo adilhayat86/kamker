@@ -116,7 +116,7 @@ export default async function FeaturedProfilePage({
                   {professional.area ? `, ${professional.area}` : ""}
                 </p>
                 <Badge className="mt-3" variant={isFeatured ? "default" : "outline"}>
-                  {isFeatured ? "Featured active" : "Not featured yet"}
+                  {isFeatured ? "Featured active" : "Get Featured"}
                 </Badge>
               </div>
 

@@ -181,5 +181,5 @@ export async function createCompanyListing(formData: FormData) {
     listing.id as string,
   );
 
-  redirect(`/companies/${companyId}/dashboard`);
+  redirect(`/companies/${companyId}/dashboard?status=staff-profile-submitted`);
 }

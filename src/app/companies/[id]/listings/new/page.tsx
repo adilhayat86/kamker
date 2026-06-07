@@ -77,6 +77,9 @@ export default async function CompanyListingNewPage({
   const query = await searchParams;
   const status = query?.status;
   const statusMessage = status ? statusMessages[status] : null;
+  const missingRequired = status === "missing";
+  const requiredError = (message: string) =>
+    missingRequired ? message : undefined;
   const [companyName, activeSubscription, usage] = await Promise.all([
     getCompanyName(id),
     getActiveCompanySubscription(id),
@@ -117,7 +120,7 @@ export default async function CompanyListingNewPage({
                 <div>
                   <h2 className="text-xl font-bold">Activate a package first</h2>
                   <p className="mt-2 text-sm leading-6">
-                    Companies can add multiple professionals after Kamker activates a package. This keeps listing limits and featured limits tied to the selected package.
+                    Companies can add multiple professionals after package activation. Clear payment receipts activate automatically through AI review; unclear receipts stay pending for admin review.
                   </p>
                   <Button asChild className="mt-4 h-11 w-full sm:w-auto">
                     <Link href={`/companies/${id}/packages`}>Choose Package</Link>
@@ -150,14 +153,54 @@ export default async function CompanyListingNewPage({
               </div>
               <form action={createCompanyListing} className="grid gap-4 sm:grid-cols-2">
                 <input type="hidden" name="companyId" value={id} />
-                <FormField label="Staff name or title" name="title" placeholder="Ali Khan, Home Nurse, Security Guard" required />
-                <SelectField label="Service group" name="serviceGroup" options={serviceGroups.map((group) => group.name)} required />
-                <SelectField label="Profession / category" name="category" options={categories.map((category) => category.name)} required />
-                <SelectField label="City" name="city" options={cities} required />
+                <FormField
+                  label="Staff name or title"
+                  name="title"
+                  placeholder="Ali Khan, Home Nurse, Security Guard"
+                  required
+                  error={requiredError("Staff name or title is required.")}
+                />
+                <SelectField
+                  label="Service group"
+                  name="serviceGroup"
+                  options={serviceGroups.map((group) => group.name)}
+                  required
+                  error={requiredError("Choose a service group.")}
+                />
+                <SelectField
+                  label="Profession / category"
+                  name="category"
+                  options={categories.map((category) => category.name)}
+                  required
+                  error={requiredError("Choose a profession/category.")}
+                />
+                <SelectField
+                  label="City"
+                  name="city"
+                  options={cities}
+                  required
+                  error={requiredError("Choose a city.")}
+                />
                 <FormField label="Area" name="area" placeholder="DHA, Gulberg, G-10" />
-                <FormField label="Profile tagline" name="tagline" placeholder="Trusted home nurse" maxLength={30} required />
+                <FormField
+                  label="Profile tagline"
+                  name="tagline"
+                  placeholder="Trusted home nurse"
+                  maxLength={30}
+                  required
+                  error={requiredError("Profile tagline is required and must be 30 characters or less.")}
+                />
                 <SelectField label="Gender" name="gender" options={["Male", "Female", "Other"]} />
-                <FormField label="Age" name="age" type="number" placeholder="28" min={16} max={80} required />
+                <FormField
+                  label="Age"
+                  name="age"
+                  type="number"
+                  placeholder="28"
+                  min={16}
+                  max={80}
+                  required
+                  error={requiredError("Enter an age between 16 and 80.")}
+                />
                 <SelectField label="Availability" name="availability" options={["Full Time", "Part Time", "Day Shift", "Night Shift", "Weekends", "On Call"]} />
                 <FormField label="Years experience" name="yearsExperience" type="number" placeholder="5" />
                 <FormField label="Hourly rate optional" name="hourlyRate" type="number" placeholder="500" />
@@ -174,6 +217,7 @@ export default async function CompanyListingNewPage({
                     name="description"
                     placeholder="Describe experience, timings, areas covered, duties, and any requirements."
                     required
+                    error={requiredError("Staff profile details are required.")}
                   />
                 </div>
                 <Button className="h-12 sm:col-span-2">Publish Staff Profile</Button>
