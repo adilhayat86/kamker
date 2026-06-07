@@ -26,8 +26,13 @@ type Requirement = {
   area: string | null;
   availability: string | null;
   details: string;
+  budget: string | null;
+  phone_number: string;
+  whatsapp_number: string | null;
   urgency: string;
   status: string;
+  broadcast_status: string;
+  payment_status: string;
   cities: { name: string } | null;
 };
 
@@ -37,6 +42,8 @@ type RequirementMatch = {
   professionals: {
     id: string;
     full_name: string;
+    phone_number: string;
+    whatsapp_number: string | null;
     availability: string | null;
     expected_rate: string | null;
     cities: { name: string } | null;
@@ -50,6 +57,8 @@ type RequirementMatch = {
     availability: string | null;
     hourly_rate: number | null;
     monthly_rate: number | null;
+    phone: string | null;
+    whatsapp: string | null;
     companies: { company_name: string } | null;
   } | null;
 };
@@ -67,7 +76,7 @@ async function getRequirement(id: string) {
 
   const { data, error } = await supabase
     .from("requirements")
-    .select("id, required_service, area, availability, details, urgency, status, cities(name)")
+    .select("id, required_service, area, availability, details, budget, phone_number, whatsapp_number, urgency, status, broadcast_status, payment_status, cities(name)")
     .eq("id", id)
     .maybeSingle();
 
@@ -87,7 +96,7 @@ async function getRequirementMatches(id: string) {
   const { data, error } = await supabase
     .from("requirement_matches")
     .select(
-      "id, match_score, professionals(id, full_name, availability, expected_rate, cities(name), categories(name)), company_listings(id, title, category, city, availability, hourly_rate, monthly_rate, companies(company_name))",
+      "id, match_score, professionals(id, full_name, phone_number, whatsapp_number, availability, expected_rate, cities(name), categories(name)), company_listings(id, title, category, city, availability, hourly_rate, monthly_rate, phone, whatsapp, companies(company_name))",
     )
     .eq("requirement_id", id)
     .order("match_score", { ascending: false });
@@ -125,7 +134,7 @@ export default async function RequirementDetailPage({
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-5xl">
-        <PageNavigation backHref="/admin" backLabel="Admin" />
+        <PageNavigation backHref="/admin/requirements" backLabel="Requirements" />
 
         {!adminPasswordConfigured ? (
           <DismissibleCard
@@ -164,6 +173,8 @@ export default async function RequirementDetailPage({
           {requirement ? (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <Badge variant="outline">Status: {requirement.status}</Badge>
+              <Badge variant="outline">Payment: {requirement.payment_status}</Badge>
+              <Badge variant="outline">Broadcast: {requirement.broadcast_status}</Badge>
               {statusActions.map((action) => (
                 <form key={action.status} action={updateRequirementStatus}>
                   <input type="hidden" name="requirementId" value={requirement.id} />
@@ -185,12 +196,33 @@ export default async function RequirementDetailPage({
         {requirement?.details ? (
           <Card className="mt-6 bg-white shadow-sm">
             <CardContent className="p-5">
-              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-                Details
-              </p>
-              <p className="mt-2 leading-7 text-muted-foreground">
-                {requirement.details}
-              </p>
+              <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                    Details
+                  </p>
+                  <p className="mt-2 leading-7 text-muted-foreground">
+                    {requirement.details}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-4 text-sm">
+                  <p className="font-semibold">Customer contact</p>
+                  <div className="mt-3 grid gap-2 text-muted-foreground">
+                    <p>
+                      <span className="font-medium text-foreground">Phone:</span>{" "}
+                      {requirement.phone_number}
+                    </p>
+                    <p>
+                      <span className="font-medium text-foreground">WhatsApp:</span>{" "}
+                      {requirement.whatsapp_number ?? "Not provided"}
+                    </p>
+                    <p>
+                      <span className="font-medium text-foreground">Budget:</span>{" "}
+                      {requirement.budget ?? "Not provided"}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ) : null}
@@ -233,6 +265,14 @@ export default async function RequirementDetailPage({
                     professional?.availability ??
                     companyListing?.availability ??
                     "Not provided";
+                  const contactPhone =
+                    professional?.phone_number ??
+                    companyListing?.phone ??
+                    "Not provided";
+                  const contactWhatsapp =
+                    professional?.whatsapp_number ??
+                    companyListing?.whatsapp ??
+                    "Not provided";
                   const hourlyRate =
                     professional?.expected_rate ??
                     (companyListing?.hourly_rate
@@ -270,6 +310,12 @@ export default async function RequirementDetailPage({
                           </span>
                           <span>
                             Hourly Rate: {hourlyRate}
+                          </span>
+                          <span>
+                            Phone: {contactPhone}
+                          </span>
+                          <span>
+                            WhatsApp: {contactWhatsapp}
                           </span>
                         </div>
                       </div>
