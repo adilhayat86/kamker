@@ -3,6 +3,11 @@
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 
+import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
+import {
+  isLocalDemoStoreEnabled,
+  saveLocalCompany,
+} from "@/lib/local-demo-store";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
@@ -21,12 +26,57 @@ export async function registerCompany(formData: FormData) {
   const whatsapp = field(formData, "whatsapp");
   const licenseNumber = field(formData, "licenseNumber");
   const description = field(formData, "description");
+  const draft = {
+    companyName,
+    category,
+    city,
+    area,
+    contactPerson,
+    phone,
+    whatsapp,
+    licenseNumber,
+    description,
+  };
 
-  if (!companyName || !category || !city || !contactPerson || !phone || !description) {
+  const errors = [
+    !companyName ? "companyName" : null,
+    !category ? "category" : null,
+    !city ? "city" : null,
+    !contactPerson ? "contactPerson" : null,
+    !phone ? "phone" : null,
+    !description ? "description" : null,
+  ].filter((error): error is string => Boolean(error));
+
+  if (errors.length > 0) {
+    await saveFormDraft("company", {
+      ...draft,
+      errors: errors.join(","),
+    });
     redirect("/register/company?status=missing");
   }
 
   if (!isSupabaseConfigured || !supabase) {
+    if (isLocalDemoStoreEnabled) {
+      const company = await saveLocalCompany({
+        companyName,
+        category,
+        city,
+        area,
+        contactPerson,
+        phone,
+        whatsapp,
+        licenseNumber,
+        description,
+      });
+
+      await clearFormDraft("company");
+
+      if (company) {
+        redirect(`/companies/${company.id}/packages?status=local-demo`);
+      }
+    }
+
+    await saveFormDraft("company", draft);
     redirect("/register/company?status=not-configured");
   }
 
@@ -51,6 +101,7 @@ export async function registerCompany(formData: FormData) {
 
   if (error || !data) {
     console.error("Failed to register company", error);
+    await saveFormDraft("company", draft);
     redirect("/register/company?status=error");
   }
 
@@ -67,5 +118,6 @@ export async function registerCompany(formData: FormData) {
     data.id as string,
   );
 
+  await clearFormDraft("company");
   redirect(`/companies/${data.id}/packages`);
 }

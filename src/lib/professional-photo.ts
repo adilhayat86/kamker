@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { supabase } from "@/lib/supabase";
 
 const PHOTO_BUCKET = "professional-photos";
-const MAX_PHOTO_SIZE_BYTES = 2 * 1024 * 1024;
+const MAX_PHOTO_SIZE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = new Map([
   ["image/jpeg", "jpg"],
   ["image/png", "png"],

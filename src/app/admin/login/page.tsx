@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LockKeyhole, ShieldAlert } from "lucide-react";
 
@@ -19,7 +20,8 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 const statusMessages = {
-  invalid: "Admin password is incorrect.",
+  invalid: "Admin role or password is incorrect.",
+  reset: "Password changed. Login with the new password.",
 } as const;
 
 type AdminLoginPageProps = {
@@ -65,8 +67,10 @@ export default async function AdminLoginPage({
                   <ShieldAlert className="size-5 shrink-0" aria-hidden="true" />
                   <p>
                     Set <span className="font-semibold">KAMKER_ADMIN_PASSWORD</span>{" "}
-                    and <span className="font-semibold">KAMKER_AUTH_SECRET</span>{" "}
-                    in the deployment environment to enable admin login.
+                    or <span className="font-semibold">KAMKER_OWNER_ADMIN_PASSWORD</span>,{" "}
+                    optional <span className="font-semibold">KAMKER_MANAGER_ADMIN_PASSWORD</span>,{" "}
+                    and <span className="font-semibold">KAMKER_AUTH_SECRET</span> in
+                    the deployment environment to enable admin login.
                   </p>
               </DismissibleNotice>
             ) : (
@@ -77,7 +81,18 @@ export default async function AdminLoginPage({
                   </DismissibleNotice>
                 ) : null}
                 <label className="grid gap-2">
-                  <span className="text-sm font-medium">Admin Password</span>
+                  <span className="text-sm font-medium">Admin role</span>
+                  <select
+                    name="role"
+                    defaultValue="owner"
+                    className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="owner">Owner</option>
+                    <option value="manager">Manager</option>
+                  </select>
+                </label>
+                <label className="grid gap-2">
+                  <span className="text-sm font-medium">Password</span>
                   <input
                     name="password"
                     type="password"
@@ -86,6 +101,12 @@ export default async function AdminLoginPage({
                   />
                 </label>
                 <Button className="h-12">Login</Button>
+                <Link
+                  href="/admin/forgot-password"
+                  className="text-center text-sm font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Forgot admin password?
+                </Link>
               </form>
             )}
           </CardContent>

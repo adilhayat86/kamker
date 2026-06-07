@@ -60,6 +60,9 @@ export default async function SendRequirementPage({
         area: area || undefined,
       })
     : null;
+  const missingRequired = status === "missing";
+  const requiredError = (message: string) =>
+    missingRequired ? message : undefined;
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
@@ -125,12 +128,16 @@ export default async function SendRequirementPage({
                   name="service"
                   options={categories.map((category) => category.name)}
                   defaultValue={selectedService?.name}
+                  required
+                  error={requiredError("Choose a required service.")}
                 />
                 <SelectField
                   label="City"
                   name="city"
                   options={cities}
                   defaultValue={selectedCity}
+                  required
+                  error={requiredError("Choose a city.")}
                 />
                 <FormField label="Area" name="area" defaultValue={area} />
                 <SelectField
@@ -139,7 +146,13 @@ export default async function SendRequirementPage({
                   options={availabilityOptions}
                 />
                 <FormField label="Budget optional" name="budget" placeholder="Rs. 5,000" />
-                <SelectField label="Urgency" name="urgency" options={urgencyOptions} />
+                <SelectField
+                  label="Urgency"
+                  name="urgency"
+                  options={urgencyOptions}
+                  required
+                  error={requiredError("Choose urgency.")}
+                />
               </div>
 
               <div className="grid gap-4 border-t pt-5 sm:grid-cols-2">
@@ -147,7 +160,13 @@ export default async function SendRequirementPage({
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Contact</p>
                   <p className="mt-1 text-sm text-muted-foreground">Professionals use this to respond directly.</p>
                 </div>
-                <FormField label="Phone number" name="phone" type="tel" />
+                <FormField
+                  label="Phone number"
+                  name="phone"
+                  type="tel"
+                  required
+                  error={requiredError("Phone number is required.")}
+                />
                 <FormField label="WhatsApp number" name="whatsapp" type="tel" />
               </div>
 
@@ -160,6 +179,8 @@ export default async function SendRequirementPage({
                   label="Details"
                   name="details"
                   placeholder="Explain the service, timing, location, and any preferences."
+                  required
+                  error={requiredError("Requirement details are required.")}
                 />
               </div>
               <Button className="h-12 text-base sm:col-span-2">

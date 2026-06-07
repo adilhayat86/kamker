@@ -22,9 +22,15 @@ export function ProfessionalCard({
     ? `https://wa.me/${professional.whatsapp.replace(/\D/g, "")}`
     : null;
   const profileHref = professional.profileHref ?? `/professionals/${professional.id}`;
+  const companyHref = professional.company_id
+    ? `/companies/${professional.company_id}`
+    : null;
   const tagline = professional.tagline?.trim() || (
     professional.is_company_managed ? "Company managed worker" : "Trusted local professional"
   );
+  const actionGridClass = professional.is_company_managed
+    ? "mt-auto grid grid-cols-2 gap-2 pt-3"
+    : "mt-auto grid grid-cols-3 gap-2 pt-3";
 
   return (
     <Card
@@ -97,6 +103,9 @@ export function ProfessionalCard({
         </div>
         <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
           <Badge variant="secondary">{professional.gender}</Badge>
+          <Badge variant="secondary">
+            {professional.age ? `Age ${professional.age}` : "Age not added"}
+          </Badge>
           {professional.is_company_managed ? (
             professional.company_id ? (
               <Badge variant="outline">
@@ -114,7 +123,7 @@ export function ProfessionalCard({
             </>
           )}
         </div>
-        <div className="mt-auto grid grid-cols-3 gap-2 pt-3">
+        <div className={actionGridClass}>
           <Button asChild={Boolean(phoneHref)} variant="outline" className="h-10 px-2" disabled={!phoneHref}>
             {phoneHref ? (
               <a href={phoneHref}>
@@ -141,9 +150,24 @@ export function ProfessionalCard({
               </span>
             )}
           </Button>
-          <Button asChild className="h-10 px-2" variant="outline">
-            <Link href={profileHref}>View Profile</Link>
-          </Button>
+          {professional.is_company_managed ? (
+            <>
+              <Button asChild className="h-10 px-2" variant="outline">
+                <Link href={profileHref}>Worker Profile</Link>
+              </Button>
+              <Button asChild={Boolean(companyHref)} className="h-10 px-2" variant="outline" disabled={!companyHref}>
+                {companyHref ? (
+                  <Link href={companyHref}>Company Profile</Link>
+                ) : (
+                  <span>Company Profile</span>
+                )}
+              </Button>
+            </>
+          ) : (
+            <Button asChild className="h-10 px-2" variant="outline">
+              <Link href={profileHref}>View Profile</Link>
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, MapPin, MessageCircle, Phone, Send, Star } from "lucide-react";
+import { BadgeCheck, Crown, MapPin, MessageCircle, Phone, Send, Star } from "lucide-react";
 
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { recentProfessionals } from "@/lib/marketplace-data";
+import {
+  getLocalProfessionalRecordById,
+  localRecordToProfessional,
+} from "@/lib/local-demo-store";
+import { getSessionProfessional } from "@/lib/auth";
 
 type ProfessionalProfilePageProps = {
   params: Promise<{
@@ -23,6 +28,7 @@ type DbProfessional = {
   whatsapp_number: string | null;
   area: string | null;
   gender: string | null;
+  age: number | null;
   availability: string | null;
   years_experience: number | null;
   experience: string | null;
@@ -53,7 +59,7 @@ async function getDbProfessional(id: string) {
   const { data, error } = await supabase
     .from("professionals")
     .select(
-      "id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, rating, cities(name), categories(name)",
+      "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, rating, cities(name), categories(name)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -69,7 +75,12 @@ async function getDbProfessional(id: string) {
 export async function generateMetadata({ params }: ProfessionalProfilePageProps) {
   const { id } = await params;
   const dbProfessional = await getDbProfessional(id);
-  const demoProfessional = recentProfessionals.find((item) => item.id === id);
+  const localProfessional = dbProfessional
+    ? null
+    : await getLocalProfessionalRecordById(id);
+  const demoProfessional = localProfessional
+    ? localRecordToProfessional(localProfessional)
+    : recentProfessionals.find((item) => item.id === id);
   const name = dbProfessional?.full_name ?? demoProfessional?.name;
   const role = dbProfessional?.categories?.name ?? demoProfessional?.role ?? "Professional";
   const city = dbProfessional?.cities?.name ?? demoProfessional?.city ?? "Pakistan";
@@ -91,7 +102,14 @@ export default async function ProfessionalProfilePage({
 }: ProfessionalProfilePageProps) {
   const { id } = await params;
   const dbProfessional = await getDbProfessional(id);
-  const demoProfessional = recentProfessionals.find((item) => item.id === id);
+  const localProfessional = dbProfessional
+    ? null
+    : await getLocalProfessionalRecordById(id);
+  const sessionProfessional = await getSessionProfessional();
+  const isOwnProfile = sessionProfessional?.id === id;
+  const demoProfessional = localProfessional
+    ? localRecordToProfessional(localProfessional)
+    : recentProfessionals.find((item) => item.id === id);
 
   if (!dbProfessional && !demoProfessional) {
     notFound();
@@ -136,6 +154,14 @@ export default async function ProfessionalProfilePage({
                     <MapPin className="size-4" aria-hidden="true" />
                     {dbProfessional.cities?.name ?? "Pakistan"}{dbProfessional.area ? `, ${dbProfessional.area}` : ""}
                   </p>
+                  {isOwnProfile ? (
+                    <Button asChild className="mt-4 h-11">
+                      <Link href="/account/featured">
+                        <Crown className="size-4" aria-hidden="true" />
+                        Get Featured
+                      </Link>
+                    </Button>
+                  ) : null}
                 </div>
               </div>
 
@@ -162,6 +188,12 @@ export default async function ProfessionalProfilePage({
                   <p className="text-sm text-muted-foreground">Gender</p>
                   <p className="mt-1 font-semibold">
                     {dbProfessional.gender ?? "Not provided"}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm text-muted-foreground">Age</p>
+                  <p className="mt-1 font-semibold">
+                    {dbProfessional.age ? `Age ${dbProfessional.age}` : "Age not added"}
                   </p>
                 </div>
                 <div className="rounded-lg border p-4">
@@ -234,6 +266,7 @@ export default async function ProfessionalProfilePage({
   }
 
   const professional = demoProfessional!;
+  const isOwnDemoProfile = sessionProfessional?.id === professional.id;
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
@@ -271,6 +304,14 @@ export default async function ProfessionalProfilePage({
                   <MapPin className="size-4" aria-hidden="true" />
                   {professional.city}, {professional.area}
                 </p>
+                {isOwnDemoProfile ? (
+                  <Button asChild className="mt-4 h-11">
+                    <Link href="/account/featured">
+                      <Crown className="size-4" aria-hidden="true" />
+                      Get Featured
+                    </Link>
+                  </Button>
+                ) : null}
               </div>
             </div>
 
@@ -282,6 +323,12 @@ export default async function ProfessionalProfilePage({
               <div className="rounded-lg border p-4">
                 <p className="text-sm text-muted-foreground">Hourly Rate</p>
                 <p className="mt-1 font-semibold">{professional.rate}</p>
+              </div>
+              <div className="rounded-lg border p-4">
+                <p className="text-sm text-muted-foreground">Age</p>
+                <p className="mt-1 font-semibold">
+                  {professional.age ? `Age ${professional.age}` : "Age not added"}
+                </p>
               </div>
               <div className="rounded-lg border p-4">
                 <p className="text-sm text-muted-foreground">Rating</p>

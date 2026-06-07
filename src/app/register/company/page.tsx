@@ -6,20 +6,21 @@ import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getFormDraft } from "@/lib/form-draft";
 import { categories, cities } from "@/lib/marketplace-data";
 
 import { registerCompany } from "./actions";
 
 export const metadata = {
   title: "Register Company | Kamker",
-  description: "Register a company account to add multiple professionals on Kamker.",
+  description: "Register a company account to add multiple staff profiles on Kamker.",
 };
 
 const statusMessages = {
   success:
-    "Company details saved. Next step is choosing a package for company-managed professionals.",
+    "Company details saved. Next step is choosing a package for company-managed staff profiles.",
   missing:
-    "Please fill company name, category, city, contact person, phone number, and description.",
+    "Fix the highlighted fields. Your entered company details are kept so you can correct them easily.",
   "not-configured": "Supabase is not configured yet.",
   error: "Could not register company. Please try again.",
 } as const;
@@ -47,6 +48,19 @@ type CompanyRegisterPageProps = {
   }>;
 };
 
+type CompanyDraft = {
+  companyName: string;
+  category: string;
+  city: string;
+  area: string;
+  contactPerson: string;
+  phone: string;
+  whatsapp: string;
+  licenseNumber: string;
+  description: string;
+  errors: string;
+};
+
 export default async function CompanyRegisterPage({
   searchParams,
 }: CompanyRegisterPageProps) {
@@ -54,6 +68,24 @@ export default async function CompanyRegisterPage({
   const status = params?.status;
   const companyId = params?.companyId;
   const statusMessage = status ? statusMessages[status] : null;
+  const draft = await getFormDraft<CompanyDraft>("company");
+  const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
+  const errorFor = (field: string) => {
+    if (!failedFields.has(field)) {
+      return undefined;
+    }
+
+    const messages: Record<string, string> = {
+      companyName: "Company name is required.",
+      category: "Choose a company category.",
+      city: "Choose a city.",
+      contactPerson: "Contact person is required.",
+      phone: "Phone number is required.",
+      description: "Company description is required.",
+    };
+
+    return messages[field] ?? "This field needs attention.";
+  };
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -73,7 +105,7 @@ export default async function CompanyRegisterPage({
         </div>
 
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Register your agency or business as a company account. After package activation, your company can add multiple professionals in any category and city according to the selected package limit.
+          Register your agency or business as one company account. After package activation, your company can add multiple staff profiles in any category and city according to the selected package limit.
         </p>
 
         <DismissibleNotice className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950" contentClassName="flex gap-3" closeLabel="Close directory warning">
@@ -94,7 +126,7 @@ export default async function CompanyRegisterPage({
                   <Link href="/register/company">Register Another Company</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link href={companyId ? `/register/company?companyId=${companyId}` : "/register/company"}>
+                  <Link href={companyId ? `/companies/${companyId}/packages` : "/register/company"}>
                     Continue to Packages
                   </Link>
                 </Button>
@@ -109,16 +141,32 @@ export default async function CompanyRegisterPage({
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Basic info</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Company identity. Professional categories are selected later for each worker profile.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Company identity. Staff categories are selected later for each worker profile.</p>
                 </div>
-                <FormField label="Company name" name="companyName" />
+                <FormField
+                  label="Company name"
+                  name="companyName"
+                  defaultValue={draft.companyName}
+                  error={errorFor("companyName")}
+                  required
+                />
                 <SelectField
                   label="Company category"
                   name="category"
                   options={companyCategories}
+                  defaultValue={draft.category}
+                  error={errorFor("category")}
+                  required
                 />
-                <SelectField label="City" name="city" options={cities} />
-                <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" />
+                <SelectField
+                  label="City"
+                  name="city"
+                  options={cities}
+                  defaultValue={draft.city}
+                  error={errorFor("city")}
+                  required
+                />
+                <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" defaultValue={draft.area} />
               </div>
 
               <div className="grid gap-4 border-t pt-5 sm:grid-cols-2">
@@ -126,25 +174,42 @@ export default async function CompanyRegisterPage({
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Contact</p>
                   <p className="mt-1 text-sm text-muted-foreground">Customer-facing phone and WhatsApp details.</p>
                 </div>
-                <FormField label="Contact person" name="contactPerson" />
-                <FormField label="Phone number" name="phone" type="tel" />
-                <FormField label="WhatsApp number" name="whatsapp" type="tel" />
+                <FormField
+                  label="Contact person"
+                  name="contactPerson"
+                  defaultValue={draft.contactPerson}
+                  error={errorFor("contactPerson")}
+                  required
+                />
+                <FormField
+                  label="Phone number"
+                  name="phone"
+                  type="tel"
+                  defaultValue={draft.phone}
+                  error={errorFor("phone")}
+                  required
+                />
+                <FormField label="WhatsApp number" name="whatsapp" type="tel" defaultValue={draft.whatsapp} />
                 <FormField
                   label="License number optional"
                   name="licenseNumber"
                   placeholder="For security/bodyguard/fire safety companies"
+                  defaultValue={draft.licenseNumber}
                 />
               </div>
 
               <div className="grid gap-4 border-t pt-5">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Service details</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Explain staff types, areas covered, and verification details. Worker profiles are added after package activation.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Explain staff types, areas covered, and verification details. Staff profiles are added after package activation.</p>
                 </div>
                 <TextAreaField
                   label="Company description"
                   name="description"
                   placeholder="Tell customers what services your company offers, areas covered, staff types, timings, and verification details."
+                  defaultValue={draft.description}
+                  error={errorFor("description")}
+                  required
                 />
               </div>
               <Button className="h-12 sm:col-span-2">Save Company Details</Button>

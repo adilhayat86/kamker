@@ -28,7 +28,7 @@ const highlights = [
   {
     title: "Companies can manage staff",
     description:
-      "Companies register separately and add multiple company-managed professionals according to their active package.",
+      "Companies register separately and add multiple company-managed staff profiles according to their active package.",
     icon: Building2,
   },
   {

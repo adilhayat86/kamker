@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import {
   BadgeCheck,
   BriefcaseBusiness,
+  CheckCircle2,
   Clock,
   Crown,
   Edit,
@@ -33,6 +34,7 @@ export const metadata = {
 
 const statusMessages = {
   updated: "Profile updated successfully.",
+  registered: "Welcome to Kamker. Your professional profile has been created.",
 } as const;
 
 type AccountPageProps = {
@@ -79,6 +81,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const whatsappNumber =
     dbProfessional?.whatsapp_number ?? demoProfessional?.whatsapp_number;
   const gender = dbProfessional?.gender;
+  const age = dbProfessional?.age;
   const availability = dbProfessional?.availability;
   const yearsExperience = dbProfessional?.years_experience;
   const experience = dbProfessional?.experience ?? demoProfessional?.experience;
@@ -93,13 +96,16 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const isFeatured = dbProfessional
     ? isAccountFeatured(dbProfessional)
     : Boolean(demoProfessional?.is_featured);
+  const publicProfileHref = `/professionals/${dbProfessional?.id ?? demoProfessional?.id}`;
+  const isNewRegistration = status === "registered";
+  const cleanWhatsappNumber = whatsappNumber?.replace(/\D/g, "");
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-5xl">
         <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
           <PageNavigation backHref="/professionals" backLabel="Directory" />
-          <div className="flex items-center gap-2">
+          <div className={isNewRegistration ? "hidden" : "flex items-center gap-2"}>
             <Button asChild size="sm" variant="outline">
               <Link href="/account/edit">
                 <Edit aria-hidden="true" />
@@ -119,38 +125,109 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
 
         <Card className="mt-5 overflow-hidden bg-white shadow-sm">
           <CardContent className="p-0">
-            <div className="bg-primary p-5 text-primary-foreground sm:p-7">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-4">
+            <div
+              className={
+                isNewRegistration
+                  ? "bg-gradient-to-br from-primary via-sky-500 to-blue-700 p-5 text-primary-foreground sm:p-7"
+                  : "bg-primary p-5 text-primary-foreground sm:p-7"
+              }
+            >
+              {isNewRegistration ? (
+                <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <div className="flex items-start gap-4">
+                    <div className="relative mt-1 flex size-14 shrink-0 items-center justify-center rounded-full bg-white text-primary shadow-lg">
+                      <span className="absolute inline-flex size-14 animate-ping rounded-full bg-white/30" />
+                      <CheckCircle2 className="relative size-7" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-normal text-white/80">
+                        Registration complete
+                      </p>
+                      <h1 className="mt-2 text-3xl font-bold tracking-normal sm:text-4xl">
+                        Welcome to Kamker, {fullName.split(" ")[0] || fullName}
+                      </h1>
+                      <p className="mt-3 max-w-xl text-sm leading-6 text-white/85 sm:text-base">
+                        You are logged in. Your professional profile is ready to
+                        review before customers see and contact you.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid gap-2 sm:w-52">
+                    <Button asChild className="h-12 bg-white text-primary hover:bg-white/90">
+                      <Link href={publicProfileHref}>View Profile</Link>
+                    </Button>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="h-12 border-white/70 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                    >
+                      <Link href="/account/edit">Improve Profile</Link>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-4">
+                    <Image
+                      src={profilePhotoUrl}
+                      alt={`${fullName} profile photo`}
+                      width={80}
+                      height={80}
+                      className="size-16 shrink-0 rounded-full bg-white object-cover ring-2 ring-white/60"
+                    />
+                    <div>
+                      <p className="text-sm text-white/75">Professional Dashboard</p>
+                      <h1 className="mt-1 text-3xl font-bold tracking-normal">
+                        {fullName}
+                      </h1>
+                      <p className="mt-1 text-white/85">{profession}</p>
+                    </div>
+                  </div>
+                  <Button asChild className="h-12 bg-white text-primary hover:bg-white/90">
+                    <Link href="/account/edit">
+                      <Edit aria-hidden="true" />
+                      Edit Profile
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div className="p-5 sm:p-7">
+              {isNewRegistration ? (
+                <div className="-mt-10 mb-5 grid gap-3 rounded-xl border bg-white p-4 shadow-sm sm:grid-cols-[auto_1fr] sm:items-center">
                   <Image
                     src={profilePhotoUrl}
                     alt={`${fullName} profile photo`}
                     width={80}
                     height={80}
-                    className="size-16 shrink-0 rounded-full bg-white object-cover ring-2 ring-white/60"
+                    className="size-20 rounded-full bg-secondary object-cover ring-4 ring-white"
                   />
                   <div>
-                    <p className="text-sm text-white/75">Professional Dashboard</p>
-                    <h1 className="mt-1 text-3xl font-bold tracking-normal">
+                    <p className="text-xs font-semibold uppercase tracking-normal text-primary">
+                      Profile preview
+                    </p>
+                    <h2 className="mt-1 text-2xl font-bold tracking-normal">
                       {fullName}
-                    </h1>
-                    <p className="mt-1 text-white/85">{profession}</p>
+                    </h2>
+                    <p className="mt-1 font-medium text-muted-foreground">
+                      {profession} in {city}
+                      {area ? `, ${area}` : ""}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {age ? `Age ${age}` : "Age not added"}
+                    </p>
+                    <p className="mt-2 line-clamp-1 text-sm font-semibold text-foreground">
+                      {tagline || "Trusted local professional"}
+                    </p>
                   </div>
                 </div>
-                <Button asChild className="h-12 bg-white text-primary hover:bg-white/90">
-                  <Link href="/account/edit">
-                    <Edit aria-hidden="true" />
-                    Edit Profile
-                  </Link>
-                </Button>
-              </div>
-            </div>
+              ) : null}
 
-            <div className="p-5 sm:p-7">
-              {statusMessage ? (
-                <div className="mb-5 rounded-lg border bg-accent p-4 text-sm font-medium text-accent-foreground">
-                  {statusMessage}
-                </div>
+              {statusMessage && !isNewRegistration ? (
+                  <div className="mb-5 rounded-lg border bg-accent p-4 text-sm font-medium text-accent-foreground">
+                    {statusMessage}
+                  </div>
               ) : null}
 
               {!dbProfessional ? (
@@ -160,54 +237,102 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                 </div>
               ) : null}
 
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <Badge className="justify-center gap-1 py-2">
                   <ShieldCheck className="size-4" aria-hidden="true" />
-                  {isCnicVerified ? "CNIC Verified" : "CNIC Pending"}
+                  <span className="truncate text-xs sm:text-sm">
+                    {isCnicVerified ? "CNIC Verified" : "CNIC Pending"}
+                  </span>
                 </Badge>
                 <Badge
                   variant={isApproved ? "default" : "outline"}
                   className="justify-center gap-1 py-2"
                 >
                   <BadgeCheck className="size-4" aria-hidden="true" />
-                  {isApproved ? "Approved" : "Pending Approval"}
+                  <span className="truncate text-xs sm:text-sm">
+                    {isApproved ? "Approved" : "Pending Approval"}
+                  </span>
                 </Badge>
-                <Badge
-                  variant={isFeatured ? "default" : "outline"}
-                  className="justify-center gap-1 py-2"
-                >
-                  <Crown className="size-4" aria-hidden="true" />
-                  {isFeatured ? "Featured Active" : "Not Featured"}
-                </Badge>
+                {isFeatured ? (
+                  <Badge className="justify-center gap-1 py-2">
+                    <Crown className="size-4" aria-hidden="true" />
+                    <span className="truncate text-xs sm:text-sm">
+                      Featured Active
+                    </span>
+                  </Badge>
+                ) : (
+                  <Link
+                    href="/account/featured"
+                    className="inline-flex items-center justify-center gap-1 rounded-md border px-2.5 py-2 text-xs font-semibold text-foreground transition-colors hover:border-primary hover:bg-primary hover:text-primary-foreground sm:text-sm"
+                  >
+                    <Crown className="size-4" aria-hidden="true" />
+                    <span className="truncate">Get Featured</span>
+                  </Link>
+                )}
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <DetailCard label="Full Name" value={fullName} />
-                <DetailCard label="Profession" value={profession} />
-                <DetailCard label="City" value={city} />
-                <DetailCard label="Area" value={area} />
-                <DetailCard label="Phone Number" value={phoneNumber} />
-                <DetailCard label="WhatsApp Number" value={whatsappNumber} />
-                <DetailCard label="Gender" value={gender} />
-                <DetailCard label="Availability" value={availability} />
-                <DetailCard label="Years Experience" value={yearsExperience} />
-                <DetailCard label="Experience" value={experience} />
-                <DetailCard label="Hourly Rate" value={expectedRate} />
-                <DetailCard label="Profile Tagline" value={tagline} />
-                <DetailCard
-                  label="Featured Status"
-                  value={isFeatured ? "Active" : "Inactive"}
-                />
-              </div>
+              <details
+                className="mt-5 rounded-xl border bg-white shadow-sm"
+                open={!isNewRegistration}
+              >
+                <summary className="cursor-pointer list-none p-4 text-sm font-semibold text-primary">
+                  View account details
+                </summary>
+                <div className="border-t p-4">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <DetailCard label="Full Name" value={fullName} />
+                    <DetailCard label="Profession" value={profession} />
+                    <DetailCard label="City" value={city} />
+                    <DetailCard label="Area" value={area} />
+                    <DetailCard label="Phone Number" value={phoneNumber} />
+                    <DetailCard label="WhatsApp Number" value={whatsappNumber} />
+                    <DetailCard label="Gender" value={gender} />
+                    <DetailCard label="Age" value={age ? `Age ${age}` : null} />
+                    <DetailCard label="Availability" value={availability} />
+                    <DetailCard label="Years Experience" value={yearsExperience} />
+                    <DetailCard label="Experience" value={experience} />
+                    <DetailCard label="Hourly Rate" value={expectedRate} />
+                    <DetailCard label="Profile Tagline" value={tagline} />
+                    <DetailCard
+                      label="Featured Status"
+                      value={isFeatured ? "Active" : "Inactive"}
+                    />
+                  </div>
 
-              <div className="mt-5 rounded-lg border bg-white p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-                  Bio
-                </p>
-                <p className="mt-2 leading-7 text-muted-foreground">
-                  {bio || "No bio added yet."}
-                </p>
-              </div>
+                  <div className="mt-5 rounded-lg border bg-white p-4 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                      Bio
+                    </p>
+                    <p className="mt-2 leading-7 text-muted-foreground">
+                      {bio || "No bio added yet."}
+                    </p>
+                  </div>
+                </div>
+              </details>
+
+              {isNewRegistration ? (
+                <div className="mt-5 rounded-xl border bg-blue-50/70 p-4">
+                  <p className="text-sm font-semibold text-foreground">
+                    Next best steps
+                  </p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                    {[
+                      "Check your public profile",
+                      "Add missing WhatsApp or CNIC details",
+                      "Keep your rate and availability updated",
+                    ].map((step, index) => (
+                      <div key={step} className="flex gap-3 rounded-lg bg-white p-3 shadow-sm">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                          {index + 1}
+                        </span>
+                        <p className="text-sm leading-5 text-muted-foreground">
+                          {step}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="mt-5 grid gap-2 sm:grid-cols-3">
                 <Button asChild variant="outline" className="h-12">
@@ -216,16 +341,23 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                     Call
                   </a>
                 </Button>
-                <Button asChild className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                  <a href={`https://wa.me/${whatsappNumber?.replace(/\D/g, "")}`}>
+                {cleanWhatsappNumber ? (
+                  <Button asChild className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
+                    <a href={`https://wa.me/${cleanWhatsappNumber}`}>
+                      <MessageCircle aria-hidden="true" />
+                      WhatsApp
+                    </a>
+                  </Button>
+                ) : (
+                  <Button className="h-12" disabled variant="outline">
                     <MessageCircle aria-hidden="true" />
-                    WhatsApp
-                  </a>
-                </Button>
+                    WhatsApp missing
+                  </Button>
+                )}
                 <Button asChild className="h-12">
-                  <Link href="/professionals">
+                  <Link href={publicProfileHref}>
                     <BriefcaseBusiness aria-hidden="true" />
-                    View Directory
+                    View Profile
                   </Link>
                 </Button>
               </div>

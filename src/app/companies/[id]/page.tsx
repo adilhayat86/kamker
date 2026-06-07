@@ -27,6 +27,10 @@ import {
   type CompanyListingCardRow,
 } from "@/lib/company-listing-cards";
 import { getActiveCompanySubscription } from "@/lib/company-packages";
+import {
+  getLocalCompanyListingRecords,
+  getLocalCompanyRecordById,
+} from "@/lib/local-demo-store";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +72,12 @@ async function getCompany(id: string) {
   }
 
   if (!isSupabaseConfigured || !supabase) {
+    const localCompany = await getLocalCompanyRecordById(id);
+
+    if (localCompany) {
+      return localCompany satisfies Company;
+    }
+
     return null;
   }
 
@@ -93,12 +103,45 @@ async function getCompanyStaff(companyId: string) {
   }
 
   if (!isSupabaseConfigured || !supabase) {
-    return [] as CompanyListingCardRow[];
+    const [localCompany, localListings] = await Promise.all([
+      getLocalCompanyRecordById(companyId),
+      getLocalCompanyListingRecords(companyId),
+    ]);
+
+    return localListings.map((listing) => ({
+      id: listing.id,
+      title: listing.title,
+      service_group: listing.service_group,
+      category: listing.category,
+      city: listing.city,
+      area: listing.area,
+      description: listing.description,
+      hourly_rate: listing.hourly_rate,
+      monthly_rate: listing.monthly_rate,
+      profile_photo_url: listing.profile_photo_url,
+      tagline: listing.tagline,
+      gender: listing.gender,
+      age: listing.age,
+      availability: listing.availability,
+      years_experience: listing.years_experience,
+      phone: listing.phone,
+      whatsapp: listing.whatsapp,
+      is_featured: listing.is_featured,
+      created_at: listing.created_at,
+      companies: localCompany
+        ? {
+            id: localCompany.id,
+            company_name: localCompany.company_name,
+            verification_status: localCompany.verification_status,
+            logo_url: localCompany.logo_url,
+          }
+        : null,
+    })) satisfies CompanyListingCardRow[];
   }
 
   const { data, error } = await supabase
     .from("company_listings")
-    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, availability, years_experience, phone, whatsapp, is_featured, created_at, companies(id, company_name, verification_status, logo_url)")
+    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, age, availability, years_experience, phone, whatsapp, is_featured, created_at, companies(id, company_name, verification_status, logo_url)")
     .eq("company_id", companyId)
     .eq("status", "approved")
     .order("is_featured", { ascending: false })
@@ -159,7 +202,7 @@ export async function generateMetadata({ params }: CompanyProfilePageProps) {
     title: `${company.company_name} - ${company.category} in ${company.city} | Kamker`,
     description:
       company.description ??
-      `${company.company_name} company profile on Kamker. Browse company-managed professionals in ${company.city}.`,
+      `${company.company_name} company profile on Kamker. Browse company-managed staff profiles in ${company.city}.`,
   };
 }
 
@@ -202,7 +245,7 @@ export default async function CompanyProfilePage({
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-7xl">
-        <PageNavigation backHref="/company-listings" backLabel="Company Listings" />
+        <PageNavigation backHref="/professionals" backLabel="Professionals" />
 
         <section className="mt-5 overflow-hidden rounded-2xl border bg-white shadow-sm">
           <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -380,15 +423,15 @@ export default async function CompanyProfilePage({
                 Staff directory
               </p>
               <h2 className="mt-1 text-2xl font-bold tracking-normal">
-                Company-managed professionals
+                Company-managed staff profiles
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Showing {staffCards.length} of {staffListings.length} approved staff profiles.
               </p>
             </div>
             <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link href={`/company-listings?city=${encodeURIComponent(company.city)}`}>
-                Browse Company Listings
+              <Link href={`/professionals?city=${encodeURIComponent(company.city)}`}>
+                Browse All Workers
               </Link>
             </Button>
           </div>

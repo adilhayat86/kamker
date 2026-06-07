@@ -74,6 +74,7 @@ function localRecordToAccountProfessional(
     whatsapp_number: professional.whatsapp_number,
     area: professional.area,
     gender: professional.gender,
+    age: professional.age ?? null,
     availability: professional.availability,
     years_experience: professional.years_experience,
     experience: professional.experience,
@@ -269,7 +270,7 @@ export async function getSessionProfessional() {
   const { data: professional, error: professionalError } = await supabase
     .from("professionals")
     .select(
-      "id, full_name, phone_number, whatsapp_number, area, gender, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_featured, featured_until, cities(name), categories(name)",
+      "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_featured, featured_until, cities(name), categories(name)",
     )
     .eq("id", session.professional_id as string)
     .maybeSingle();

@@ -11,6 +11,10 @@ import {
   getMockCompanyListingById,
   type CompanyListingCardRow,
 } from "@/lib/company-listing-cards";
+import {
+  getLocalCompanyListingRecords,
+  getLocalCompanyRecordById,
+} from "@/lib/local-demo-store";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -45,12 +49,48 @@ async function getListing(id: string) {
   }
 
   if (!isSupabaseConfigured || !supabase) {
-    return null;
+    const localListings = await getLocalCompanyListingRecords();
+    const localListing = localListings.find((listing) => listing.id === id);
+
+    if (!localListing) {
+      return null;
+    }
+
+    const localCompany = await getLocalCompanyRecordById(localListing.company_id);
+
+    return {
+      id: localListing.id,
+      title: localListing.title,
+      service_group: localListing.service_group,
+      category: localListing.category,
+      city: localListing.city,
+      area: localListing.area,
+      description: localListing.description,
+      hourly_rate: localListing.hourly_rate,
+      monthly_rate: localListing.monthly_rate,
+      profile_photo_url: localListing.profile_photo_url,
+      tagline: localListing.tagline,
+      gender: localListing.gender,
+      age: localListing.age,
+      availability: localListing.availability,
+      years_experience: localListing.years_experience,
+      phone: localListing.phone,
+      whatsapp: localListing.whatsapp,
+      is_featured: localListing.is_featured,
+      companies: localCompany
+        ? {
+            id: localCompany.id,
+            company_name: localCompany.company_name,
+            verification_status: localCompany.verification_status,
+            logo_url: localCompany.logo_url,
+          }
+        : null,
+    } satisfies CompanyListingCardRow;
   }
 
   const { data, error } = await supabase
     .from("company_listings")
-    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, availability, years_experience, phone, whatsapp, is_featured, companies(id, company_name, verification_status, logo_url)")
+    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, age, availability, years_experience, phone, whatsapp, is_featured, companies(id, company_name, verification_status, logo_url)")
     .eq("id", id)
     .eq("status", "approved")
     .maybeSingle();
@@ -142,6 +182,7 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
                     {listing.years_experience ?? 0} years experience
                   </span>
                   <span>Availability: {listing.availability ?? "Ask company"}</span>
+                  <span>Age: {listing.age ? `Age ${listing.age}` : "Age not added"}</span>
                   <span>
                     Managed by:{" "}
                     {listing.companies?.id ? (
@@ -160,6 +201,21 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
               <div className="mt-6 border-t pt-5">
                 <h2 className="text-xl font-semibold">Profile details</h2>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{listing.description}</p>
+              </div>
+            ) : null}
+
+            {listing.companies?.id ? (
+              <div className="mt-6 rounded-lg border bg-secondary/40 p-4">
+                <p className="text-sm font-semibold text-foreground">Managed by company account</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  This staff profile is created and managed by {listing.companies.company_name}.
+                </p>
+                <Button asChild variant="outline" className="mt-3 h-11 w-full sm:w-auto">
+                  <Link href={`/companies/${listing.companies.id}`}>
+                    <Building2 className="size-4" aria-hidden="true" />
+                    Company Profile
+                  </Link>
+                </Button>
               </div>
             ) : null}
 

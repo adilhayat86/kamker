@@ -82,7 +82,6 @@ const marketplaceLinks: MenuLink[] = [
 ];
 
 const companyLinks: MenuLink[] = [
-  { href: "/company-listings", label: "Company Listings", icon: Building2 },
   { href: "/register/company", label: "Register Company", icon: Building2 },
 ];
 

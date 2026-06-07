@@ -3,6 +3,7 @@ import { Save, UserCog } from "lucide-react";
 
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
+import { PhotoUploadField } from "@/components/photo-upload-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAccountProfessional, getDemoAccountProfessional } from "@/lib/account";
@@ -19,9 +20,9 @@ const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evenin
 const genderOptions = ["Female", "Male"];
 
 const statusMessages = {
-  missing: "Please fill name, phone, city, profession, gender, availability, hourly rate, and tagline. Tagline must be 30 characters or less.",
+  missing: "Please fill name, phone, city, profession, gender, age, availability, hourly rate, and tagline. Age must be between 16 and 80. Tagline must be 30 characters or less.",
   "not-configured": "Supabase is not configured yet.",
-  "invalid-photo": "Upload a jpg, png, or webp image under 2MB.",
+  "invalid-photo": "Upload a jpg, png, or webp image under 8MB.",
   "photo-error": "Could not upload profile photo. Please try again.",
   error: "Could not update profile. Please try again.",
 } as const;
@@ -124,6 +125,7 @@ export default async function EditAccountPage({
   const whatsappNumber =
     dbProfessional?.whatsapp_number ?? demoProfessional?.whatsapp_number;
   const gender = dbProfessional?.gender ?? "";
+  const age = dbProfessional?.age ?? "";
   const availability = dbProfessional?.availability ?? "";
   const yearsExperience = dbProfessional?.years_experience ?? 0;
   const experience = dbProfessional?.experience ?? demoProfessional?.experience;
@@ -170,19 +172,7 @@ export default async function EditAccountPage({
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
             <form action={updateProfessionalProfile} className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2 sm:col-span-2">
-                <span className="text-sm font-medium">Profile photo</span>
-                <input
-                  name="photo"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  disabled={isDemo}
-                  className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-                />
-                <span className="text-xs text-muted-foreground">
-                  Optional. Upload a jpg, png, or webp image under 2MB.
-                </span>
-              </label>
+              <PhotoUploadField disabled={isDemo} />
               <TextInput
                 label="Full name"
                 name="fullName"
@@ -228,6 +218,14 @@ export default async function EditAccountPage({
                 name="gender"
                 value={gender}
                 options={genderOptions}
+                disabled={isDemo}
+              />
+              <TextInput
+                label="Age"
+                name="age"
+                type="number"
+                value={age}
+                placeholder="28"
                 disabled={isDemo}
               />
               <SelectInput

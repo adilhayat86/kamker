@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ClipboardList } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import {
@@ -8,8 +7,8 @@ import {
   rejectCompanyListing,
   removeCompanyListingFeatured,
 } from "@/app/admin/actions";
+import { AdminShell } from "@/components/admin/admin-ui";
 import { DismissibleNotice } from "@/components/dismissible-notice";
-import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,7 +20,7 @@ import {
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
-  title: "Company Professionals | Kamker Admin",
+  title: "Company Staff Profiles | Kamker Admin",
 };
 
 export const dynamic = "force-dynamic";
@@ -36,6 +35,7 @@ type CompanyListing = {
   description: string | null;
   tagline: string | null;
   gender: string | null;
+  age: number | null;
   availability: string | null;
   years_experience: number | null;
   hourly_rate: number | null;
@@ -55,7 +55,7 @@ async function getListings() {
 
   const { data, error } = await supabase
     .from("company_listings")
-    .select("id, title, service_group, category, city, area, description, tagline, gender, availability, years_experience, hourly_rate, monthly_rate, is_featured, phone, whatsapp, status, created_at, companies(id, company_name, verification_status)")
+    .select("id, title, service_group, category, city, area, description, tagline, gender, age, availability, years_experience, hourly_rate, monthly_rate, is_featured, phone, whatsapp, status, created_at, companies(id, company_name, verification_status)")
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -94,21 +94,11 @@ export default async function AdminCompanyListingsPage() {
   );
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
-      <section className="mx-auto max-w-7xl">
-        <PageNavigation backHref="/admin" backLabel="Admin" />
-
-        <div className="mt-5">
-          <Badge variant="secondary" className="gap-1.5">
-            <ClipboardList className="size-3.5" aria-hidden="true" />
-            Review queue
-          </Badge>
-          <h1 className="mt-3 text-3xl font-bold tracking-normal">Company Professionals</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Approve, reject, and feature company-managed professionals submitted under active packages.
-          </p>
-        </div>
-
+    <AdminShell
+      active="/admin/company-listings"
+      title="Company Staff Profiles"
+      description="Approve, reject, and feature company-managed worker profiles submitted under active packages."
+    >
         <div className="mt-6 grid gap-4">
           {listingsWithUsage.length > 0 ? (
             listingsWithUsage.map(({ listing, subscription, usage }) => {
@@ -151,6 +141,7 @@ export default async function AdminCompanyListingsPage() {
                     <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
                       <span>Tagline: {listing.tagline ?? "Not provided"}</span>
                       <span>Gender: {listing.gender ?? "Not provided"}</span>
+                      <span>Age: {listing.age ?? "Not added"}</span>
                       <span>Availability: {listing.availability ?? "Not provided"}</span>
                       <span>Experience: {listing.years_experience ?? 0} years</span>
                       <span>Hourly: {listing.hourly_rate ? `Rs ${listing.hourly_rate}` : "Not provided"}</span>
@@ -213,7 +204,6 @@ export default async function AdminCompanyListingsPage() {
             </Card>
           )}
         </div>
-      </section>
-    </main>
+    </AdminShell>
   );
 }
