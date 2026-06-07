@@ -158,8 +158,8 @@ export default async function AdminPage() {
         />
         <CompactStatCard
           label="System Health"
-          value={`${healthyCount}/4`}
-          tone={healthyCount === 4 ? "good" : "warning"}
+          value={`${healthyCount}/5`}
+          tone={healthyCount === 5 ? "good" : "warning"}
           helper="Core setup checks"
         />
       </div>
@@ -271,6 +271,7 @@ export default async function AdminPage() {
             {[
               ["Admin auth", systemHealth.adminAuth],
               ["Supabase", systemHealth.supabase],
+              ["Database schema", systemHealth.databaseSchema],
               ["OpenAI", systemHealth.openai],
               ["WhatsApp", systemHealth.whatsapp],
             ].map(([label, ok]) => (

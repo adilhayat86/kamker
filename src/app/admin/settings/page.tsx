@@ -88,6 +88,7 @@ export default async function AdminSettingsPage() {
           {[
             ["Admin auth", health.adminAuth],
             ["Supabase", health.supabase],
+            ["Database schema", health.databaseSchema],
             ["OpenAI proof review", health.openai],
             ["WhatsApp admin alerts", health.whatsapp],
           ].map(([label, ok]) => (

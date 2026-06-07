@@ -36,6 +36,14 @@ export type AdminAnalyticsRow = {
   created_at: string;
 };
 
+export type SystemHealth = {
+  adminAuth: boolean;
+  supabase: boolean;
+  databaseSchema: boolean;
+  openai: boolean;
+  whatsapp: boolean;
+};
+
 async function countRows(table: string, filters: Record<string, string | boolean | null> = {}) {
   if (!isSupabaseConfigured || !supabase) {
     return 0;
@@ -216,9 +224,10 @@ export function groupCount(values: string[]) {
 }
 
 export async function getSystemHealth() {
-  const configured = {
+  const configured: SystemHealth = {
     adminAuth: isAdminPasswordConfigured(),
     supabase: isSupabaseConfigured,
+    databaseSchema: false,
     openai: Boolean(process.env.OPENAI_API_KEY),
     whatsapp:
       Boolean(process.env.WHATSAPP_ACCESS_TOKEN) &&
@@ -226,5 +235,70 @@ export async function getSystemHealth() {
       Boolean(process.env.KAMKER_ADMIN_WHATSAPP),
   };
 
+  if (isSupabaseConfigured && supabase) {
+    configured.databaseSchema = await isDatabaseSchemaReady();
+  }
+
   return configured;
+}
+
+async function hasReadableTable(table: string) {
+  if (!supabase) {
+    return false;
+  }
+
+  const { error } = await supabase
+    .from(table)
+    .select("id", { head: true, count: "exact" })
+    .limit(1);
+
+  if (error) {
+    console.error(`Admin system health table check failed for ${table}`, error);
+    return false;
+  }
+
+  return true;
+}
+
+async function hasCompanyStaffRequirementMatchColumn() {
+  if (!supabase) {
+    return false;
+  }
+
+  const { error } = await supabase
+    .from("requirement_matches")
+    .select("company_listing_id")
+    .limit(1);
+
+  if (error) {
+    console.error(
+      "Admin system health column check failed for requirement_matches.company_listing_id",
+      error,
+    );
+    return false;
+  }
+
+  return true;
+}
+
+async function isDatabaseSchemaReady() {
+  const requiredTables = [
+    "professionals",
+    "customers",
+    "requirements",
+    "requirement_matches",
+    "companies",
+    "company_package_subscriptions",
+    "company_listings",
+    "proof_reviews",
+    "analytics_events",
+    "whatsapp_messages",
+  ];
+
+  const checks = await Promise.all([
+    ...requiredTables.map(hasReadableTable),
+    hasCompanyStaffRequirementMatchColumn(),
+  ]);
+
+  return checks.every(Boolean);
 }
