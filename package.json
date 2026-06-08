@@ -30,6 +30,7 @@
     "qa:copy-supabase-sql": "node scripts/qa/build-mvp-supabase-sql.mjs --copy",
     "qa:build-phone-sql": "node scripts/qa/build-mvp-supabase-sql.mjs --phone-only",
     "qa:copy-phone-sql": "node scripts/qa/build-mvp-supabase-sql.mjs --phone-only --copy",
+    "qa:serve-phone-sql": "node scripts/qa/serve-supabase-sql-helper.mjs --phone-only",
     "qa:list-production": "node scripts/qa/list-production-qa-records.mjs"
   },
   "keywords": [],
