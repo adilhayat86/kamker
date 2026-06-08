@@ -21,6 +21,7 @@ import {
   getGroupSubcategoryCards,
   parentCategories,
   recentProfessionals,
+  searchTermsForCategory,
   type Professional,
 } from "@/lib/marketplace-data";
 import { getLocalProfessionalCards } from "@/lib/local-demo-store";
@@ -136,14 +137,17 @@ function normaliseMatchValue(value: string) {
 
 function serviceMatchesCategory(serviceName: string, categoryName: string) {
   const service = normaliseMatchValue(serviceName);
-  const category = normaliseMatchValue(categoryName);
-  const singularCategory = category.replace(/s$/, "");
+  const categoryTerms = searchTermsForCategory(categoryName).map(normaliseMatchValue);
 
-  return (
-    service.includes(category) ||
-    service.includes(singularCategory) ||
-    category.includes(service)
-  );
+  return categoryTerms.some((category) => {
+    const singularCategory = category.replace(/s$/, "");
+
+    return (
+      service.includes(category) ||
+      service.includes(singularCategory) ||
+      category.includes(service)
+    );
+  });
 }
 
 function professionalMatchesTargets(

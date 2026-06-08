@@ -1,8 +1,10 @@
 import { unstable_cache } from "next/cache";
 
 import {
+  aliasesForCategory,
   categories as fallbackCategories,
   categorySlug,
+  searchTermsForCategory,
 } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -92,7 +94,14 @@ export async function getCategoryIdsByNames(categoryNames: string[]) {
   const categoryKeys = new Set(
     categoryNames.flatMap((name) => {
       const normalized = normalize(name);
-      return [normalized, singular(normalized)];
+      const fallbackCategory = fallbackCategories.find(
+        (category) => normalize(category.name) === normalized,
+      );
+      const aliasTerms = fallbackCategory
+        ? aliasesForCategory(fallbackCategory.name).map(normalize)
+        : [];
+
+      return [normalized, singular(normalized), ...aliasTerms];
     }),
   );
   const dbCategories = await getPublicCategoryLookup();
@@ -122,13 +131,24 @@ export function categoryNamesForSearch(value: string) {
       const nameKey = normalize(category.name);
       const slugKey = normalize(categorySlug(category.name));
       const singularName = singular(nameKey);
+      const searchableTerms = searchTermsForCategory(category.name).map(normalize);
 
       return (
         nameKey.includes(valueKey) ||
         singularName.includes(valueKey) ||
         valueKey.includes(nameKey) ||
         valueKey.includes(singularName) ||
-        slugKey === valueKey
+        slugKey === valueKey ||
+        searchableTerms.some((term) => {
+          const singularTerm = singular(term);
+
+          return (
+            term.includes(valueKey) ||
+            singularTerm.includes(valueKey) ||
+            valueKey.includes(term) ||
+            valueKey.includes(singularTerm)
+          );
+        })
       );
     })
     .map((category) => category.name);

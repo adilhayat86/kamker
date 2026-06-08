@@ -1,0 +1,128 @@
+-- Canonical public taxonomy for the simple Kamker category model.
+-- Detailed job titles from old source documents should be treated as aliases/specialties,
+-- not separate public categories.
+
+with groups(name, slug, icon, description, sort_order) as (
+  values
+    ('Healthcare', 'healthcare', 'stethoscope', 'Nurses, caregivers, physiotherapists, lab technicians, and home health support.', 10),
+    ('Domestic Help', 'domestic-help', 'home', 'Maids, housekeepers, cleaners, cooks, babysitters, gardeners, and daily home support.', 20),
+    ('Education & Training', 'education-and-training', 'graduation', 'School teachers, home tutors, online tutors, Quran teachers, handwriting teachers, and trainers.', 30),
+    ('Home Repairs & Construction', 'home-repairs-and-construction', 'wrench', 'Electricians, plumbers, AC technicians, carpenters, painters, welders, masons, and construction support.', 40),
+    ('Transport & Delivery', 'transport-and-delivery', 'car', 'Drivers, delivery riders, truck drivers, bus drivers, and equipment operators.', 50),
+    ('Security', 'security', 'shield', 'Security guards and bodyguards for homes, offices, events, and companies.', 60),
+    ('Beauty & Personal Care', 'beauty-and-personal-care', 'scissors', 'Beauticians, barbers, makeup artists, skin care specialists, and fitness trainers.', 70),
+    ('Food, Catering & Events', 'food-catering-and-events', 'chef', 'Chefs, bakers, waiters, catering staff, event organizers, and event staff.', 80),
+    ('Office, Accounts & Support', 'office-accounts-and-support', 'briefcase', 'Accounts, data entry, admin support, office staff, customer service, HR, and sales.', 90),
+    ('IT & Digital', 'it-and-digital', 'monitor', 'Web developers, app developers, network technicians, IT support, designers, and writers.', 100),
+    ('Arts & Media', 'arts-and-media', 'palette', 'Photographers, videographers, actors, models, musicians, singers, journalists, and media technicians.', 110),
+    ('Automobiles', 'automobiles', 'car', 'Car mechanics, auto electricians, auto AC mechanics, car painters, denters, and detailing workers.', 120),
+    ('Clothing & Tailoring', 'clothing-and-tailoring', 'scissors', 'Tailors and fashion designers for alterations, stitched clothing, and design work.', 130),
+    ('Religious Services', 'religious-services', 'graduation', 'Religious scholars, Quran support, and Nikah Khawan services.', 140),
+    ('Consultants', 'consultants', 'briefcase', 'Legal, tax, education, and medical consultants.', 150)
+)
+insert into categories(name, slug, icon, description, sort_order)
+select name, slug, icon, description, sort_order
+from groups
+on conflict (name) do update set
+  slug = excluded.slug,
+  icon = excluded.icon,
+  description = excluded.description,
+  sort_order = excluded.sort_order;
+
+with category_rows(parent_name, name, slug, icon, sort_order) as (
+  values
+    ('Healthcare', 'Nurses', 'nurses', 'heart', 10),
+    ('Healthcare', 'Caregivers', 'caregivers', 'stethoscope', 20),
+    ('Healthcare', 'Physiotherapists', 'physiotherapists', 'heart', 30),
+    ('Healthcare', 'Lab Technicians', 'lab-technicians', 'stethoscope', 40),
+    ('Domestic Help', 'Maids', 'maids', 'home', 10),
+    ('Domestic Help', 'Housekeepers', 'housekeepers', 'home', 20),
+    ('Domestic Help', 'Cleaners', 'cleaners', 'sparkles', 30),
+    ('Domestic Help', 'Cooks', 'cooks', 'chef', 40),
+    ('Domestic Help', 'Babysitters', 'babysitters', 'users', 50),
+    ('Domestic Help', 'Gardeners', 'gardeners', 'leaf', 60),
+    ('Education & Training', 'School Teachers', 'school-teachers', 'graduation', 10),
+    ('Education & Training', 'Home Tutors', 'home-tutors', 'home', 20),
+    ('Education & Training', 'Online Tutors', 'online-tutors', 'laptop', 30),
+    ('Education & Training', 'Quran Teachers', 'quran-teachers', 'graduation', 40),
+    ('Education & Training', 'Handwriting Teachers', 'handwriting-teachers', 'paintbrush', 50),
+    ('Education & Training', 'Training Instructors', 'training-instructors', 'graduation', 60),
+    ('Home Repairs & Construction', 'Electricians', 'electricians', 'plug', 10),
+    ('Home Repairs & Construction', 'Plumbers', 'plumbers', 'wrench', 20),
+    ('Home Repairs & Construction', 'AC Technicians', 'ac-technicians', 'drill', 30),
+    ('Home Repairs & Construction', 'Carpenters', 'carpenters', 'hammer', 40),
+    ('Home Repairs & Construction', 'Painters', 'painters', 'palette', 50),
+    ('Home Repairs & Construction', 'Welders', 'welders', 'drill', 60),
+    ('Home Repairs & Construction', 'Masons', 'masons', 'hammer', 70),
+    ('Home Repairs & Construction', 'Tile Setters', 'tile-setters', 'wrench', 80),
+    ('Home Repairs & Construction', 'Construction Labor', 'construction-labor', 'users', 90),
+    ('Home Repairs & Construction', 'Architects', 'architects', 'pencil', 100),
+    ('Transport & Delivery', 'Drivers', 'drivers', 'car', 10),
+    ('Transport & Delivery', 'Delivery Riders', 'delivery-riders', 'bike', 20),
+    ('Transport & Delivery', 'Truck Drivers', 'truck-drivers', 'car', 30),
+    ('Transport & Delivery', 'Bus Drivers', 'bus-drivers', 'car', 40),
+    ('Transport & Delivery', 'Forklift/Crane Operators', 'forklift-crane-operators', 'wrench', 50),
+    ('Security', 'Security Guards', 'security-guards', 'shield', 10),
+    ('Security', 'Bodyguards', 'bodyguards', 'shield', 20),
+    ('Beauty & Personal Care', 'Beauticians', 'beauticians', 'scissors', 10),
+    ('Beauty & Personal Care', 'Barbers', 'barbers', 'scissors', 20),
+    ('Beauty & Personal Care', 'Makeup Artists', 'makeup-artists', 'palette', 30),
+    ('Beauty & Personal Care', 'Skin Care Specialists', 'skin-care-specialists', 'heart', 40),
+    ('Beauty & Personal Care', 'Fitness Trainers', 'fitness-trainers', 'users', 50),
+    ('Food, Catering & Events', 'Chefs', 'chefs', 'chef', 10),
+    ('Food, Catering & Events', 'Bakers', 'bakers', 'chef', 20),
+    ('Food, Catering & Events', 'Waiters', 'waiters', 'contact', 30),
+    ('Food, Catering & Events', 'Catering Staff', 'catering-staff', 'contact', 40),
+    ('Food, Catering & Events', 'Event Organizers', 'event-organizers', 'contact', 50),
+    ('Food, Catering & Events', 'Event Staff', 'event-staff', 'contact', 60),
+    ('Office, Accounts & Support', 'Accountants', 'accountants', 'calculator', 10),
+    ('Office, Accounts & Support', 'Bookkeepers/Munshi', 'bookkeepers-munshi', 'calculator', 20),
+    ('Office, Accounts & Support', 'Data Entry Operators', 'data-entry-operators', 'keyboard', 30),
+    ('Office, Accounts & Support', 'Computer Operators', 'computer-operators', 'monitor', 40),
+    ('Office, Accounts & Support', 'Admin Assistants', 'admin-assistants', 'clipboard', 50),
+    ('Office, Accounts & Support', 'Office Boys', 'office-boys', 'briefcase', 60),
+    ('Office, Accounts & Support', 'Customer Service Staff', 'customer-service-staff', 'contact', 70),
+    ('Office, Accounts & Support', 'HR Staff', 'hr-staff', 'users', 80),
+    ('Office, Accounts & Support', 'Sales Staff', 'sales-staff', 'briefcase', 90),
+    ('IT & Digital', 'Web Developers', 'web-developers', 'monitor', 10),
+    ('IT & Digital', 'App Developers', 'app-developers', 'monitor', 20),
+    ('IT & Digital', 'Network Technicians', 'network-technicians', 'wrench', 30),
+    ('IT & Digital', 'IT Support', 'it-support', 'monitor', 40),
+    ('IT & Digital', 'Graphic Designers', 'graphic-designers', 'pencil', 50),
+    ('IT & Digital', 'Content Writers', 'content-writers', 'fileText', 60),
+    ('Arts & Media', 'Photographers', 'photographers', 'image', 10),
+    ('Arts & Media', 'Videographers', 'videographers', 'image', 20),
+    ('Arts & Media', 'Actors/Models', 'actors-models', 'users', 30),
+    ('Arts & Media', 'Musicians/Singers', 'musicians-singers', 'contact', 40),
+    ('Arts & Media', 'Editors/Journalists', 'editors-journalists', 'fileText', 50),
+    ('Arts & Media', 'Sound/Lighting Technicians', 'sound-lighting-technicians', 'wrench', 60),
+    ('Automobiles', 'Car Mechanics', 'car-mechanics', 'wrench', 10),
+    ('Automobiles', 'Auto Electricians', 'auto-electricians', 'plug', 20),
+    ('Automobiles', 'Auto AC Mechanics', 'auto-ac-mechanics', 'drill', 30),
+    ('Automobiles', 'Car Painters/Denters', 'car-painters-denters', 'palette', 40),
+    ('Automobiles', 'Car Wash/Detailing', 'car-wash-detailing', 'sparkles', 50),
+    ('Clothing & Tailoring', 'Tailors', 'tailors', 'scissors', 10),
+    ('Clothing & Tailoring', 'Fashion Designers', 'fashion-designers', 'scissors', 20),
+    ('Religious Services', 'Religious Scholars', 'religious-scholars', 'graduation', 10),
+    ('Religious Services', 'Nikah Khawan/Qari', 'nikah-khawan-qari', 'graduation', 20),
+    ('Consultants', 'Legal Consultants', 'legal-consultants', 'briefcase', 10),
+    ('Consultants', 'Tax Consultants', 'tax-consultants', 'calculator', 20),
+    ('Consultants', 'Education Consultants', 'education-consultants', 'graduation', 30),
+    ('Consultants', 'Medical Consultants', 'medical-consultants', 'stethoscope', 40)
+)
+insert into categories(name, slug, icon, description, parent_id, sort_order)
+select
+  category_rows.name,
+  category_rows.slug,
+  category_rows.icon,
+  category_rows.name || ' professionals listed on Kamker.',
+  parent.id,
+  category_rows.sort_order
+from category_rows
+join categories parent on parent.name = category_rows.parent_name
+on conflict (name) do update set
+  slug = excluded.slug,
+  icon = excluded.icon,
+  description = excluded.description,
+  parent_id = excluded.parent_id,
+  sort_order = excluded.sort_order;

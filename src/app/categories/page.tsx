@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { getBroadcastRecipientCount } from "@/lib/broadcast";
 import { countForCategory, getLiveCategoryCountMap } from "@/lib/category-counts";
 import { getCityOptions } from "@/lib/city-options";
-import { categories, parentCategories } from "@/lib/marketplace-data";
+import {
+  categories,
+  parentCategories,
+  searchTermsForCategory,
+} from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
@@ -72,6 +76,29 @@ function uniqueCategoryCards<T extends { name: string }>(items: T[]) {
   });
 }
 
+function normalizedText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function categoryMatchesQuery(categoryName: string, query: string) {
+  const queryKey = normalizedText(query);
+
+  if (!queryKey) {
+    return true;
+  }
+
+  const terms = searchTermsForCategory(categoryName).map(normalizedText);
+  const nameKey = normalizedText(categoryName);
+
+  return [nameKey, ...terms].some(
+    (term) => term.includes(queryKey) || queryKey.includes(term),
+  );
+}
+
 export default async function CategoriesPage({
   searchParams,
 }: CategoriesPageProps) {
@@ -108,9 +135,7 @@ export default async function CategoriesPage({
     ? uniqueCategoryCards([...dbSubcategories, ...dbParentCategories, ...countedLocalCategories, ...countedParentCategories])
     : uniqueCategoryCards([...dbParentCategories, ...countedParentCategories]);
   const visibleCategories = q
-    ? searchableCategories.filter((category) =>
-        category.name.toLowerCase().includes(normalizedQuery),
-      )
+    ? searchableCategories.filter((category) => categoryMatchesQuery(category.name, normalizedQuery))
     : searchableCategories;
 
   return (
