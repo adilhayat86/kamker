@@ -18,6 +18,7 @@ next-dev*.log
 .gh-cli/
 gh.zip
 .kamker-local/
+tmp/
 
 # Generated QA screenshots and browser test artifacts
 screenshots/navigation-test/

@@ -18,6 +18,7 @@
     "qa:check-production-phones": "node scripts/qa/check-production-phones.mjs",
     "qa:check-mvp-production": "node scripts/qa/check-mvp-production.mjs",
     "qa:mvp-readiness": "node scripts/qa/mvp-readiness-report.mjs",
+    "qa:build-supabase-sql": "node scripts/qa/build-mvp-supabase-sql.mjs",
     "qa:list-production": "node scripts/qa/list-production-qa-records.mjs"
   },
   "keywords": [],
