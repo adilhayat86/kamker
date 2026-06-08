@@ -9,6 +9,8 @@ const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const DEFAULT_MESSAGE =
   "Phone photos are accepted. If photo upload causes trouble, register without photo first and add it later.";
 
+type UploadState = "idle" | "preparing" | "uploading" | "attached" | "failed";
+
 type PhotoUploadFieldProps = {
   disabled?: boolean;
   label?: string;
@@ -178,7 +180,7 @@ export function PhotoUploadField({
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
   const [previewUrl, setPreviewUrl] = useState("");
   const [fileName, setFileName] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadState, setUploadState] = useState<UploadState>("idle");
 
   useEffect(() => {
     return () => {
@@ -206,6 +208,7 @@ export function PhotoUploadField({
       setMessage(DEFAULT_MESSAGE);
       setUploadedUrl("");
       setFileName("");
+      setUploadState("idle");
       if (input) {
         setInputError(input);
       }
@@ -218,7 +221,7 @@ export function PhotoUploadField({
       setMessage(error);
       setUploadedUrl("");
       setFileName("");
-      setIsUploading(false);
+      setUploadState("failed");
       replacePreview("");
       return;
     }
@@ -226,7 +229,7 @@ export function PhotoUploadField({
     setInputError(input);
     setUploadedUrl("");
     setFileName(file.name);
-    setIsUploading(false);
+    setUploadState("preparing");
     replacePreview(URL.createObjectURL(file));
 
     if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
@@ -235,38 +238,36 @@ export function PhotoUploadField({
       );
       setInputError(input, "Please choose a photo under 10MB.");
       setFileName("");
-      setIsUploading(false);
+      setUploadState("failed");
       replacePreview("");
       return;
     }
 
     setMessage(`Preparing ${formatSize(file.size)} photo...`);
     setInputError(input, "Please wait for the photo upload to finish.");
-    setIsUploading(true);
+    setUploadState("preparing");
 
     try {
       const prepared =
         file.size > TARGET_UPLOAD_BYTES ? await compressImage(file) : file;
       setMessage(`Uploading photo (${formatSize(prepared.size)})...`);
+      setUploadState("uploading");
       const publicUrl = await uploadPhotoToCloudinary(
         prepared,
         uploadFolder,
         uploadTags,
       );
       setUploadedUrl(publicUrl);
-      replacePreview(publicUrl);
       clearSelectedFile(input);
       setInputError(input);
-      setIsUploading(false);
+      setUploadState("attached");
       setMessage("Photo attached. Continue registration.");
     } catch {
       clearSelectedFile(input);
       setUploadedUrl("");
-      setFileName("");
-      setIsUploading(false);
-      replacePreview("");
+      setUploadState("failed");
       setInputError(input);
-      setMessage("Photo upload failed. You can submit without photo and add it later.");
+      setMessage("Photo upload failed. Submit without photo or choose another photo.");
     }
   }
 
@@ -280,10 +281,26 @@ export function PhotoUploadField({
 
     setUploadedUrl("");
     setFileName("");
-    setIsUploading(false);
+    setUploadState("idle");
     replacePreview("");
     setMessage(DEFAULT_MESSAGE);
   }
+
+  const isBusy = uploadState === "preparing" || uploadState === "uploading";
+  const statusLabel =
+    uploadState === "attached"
+      ? "Photo attached"
+      : uploadState === "failed"
+        ? "Photo not uploaded"
+        : isBusy
+          ? "Uploading photo..."
+          : "Photo selected";
+  const statusClass =
+    uploadState === "attached"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+      : uploadState === "failed"
+        ? "border-amber-200 bg-amber-50 text-amber-900"
+        : "border-sky-200 bg-sky-50 text-sky-950";
 
   return (
     <div className="grid gap-2 sm:col-span-2">
@@ -296,13 +313,13 @@ export function PhotoUploadField({
         name="photo"
         type="file"
         accept="image/jpeg,image/png,image/webp"
-        disabled={disabled}
+        disabled={disabled || isBusy}
         onChange={handleChange}
         className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
       />
       <input type="hidden" name="profilePhotoUrl" value={uploadedUrl} />
       {previewUrl ? (
-        <div className="flex items-center gap-3 rounded-lg border border-sky-200 bg-sky-50 p-3">
+        <div className={`flex items-center gap-3 rounded-lg border p-3 ${statusClass}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewUrl}
@@ -310,20 +327,18 @@ export function PhotoUploadField({
             className="size-16 rounded-lg object-cover"
           />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-sky-950">
-              {isUploading ? "Uploading photo..." : fileName || "Photo attached"}
+            <p className="truncate text-sm font-semibold">
+              {statusLabel}
             </p>
-            <p className="text-xs text-sky-800">
-              {uploadedUrl
-                ? "Saved for this registration."
-                : "Please wait for upload to finish."}
+            <p className="truncate text-xs opacity-80">
+              {fileName || "Selected profile photo"}
             </p>
           </div>
-          {uploadedUrl ? (
+          {!isBusy ? (
             <button
               type="button"
               onClick={clearPhoto}
-              className="ml-auto rounded-md border border-sky-300 bg-white px-3 py-2 text-xs font-semibold text-sky-900"
+              className="ml-auto rounded-md border border-current bg-white/80 px-3 py-2 text-xs font-semibold"
             >
               Change
             </button>
