@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   metadataBase: siteUrl,
   title: {
     default: "Kamker - Find Part Time Workers in Pakistan",
-    template: "%s | Kamker",
+    template: "%s",
   },
   description:
     "Find nurses, maids, drivers, tutors, cooks, guards, and other part time workers by city in Pakistan. Contact workers directly or send your requirement.",
