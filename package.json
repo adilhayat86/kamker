@@ -22,6 +22,8 @@
     "qa:mvp-readiness": "node scripts/qa/mvp-readiness-report.mjs",
     "qa:build-supabase-sql": "node scripts/qa/build-mvp-supabase-sql.mjs",
     "qa:copy-supabase-sql": "node scripts/qa/build-mvp-supabase-sql.mjs --copy",
+    "qa:build-phone-sql": "node scripts/qa/build-mvp-supabase-sql.mjs --phone-only",
+    "qa:copy-phone-sql": "node scripts/qa/build-mvp-supabase-sql.mjs --phone-only --copy",
     "qa:list-production": "node scripts/qa/list-production-qa-records.mjs"
   },
   "keywords": [],

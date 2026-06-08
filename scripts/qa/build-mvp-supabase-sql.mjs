@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 const root = process.cwd();
 const outputPath = path.join(root, "tmp", "kamker-mvp-production.sql");
 const shouldCopy = process.argv.includes("--copy");
+const phoneOnly = process.argv.includes("--phone-only");
 
 const migrationFiles = [
   "schema.sql",
@@ -25,6 +26,9 @@ const migrationFiles = [
   "sql/20260608_phone_ownership_rules.sql",
   "sql/20260608_public_browse_performance.sql",
 ];
+const selectedMigrationFiles = phoneOnly
+  ? ["sql/20260608_phone_ownership_rules.sql"]
+  : migrationFiles;
 
 const verificationSql = String.raw`
 -- ---------------------------------------------------------------------------
@@ -119,7 +123,7 @@ order by id;
 `;
 
 function main() {
-  const missing = migrationFiles.filter((file) => !fs.existsSync(path.join(root, file)));
+  const missing = selectedMigrationFiles.filter((file) => !fs.existsSync(path.join(root, file)));
 
   if (missing.length > 0) {
     throw new Error(`Missing SQL files: ${missing.join(", ")}`);
@@ -131,7 +135,7 @@ function main() {
     `-- Generated at: ${new Date().toISOString()}`,
     "-- Run this in Supabase SQL Editor for the Kamker project.",
     "",
-    ...migrationFiles.flatMap((file) => [
+    ...selectedMigrationFiles.flatMap((file) => [
       "",
       "-- ---------------------------------------------------------------------------",
       `-- ${file}`,
@@ -151,7 +155,7 @@ function main() {
   console.log(JSON.stringify({
     ok: true,
     outputPath,
-    files: migrationFiles,
+    files: selectedMigrationFiles,
     bytes: Buffer.byteLength(content, "utf8"),
     copiedToClipboard,
     nextStep: copiedToClipboard
