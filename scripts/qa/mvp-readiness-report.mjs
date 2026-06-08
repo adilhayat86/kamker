@@ -10,6 +10,13 @@ const checks = [
       "Homepage, categories, professionals, profiles, company pages, registration pages, admin protection, and forbidden wording.",
   },
   {
+    area: "public_performance",
+    command: "qa:check-public-performance",
+    required: false,
+    description:
+      "Multi-sample Vercel route timing for homepage, discovery, registration, profile, and company pages.",
+  },
+  {
     area: "production_schema",
     command: "qa:check-production-schema",
     required: true,
@@ -126,6 +133,7 @@ async function getProductionCounts() {
 function buildMvpAreas(results, counts) {
   const byCommand = Object.fromEntries(results.map((result) => [result.command, result]));
   const publicOk = byCommand["qa:check-mvp-production"]?.ok;
+  const performanceOk = byCommand["qa:check-public-performance"]?.ok;
   const schemaOk = byCommand["qa:check-production-schema"]?.ok;
   const phonesOk = byCommand["qa:check-production-phones"]?.ok;
   const mediaOk = byCommand["qa:verify-production"]?.ok;
@@ -137,6 +145,12 @@ function buildMvpAreas(results, counts) {
       status: publicOk ? "pass" : "blocked",
       evidence:
         "Homepage, categories, professionals, category pages, profiles, and forbidden wording are smoke-tested.",
+    },
+    {
+      area: "Public performance",
+      status: performanceOk ? "pass" : "warning",
+      evidence:
+        "Vercel route speed is checked with multiple samples so one cold response does not distort MVP decisions.",
     },
     {
       area: "Search and category matching",
