@@ -46,6 +46,32 @@ const steps = [
   ["Register", "Workers, companies, and customers choose the right registration path."],
 ];
 
+const homepageJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      name: "Kamker",
+      url: "https://kamker.com",
+      logo: "https://kamker.com/kamker-logo-old-wordmark.png",
+      description:
+        "Kamker helps customers find part time workers and professionals by category and city across Pakistan.",
+    },
+    {
+      "@type": "WebSite",
+      name: "Kamker",
+      url: "https://kamker.com",
+      description:
+        "Find nurses, maids, drivers, tutors, cooks, guards, and other part time workers by city in Pakistan.",
+      potentialAction: {
+        "@type": "SearchAction",
+        target: "https://kamker.com/professionals?q={search_term_string}",
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
+};
+
 function formatStatCount(value: number) {
   return value.toLocaleString("en-PK");
 }
@@ -229,6 +255,11 @@ export default async function HomePage() {
           })}
         </div>
       </nav>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homepageJsonLd) }}
+      />
     </main>
   );
 }
