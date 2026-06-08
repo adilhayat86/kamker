@@ -132,7 +132,7 @@ async function uploadPhotoToCloudinary(
   });
 
   if (!signResponse.ok) {
-    throw new Error("cloudinary-sign-error");
+    throw new Error(`setup-${signResponse.status}`);
   }
 
   const signed = (await signResponse.json()) as {
@@ -165,13 +165,13 @@ async function uploadPhotoToCloudinary(
   );
 
   if (!uploadResponse.ok) {
-    throw new Error("cloudinary-upload-error");
+    throw new Error(`upload-${uploadResponse.status}`);
   }
 
   const result = (await uploadResponse.json()) as { secure_url?: string };
 
   if (!result.secure_url) {
-    throw new Error("cloudinary-upload-error");
+    throw new Error("upload-no-url");
   }
 
   return result.secure_url;
@@ -243,9 +243,18 @@ export function PhotoUploadField({
     setInputError(input, "Please wait for the photo upload to finish.");
     setUploadState("preparing");
 
+    let prepared = file;
+
     try {
-      const prepared =
-        file.size > TARGET_UPLOAD_BYTES ? await compressImage(file) : file;
+      if (file.size > TARGET_UPLOAD_BYTES) {
+        try {
+          prepared = await compressImage(file);
+        } catch {
+          prepared = file;
+          setMessage("Compression skipped. Uploading original photo...");
+        }
+      }
+
       setMessage(`Uploading photo (${formatSize(prepared.size)})...`);
       setUploadState("uploading");
       const publicUrl = await uploadPhotoToCloudinary(
@@ -258,12 +267,18 @@ export function PhotoUploadField({
       setInputError(input);
       setUploadState("attached");
       setMessage("Photo attached. Continue registration.");
-    } catch {
+    } catch (error) {
       clearSelectedFile(input);
       setUploadedUrl("");
       setUploadState("failed");
       setInputError(input);
-      setMessage("Photo upload failed. Submit without photo or choose another photo.");
+      const reason =
+        error instanceof Error && error.message.startsWith("setup-")
+          ? "Cloudinary setup is not ready."
+          : error instanceof Error && error.message.startsWith("upload-")
+            ? `Cloudinary rejected this upload (${error.message.replace("upload-", "")}).`
+            : "Photo upload failed.";
+      setMessage(`${reason} Submit without photo or choose another photo.`);
     }
   }
 
