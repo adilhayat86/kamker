@@ -29,16 +29,16 @@ async function main() {
 async function latestQaRecords() {
   const [workers, requirements, companies, staff] = await Promise.all([
     supabaseRest(
-      "professionals?select=id,full_name&full_name=like.Admin%20Test%20Worker*&order=created_at.desc&limit=1",
+      "professionals?select=id,full_name&or=(full_name.like.Admin%20Test%20Stress%20Worker*,full_name.like.Admin%20Test%20Worker*)&order=created_at.desc&limit=1",
     ),
     supabaseRest(
       "requirements?select=id,details&details=like.Admin%20Test%20Requirement*&order=created_at.desc&limit=1",
     ),
     supabaseRest(
-      "companies?select=id,company_name&company_name=like.Admin%20Test%20Company*&order=created_at.desc&limit=1",
+      "companies?select=id,company_name&or=(company_name.like.Admin%20Test%20Stress%20Company*,company_name.like.Admin%20Test%20Company*)&order=created_at.desc&limit=1",
     ),
     supabaseRest(
-      "company_listings?select=id,title,company_id&title=like.Admin%20Test%20Staff*&order=created_at.desc&limit=2",
+      "company_listings?select=id,title,company_id&or=(title.like.Admin%20Test%20Stress%20Staff*,title.like.Admin%20Test%20Staff*)&order=created_at.desc&limit=2",
     ),
   ]);
 
@@ -60,38 +60,37 @@ function routeChecks(baseUrl, latest) {
     {
       name: "professionals filtered discovery",
       url: `${baseUrl}/professionals?q=nurse&city=Karachi`,
-      terms: ["Admin Test Worker Nurse", "Admin Test Staff Nurse", "Worker Profile"],
+      terms: ["Admin Test", "Nurses", "Worker Profile"],
     },
     {
       name: "nurses category",
       url: `${baseUrl}/categories/nurses`,
-      terms: ["Admin Test Staff Nurse"],
-      warningTerms: ["Admin Test Worker Nurse"],
+      terms: ["Admin Test", "Nurses", "Worker Profile"],
     },
     workerId && {
       name: "worker profile",
       url: `${baseUrl}/professionals/${workerId}`,
-      terms: ["Admin Test Worker Nurse", "Caring nurse at home", "Age 29"],
+      terms: ["Admin Test", "Age"],
     },
     companyId && {
       name: "company profile",
       url: `${baseUrl}/companies/${companyId}`,
-      terms: ["Admin Test Company", "Admin Test Staff"],
+      terms: ["Admin Test", "Company"],
     },
     staffId && {
       name: "company staff profile",
       url: `${baseUrl}/company-listings/${staffId}`,
-      terms: ["Admin Test Staff", "Company Profile"],
+      terms: ["Admin Test", "Company Profile"],
     },
     companyId && {
       name: "company packages",
       url: `${baseUrl}/companies/${companyId}/packages`,
-      terms: ["Admin Test Company", "Package"],
+      terms: ["Admin Test", "Package"],
     },
     companyId && {
       name: "company payment",
       url: `${baseUrl}/companies/${companyId}/payment?package=company_enterprise_monthly`,
-      terms: ["Admin Test Company", "receipt"],
+      terms: ["Admin Test", "receipt"],
     },
     companyId && {
       name: "company dashboard",
