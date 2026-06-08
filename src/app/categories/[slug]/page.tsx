@@ -359,6 +359,16 @@ export default async function CategoryDetailPage({
   const visibleProfessionals = [...companyManagedProfessionals, ...matchingProfessionals].sort(
     (a, b) => Number(b.is_featured) - Number(a.is_featured),
   );
+  const isParentCategoryPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
+  const professionalSectionLabel = isParentCategoryPage
+    ? "Featured professionals"
+    : "Available professionals";
+  const professionalSectionTitle = isParentCategoryPage
+    ? `Featured ${pageName} professionals`
+    : `${category?.name ?? dbCategory?.name ?? pageName} professionals`;
+  const directoryHref = isParentCategoryPage
+    ? "/categories"
+    : `/professionals?category=${encodeURIComponent(category?.name ?? dbCategory?.name ?? "")}`;
 
   return (
     <main className="min-h-screen bg-background">
@@ -400,26 +410,36 @@ export default async function CategoryDetailPage({
           area={area}
         />
 
+        {isParentCategoryPage ? (
+          <Card className="mt-7 bg-white shadow-sm">
+            <CardContent className="p-5">
+              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                Choose a specific service
+              </p>
+              <h2 className="mt-1 text-2xl font-bold tracking-normal">
+                {pageName} services
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Choose one professional type inside {pageName} for a more
+                targeted search or reviewed requirement.
+              </p>
+              <CategoryGrid categories={subcategoryCards} city={city} area={area} />
+            </CardContent>
+          </Card>
+        ) : null}
+
         <section className="mt-7">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-                Available professionals
+                {professionalSectionLabel}
               </p>
               <h2 className="mt-1 text-2xl font-bold tracking-normal">
-                {serviceGroup
-                  ? `${serviceGroup.name} professionals`
-                  : dbCategory?.parent_id === null
-                    ? `${dbCategory.name} professionals`
-                  : `${category?.name} professionals`}
+                {professionalSectionTitle}
               </h2>
             </div>
             <Button asChild variant="outline" className="h-11 w-full sm:w-auto">
-              <Link
-                href={`/professionals?category=${encodeURIComponent(category?.name ?? serviceGroup?.name ?? dbCategory?.name ?? "")}`}
-              >
-                View directory
-              </Link>
+              <Link href={directoryHref}>View directory</Link>
             </Button>
           </div>
 
@@ -446,19 +466,7 @@ export default async function CategoryDetailPage({
           )}
         </section>
 
-        {serviceGroup || dbCategory?.parent_id === null ? (
-          <Card className="mt-8 bg-white shadow-sm">
-            <CardContent className="p-5">
-              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-                Choose a specific service
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Browse the full {serviceGroup?.name ?? dbCategory?.name} group, or choose one professional type for a more targeted requirement review.
-              </p>
-              <CategoryGrid categories={subcategoryCards} city={city} area={area} />
-            </CardContent>
-          </Card>
-        ) : parentGroup || dbParentCategory ? (
+        {!isParentCategoryPage && (parentGroup || dbParentCategory) ? (
           <Card className="mt-8 bg-white shadow-sm">
             <CardContent className="p-5">
               <p className="text-sm font-semibold uppercase tracking-normal text-primary">
