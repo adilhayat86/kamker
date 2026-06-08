@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getBroadcastRecipientCount } from "@/lib/broadcast";
-import { countForCategory, getLiveCategoryCountMap } from "@/lib/category-counts";
+import { countForCategory } from "@/lib/category-counts";
 import { getApprovedCompanyListingCards } from "@/lib/company-listing-cards";
 import {
   categories,
@@ -299,13 +299,6 @@ export default async function CategoryDetailPage({
   const dbCategory = serviceGroup || category ? null : await getDbCategoryBySlug(slug);
   const dbSubcategories = dbCategory?.parent_id === null ? await getDbSubcategories(dbCategory.id) : [];
   const dbParentCategory = dbCategory?.parent_id ? await getDbParentCategory(dbCategory.parent_id) : null;
-  const liveCountMap = await getLiveCategoryCountMap([
-    ...dbSubcategories,
-    ...(dbCategory ? [dbCategory] : []),
-    ...categories,
-    ...parentCategories,
-  ]);
-
   if (!serviceGroup && !category && !dbCategory) {
     notFound();
   }
@@ -324,12 +317,12 @@ export default async function CategoryDetailPage({
   const subcategoryCards = serviceGroup
     ? getGroupSubcategoryCards(serviceGroup).map((subcategory) => ({
         ...subcategory,
-        count: countForCategory(subcategory, liveCountMap),
+        count: countForCategory(subcategory, null),
       }))
     : dbSubcategories.map((subcategory) => ({
         name: subcategory.name,
         icon: subcategory.icon ?? "wrench",
-        count: countForCategory(subcategory, liveCountMap),
+        count: countForCategory(subcategory, null),
       }));
   const targetCategories = serviceGroup
     ? serviceGroup.subcategories
