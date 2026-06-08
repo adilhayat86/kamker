@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 
 const root = process.cwd();
 const outputPath = path.join(root, "tmp", "kamker-mvp-production.sql");
+const helperPath = path.join(root, "tmp", "kamker-mvp-production.html");
 const shouldCopy = process.argv.includes("--copy");
 const phoneOnly = process.argv.includes("--phone-only");
 
@@ -149,19 +150,189 @@ function main() {
 
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, content, "utf8");
+  fs.writeFileSync(
+    helperPath,
+    buildHtmlHelper({
+      content,
+      phoneOnly,
+      supabaseProjectUrl: "https://supabase.com/dashboard/project/hjttoxgryzyxhcdepgcg/sql/new",
+    }),
+    "utf8",
+  );
 
   const copiedToClipboard = shouldCopy ? copyToClipboard(content) : false;
 
   console.log(JSON.stringify({
     ok: true,
     outputPath,
+    helperPath,
     files: selectedMigrationFiles,
     bytes: Buffer.byteLength(content, "utf8"),
     copiedToClipboard,
     nextStep: copiedToClipboard
-      ? "Paste into Supabase SQL Editor, run it, then npm run qa:mvp-readiness."
-      : "Open tmp/kamker-mvp-production.sql, paste it into Supabase SQL Editor, run it, then npm run qa:mvp-readiness.",
+      ? "Paste into Supabase SQL Editor, run it, then npm run qa:mvp-readiness. If paste is unreliable, open tmp/kamker-mvp-production.html and use its Copy SQL button."
+      : "Open tmp/kamker-mvp-production.html, use Copy SQL, paste into Supabase SQL Editor, run it, then npm run qa:mvp-readiness.",
   }, null, 2));
+}
+
+function buildHtmlHelper({ content, phoneOnly, supabaseProjectUrl }) {
+  const escapedSql = escapeHtml(content);
+  const title = phoneOnly
+    ? "Kamker phone ownership migration"
+    : "Kamker MVP production migration";
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${title}</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, sans-serif;
+        background: #f4f9ff;
+        color: #0f172a;
+      }
+
+      body {
+        margin: 0;
+        padding: 24px;
+      }
+
+      main {
+        max-width: 980px;
+        margin: 0 auto;
+        display: grid;
+        gap: 16px;
+      }
+
+      .panel {
+        border: 1px solid #c9e2f5;
+        border-radius: 12px;
+        background: white;
+        box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+        padding: 18px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+      }
+
+      p,
+      li {
+        line-height: 1.55;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      button,
+      a.button {
+        border: 0;
+        border-radius: 10px;
+        background: #0876c9;
+        color: white;
+        cursor: pointer;
+        display: inline-flex;
+        font-size: 15px;
+        font-weight: 700;
+        justify-content: center;
+        padding: 12px 16px;
+        text-decoration: none;
+      }
+
+      button.secondary,
+      a.secondary {
+        background: #e8f3ff;
+        color: #075985;
+      }
+
+      textarea {
+        box-sizing: border-box;
+        border: 1px solid #b6d7ef;
+        border-radius: 10px;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 13px;
+        min-height: 420px;
+        padding: 14px;
+        width: 100%;
+      }
+
+      .status {
+        color: #166534;
+        font-weight: 700;
+        min-height: 24px;
+      }
+
+      code {
+        background: #eef6ff;
+        border-radius: 6px;
+        padding: 2px 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <h1>${title}</h1>
+        <p>
+          This page contains generated SQL only. It does not contain secrets.
+          Use it when the embedded browser clipboard refuses to paste into Supabase.
+        </p>
+        <ol>
+          <li>Click <strong>Copy SQL</strong>. If the browser blocks that, click <strong>Select SQL</strong> and press <code>Ctrl+C</code>.</li>
+          <li>Open the Supabase SQL Editor.</li>
+          <li>Paste the SQL, click <strong>Run</strong>, then return to Codex.</li>
+          <li>Run <code>npm run qa:mvp-readiness</code>.</li>
+        </ol>
+        <div class="actions">
+          <button type="button" id="copy">Copy SQL</button>
+          <button type="button" class="secondary" id="select">Select SQL</button>
+          <a class="button secondary" href="${supabaseProjectUrl}" target="_blank" rel="noreferrer">Open Supabase SQL Editor</a>
+        </div>
+        <p class="status" id="status"></p>
+      </section>
+      <section class="panel">
+        <textarea id="sql" spellcheck="false">${escapedSql}</textarea>
+      </section>
+    </main>
+    <script>
+      const textarea = document.getElementById("sql");
+      const status = document.getElementById("status");
+
+      document.getElementById("select").addEventListener("click", () => {
+        textarea.focus();
+        textarea.select();
+        status.textContent = "SQL selected. Press Ctrl+C if Copy SQL did not work.";
+      });
+
+      document.getElementById("copy").addEventListener("click", async () => {
+        textarea.focus();
+        textarea.select();
+
+        try {
+          await navigator.clipboard.writeText(textarea.value);
+          status.textContent = "SQL copied. Paste it into Supabase SQL Editor and click Run.";
+        } catch {
+          status.textContent = "Clipboard was blocked. SQL is selected now; press Ctrl+C.";
+        }
+      });
+    </script>
+  </body>
+</html>
+`;
+}
+
+function escapeHtml(value) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 }
 
 function copyToClipboard(content) {
