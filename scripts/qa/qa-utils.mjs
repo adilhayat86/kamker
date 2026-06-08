@@ -109,6 +109,26 @@ export async function supabaseExactCount(table, filters = "") {
   return countText && countText !== "*" ? Number(countText) : null;
 }
 
+export async function supabaseRestAll(path, pageSize = 1000) {
+  const rows = [];
+  let offset = 0;
+
+  while (true) {
+    const separator = path.includes("?") ? "&" : "?";
+    const page = await supabaseRest(
+      `${path}${separator}limit=${pageSize}&offset=${offset}`,
+    );
+
+    rows.push(...(page ?? []));
+
+    if (!page || page.length < pageSize) {
+      return rows;
+    }
+
+    offset += pageSize;
+  }
+}
+
 export async function firstRow(table, query) {
   const rows = await supabaseRest(`${table}?${query}&limit=1`);
 
