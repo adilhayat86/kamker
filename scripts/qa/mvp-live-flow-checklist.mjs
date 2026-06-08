@@ -215,11 +215,12 @@ async function main() {
         ? [
             "Apply the pending Supabase migration before final live signup QA.",
             "Run npm run qa:mvp-readiness again.",
-            "Then execute these live flows in browser and record failures one by one.",
+            "Generate values with npm run qa:live-test-data, execute these live flows in browser, then run KAMKER_QA_RUN_SUFFIX=<suffix> npm run qa:verify-live-test-run.",
           ]
         : [
+            "Generate values with npm run qa:live-test-data.",
             "Execute these live flows in browser using Admin Test records.",
-            "After each flow, confirm the listed Supabase tables/admin pages.",
+            "After browser submission, run KAMKER_QA_RUN_SUFFIX=<suffix> npm run qa:verify-live-test-run.",
             "Fix failed flows one by one, then rerun qa:mvp-readiness.",
           ],
   });
