@@ -77,23 +77,27 @@ async function getProofReviews({
     return [] as ProofReview[];
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("proof_reviews")
     .select("id, review_type, related_id, expected_amount_pkr, image_url, ai_detected_amount_pkr, ai_confidence, ai_decision, audit_status, created_at")
-    .order("created_at", { ascending: false })
-    .limit(120);
+    .order("created_at", { ascending: false });
+
+  if (proofType) {
+    query = query.eq("review_type", proofType);
+  }
+
+  if (proofStatus) {
+    query = query.eq("audit_status", proofStatus);
+  }
+
+  const { data, error } = await query.limit(40);
 
   if (error) {
     console.error("Failed to load proof reviews", error);
     return [] as ProofReview[];
   }
 
-  return ((data ?? []) as ProofReview[]).filter((proof) => {
-    const matchesType = proofType ? proof.review_type === proofType : true;
-    const matchesStatus = proofStatus ? proof.audit_status === proofStatus : true;
-
-    return matchesType && matchesStatus;
-  });
+  return (data ?? []) as ProofReview[];
 }
 
 async function getManualPayments({
@@ -107,11 +111,16 @@ async function getManualPayments({
     return [] as ManualPayment[];
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("manual_payments")
     .select("id, company_id, package_key, amount_pkr, payment_method, payer_name, sender_phone, transaction_reference, status, created_at, companies(company_name)")
-    .order("created_at", { ascending: false })
-    .limit(120);
+    .order("created_at", { ascending: false });
+
+  if (paymentStatus) {
+    query = query.eq("status", paymentStatus);
+  }
+
+  const { data, error } = await query.limit(40);
 
   if (error) {
     console.error("Failed to load manual payments", error);
@@ -130,9 +139,7 @@ async function getManualPayments({
           payment.transaction_reference,
         ].some((value) => value?.toLowerCase().includes(query))
       : true;
-    const matchesStatus = paymentStatus ? payment.status === paymentStatus : true;
-
-    return matchesQuery && matchesStatus;
+    return matchesQuery;
   });
 }
 

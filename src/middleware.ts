@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const ADMIN_SESSION_COOKIE = "kamker_admin_session_v2";
 const PUBLIC_ADMIN_PATHS = new Set([
   "/admin/login",
+  "/admin/logout",
   "/admin/forgot-password",
   "/admin/reset-password",
 ]);

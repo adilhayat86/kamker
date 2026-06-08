@@ -122,6 +122,32 @@ export default async function AdminCompanyListingsPage({
     status: params?.status,
     featured: params?.featured,
   });
+  const uniqueCompanyIds = Array.from(
+    new Set(
+      listings
+        .map((listing) => listing.companies?.id)
+        .filter((companyId): companyId is string => Boolean(companyId)),
+    ),
+  );
+  const usageByCompany = new Map<
+    string,
+    {
+      subscription: Awaited<ReturnType<typeof getActiveCompanySubscription>>;
+      usage: Awaited<ReturnType<typeof getPublishedCompanyListingUsage>>;
+    }
+  >();
+
+  await Promise.all(
+    uniqueCompanyIds.map(async (companyId) => {
+      const [subscription, usage] = await Promise.all([
+        getActiveCompanySubscription(companyId),
+        getPublishedCompanyListingUsage(companyId),
+      ]);
+
+      usageByCompany.set(companyId, { subscription, usage });
+    }),
+  );
+
   const listingsWithUsage = await Promise.all(
     listings.map(async (listing) => {
       const companyId = listing.companies?.id;
@@ -130,10 +156,9 @@ export default async function AdminCompanyListingsPage({
         return { listing, subscription: null, usage: { published: 0, featured: 0 } };
       }
 
-      const [subscription, usage] = await Promise.all([
-        getActiveCompanySubscription(companyId),
-        getPublishedCompanyListingUsage(companyId),
-      ]);
+      const companyUsage = usageByCompany.get(companyId);
+      const subscription = companyUsage?.subscription ?? null;
+      const usage = companyUsage?.usage ?? { published: 0, featured: 0 };
 
       return { listing, subscription, usage };
     }),

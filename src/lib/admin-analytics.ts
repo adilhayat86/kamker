@@ -300,7 +300,7 @@ function eventSearchTerm(event: EventRow) {
   return category || city || "Filtered search";
 }
 
-async function dateQuery<T>(table: string, select: string, filters: AnalyticsFilters, limit = 2500) {
+async function dateQuery<T>(table: string, select: string, filters: AnalyticsFilters, limit = 800) {
   if (!supabase) {
     return [] as T[];
   }
@@ -380,7 +380,7 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
         "analytics_events",
         "event_type, target_type, target_id, metadata, created_at",
         filters,
-        5000,
+        1200,
       ),
       supabase.from("categories").select("name").order("name", { ascending: true }),
       supabase.from("cities").select("name").order("name", { ascending: true }),

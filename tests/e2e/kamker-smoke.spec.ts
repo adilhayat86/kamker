@@ -13,7 +13,7 @@ const publicRoutes = [
 ];
 
 async function expectNo404(page: Page) {
-  await expect(page.getByRole("heading", { name: "404" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /^404$/ })).toHaveCount(0);
   await expect(page.getByText("This page could not be found")).toHaveCount(0);
 }
 
