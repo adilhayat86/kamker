@@ -1,3 +1,5 @@
+import { unstable_cache } from "next/cache";
+
 import { categoryCountValue, serviceGroups } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -51,7 +53,7 @@ export function fallbackCategoryCount(category: CountCategory) {
   return value > 0 ? value.toLocaleString("en-PK") : "";
 }
 
-export async function getLiveCategoryCountMap(categories: CountCategory[]) {
+async function loadLiveCategoryCountEntries(categories: CountCategory[]) {
   if (!isSupabaseConfigured || !supabase) {
     return null;
   }
@@ -112,7 +114,18 @@ export async function getLiveCategoryCountMap(categories: CountCategory[]) {
     result.set(key, ownTotal + childTotal);
   });
 
-  return result;
+  return Array.from(result.entries());
+}
+
+const getCachedLiveCategoryCountEntries = unstable_cache(
+  loadLiveCategoryCountEntries,
+  ["live-category-counts"],
+  { revalidate: 120 },
+);
+
+export async function getLiveCategoryCountMap(categories: CountCategory[]) {
+  const entries = await getCachedLiveCategoryCountEntries(categories);
+  return entries ? new Map(entries) : null;
 }
 
 export function countForCategory(

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import {
   BriefcaseBusiness,
   CheckCircle2,
@@ -78,7 +79,7 @@ async function countRows(table: string, filters?: Record<string, string | boolea
   return count ?? 0;
 }
 
-async function getHomepageStats() {
+const getHomepageStats = unstable_cache(async function getHomepageStats() {
   if (!isSupabaseConfigured || !supabase) {
     return [
       ["Live", "Directory"],
@@ -125,7 +126,7 @@ async function getHomepageStats() {
       "Companies",
     ],
   ];
-}
+}, ["homepage-stats"], { revalidate: 60 });
 
 export default async function HomePage() {
   const [stats, cityOptions] = await Promise.all([

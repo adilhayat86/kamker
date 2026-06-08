@@ -37,6 +37,11 @@ import {
   type LocalProfessionalRecord,
 } from "@/lib/local-demo-store";
 import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
+import {
+  categoryNamesForSearch,
+  getCategoryIdsByNames,
+  getCityIdByName,
+} from "@/lib/public-directory-lookups";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
@@ -253,15 +258,47 @@ function buildPageHref(params: Record<string, string>, page: number) {
 }
 
 async function getDbProfessionals({
+  q,
+  city,
+  category,
+  gender,
+  age,
   availabilityTime,
   availabilityDays,
+  rate,
+  verified,
+  sort,
+  page,
 }: {
+  q: string;
+  city: string;
+  category: string;
+  gender: string;
+  age: string;
   availabilityTime: string;
   availabilityDays: string;
+  rate: string;
+  verified: boolean;
+  sort: string;
+  page: number;
 }) {
   if (!isSupabaseConfigured || !supabase) {
     return getLocalProfessionalRecords();
   }
+
+  const categoryNames = category
+    ? [category]
+    : q
+      ? categoryNamesForSearch(q)
+      : [];
+  const [cityId, categoryIds] = await Promise.all([
+    city ? getCityIdByName(city) : Promise.resolve(null),
+    getCategoryIdsByNames(categoryNames),
+  ]);
+  const selectedAgeRange = ageRangeOptions.find((option) => option.value === age);
+  const selectedRateRange = hourlyRateOptions.find((option) => option.value === rate);
+  const pageWindow = pageSize + 12;
+  const from = Math.max(page - 1, 0) * pageSize;
 
   let query = supabase
     .from("professionals")
@@ -269,6 +306,39 @@ async function getDbProfessionals({
       "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, availability_time, availability_days, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, is_featured, featured_until, rating, created_at, cities(name), categories(name)",
     )
     .eq("is_active", true);
+
+  if (city) {
+    if (cityId === null) {
+      return [] as DbProfessional[];
+    }
+
+    query = query.eq("city_id", cityId);
+  }
+
+  if (categoryNames.length > 0) {
+    if (categoryIds.length === 0) {
+      return [] as DbProfessional[];
+    }
+
+    query = query.in("category_id", categoryIds);
+  }
+
+  if (q && categoryNames.length === 0) {
+    const safeQuery = q.replace(/[%(),]/g, " ").trim();
+    if (safeQuery) {
+      query = query.or(
+        `full_name.ilike.%${safeQuery}%,area.ilike.%${safeQuery}%,experience.ilike.%${safeQuery}%,short_bio.ilike.%${safeQuery}%,tagline.ilike.%${safeQuery}%`,
+      );
+    }
+  }
+
+  if (gender) {
+    query = query.ilike("gender", gender);
+  }
+
+  if (selectedAgeRange) {
+    query = query.gte("age", selectedAgeRange.min).lte("age", selectedAgeRange.max);
+  }
 
   if (availabilityTime) {
     query = query.eq("availability_time", availabilityTime);
@@ -278,18 +348,36 @@ async function getDbProfessionals({
     query = query.eq("availability_days", availabilityDays);
   }
 
-  const { data, error } = await query
-    .order("is_featured", { ascending: false })
-    .order("featured_until", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false })
-    .limit(500);
+  if (verified) {
+    query = query.or("is_cnic_verified.eq.true,is_phone_verified.eq.true");
+  }
+
+  if (sort === "experienced") {
+    query = query.order("years_experience", { ascending: false, nullsFirst: false });
+  } else if (sort === "newest") {
+    query = query.order("created_at", { ascending: false });
+  } else {
+    query = query
+      .order("is_featured", { ascending: false })
+      .order("featured_until", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
+  }
+
+  const limitForPostFilter = selectedRateRange ? Math.min(pageWindow * 4, 120) : pageWindow;
+  const { data, error } = await query.range(from, from + limitForPostFilter - 1);
 
   if (error) {
     console.error("Failed to load professionals", error);
     return [] as DbProfessional[];
   }
 
-  return (data ?? []) as unknown as DbProfessional[];
+  const professionals = (data ?? []) as unknown as DbProfessional[];
+
+  return selectedRateRange
+    ? professionals
+        .filter((professional) => matchesHourlyRate(professional.expected_rate, rate))
+        .slice(0, pageWindow)
+    : professionals;
 }
 
 function availabilityLabels(professional: DirectoryProfessional) {
@@ -598,13 +686,31 @@ export default async function ProfessionalsPage({
   const verified = params?.verified === "true";
   const sort = params?.sort?.trim() || "featured";
   const currentPage = Math.max(Number(params?.page ?? "1") || 1, 1);
+  const queryCategoryNames = category
+    ? [category]
+    : q
+      ? categoryNamesForSearch(q)
+      : [];
 
   const [dbProfessionals, companyProfessionals, cityOptions] = await Promise.all([
     getDbProfessionals({
+      q,
+      city,
+      category,
+      gender,
+      age,
       availabilityTime,
       availabilityDays,
+      rate,
+      verified,
+      sort,
+      page: currentPage,
     }),
-    getApprovedCompanyListingCards({ limit: 200 }),
+    getApprovedCompanyListingCards({
+      categories: queryCategoryNames.length > 0 ? queryCategoryNames : undefined,
+      city: city || undefined,
+      limit: 60,
+    }),
     getCityOptions(),
   ]);
   const filteredCompanyProfessionals = companyProfessionals.filter((professional) =>

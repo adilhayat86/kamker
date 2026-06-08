@@ -1,3 +1,5 @@
+import { unstable_cache } from "next/cache";
+
 import { cities as fallbackCities } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -12,7 +14,7 @@ function isExpectedCityFetchFailure(error: { message?: string; details?: string 
   );
 }
 
-export async function getCityOptions() {
+export const getCityOptions = unstable_cache(async function getCityOptions() {
   if (!isSupabaseConfigured || !supabase) {
     return fallbackCities;
   }
@@ -37,4 +39,4 @@ export async function getCityOptions() {
   return Array.from(new Set([...fallbackCities, ...dbCities])).sort((a, b) =>
     a.localeCompare(b),
   );
-}
+}, ["city-options"], { revalidate: 120 });

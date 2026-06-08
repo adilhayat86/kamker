@@ -24,6 +24,10 @@ import {
   type Professional,
 } from "@/lib/marketplace-data";
 import { getLocalProfessionalCards } from "@/lib/local-demo-store";
+import {
+  getCategoryIdsByNames,
+  getCityIdByName,
+} from "@/lib/public-directory-lookups";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type CategoryDetailPageProps = {
@@ -208,15 +212,37 @@ async function getCategoryProfessionals(
     );
   }
 
-  const { data, error } = await supabase
+  const [cityId, categoryIds] = await Promise.all([
+    city ? getCityIdByName(city) : Promise.resolve(null),
+    getCategoryIdsByNames(targetCategories),
+  ]);
+
+  if (city && cityId === null) {
+    return [] as Professional[];
+  }
+
+  if (categoryIds.length === 0) {
+    return recentProfessionals.filter((professional) =>
+      professionalMatchesTargets(professional, targetCategories, city, area),
+    );
+  }
+
+  let query = supabase
     .from("professionals")
     .select(
       "id, full_name, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_featured, featured_until, rating, cities(name), categories(name)",
     )
     .eq("is_active", true)
+    .in("category_id", categoryIds)
     .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(60);
+    .limit(48);
+
+  if (cityId !== null) {
+    query = query.eq("city_id", cityId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Failed to load category professionals", error);
