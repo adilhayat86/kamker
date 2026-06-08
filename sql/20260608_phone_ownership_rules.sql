@@ -41,6 +41,46 @@ set phone_normalized = kamker_normalize_pk_mobile(phone_number)
 where phone_normalized is null
   and phone_number is not null;
 
+-- Production may already contain old test or duplicate phone claims. The MVP
+-- rule is one worker login phone per individual profile, so clear legacy
+-- invalid numbers and older duplicate claims before creating the unique index.
+update professionals
+set
+  phone_number = null,
+  whatsapp_number = null,
+  phone_normalized = null,
+  is_phone_verified = false,
+  is_active = false
+where phone_number is not null
+  and kamker_normalize_pk_mobile(phone_number) is null;
+
+with ranked_phone_claims as (
+  select
+    id,
+    row_number() over (
+      partition by phone_normalized
+      order by
+        coalesce(is_active, false) desc,
+        created_at desc nulls last,
+        id desc
+    ) as claim_rank
+  from professionals
+  where phone_normalized is not null
+),
+duplicate_phone_claims as (
+  select id
+  from ranked_phone_claims
+  where claim_rank > 1
+)
+update professionals
+set
+  phone_number = null,
+  whatsapp_number = null,
+  phone_normalized = null,
+  is_phone_verified = false,
+  is_active = false
+where id in (select id from duplicate_phone_claims);
+
 create or replace function professionals_set_phone_normalized()
 returns trigger
 language plpgsql
@@ -67,7 +107,7 @@ begin
     group by phone_normalized
     having count(*) > 1
   ) then
-    raise notice 'Duplicate professional phone numbers exist. Clean duplicates before creating professionals_phone_normalized_unique_idx.';
+    raise exception 'Duplicate professional phone numbers still exist. Review sql/20260608_phone_ownership_rules.sql cleanup before creating professionals_phone_normalized_unique_idx.';
   else
     create unique index if not exists professionals_phone_normalized_unique_idx
       on professionals(phone_normalized)
