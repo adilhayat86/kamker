@@ -7,6 +7,7 @@ import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getPaymentWhatsappLink, manualPaymentConfig } from "@/lib/payment-config";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 import { submitCompanyPackagePayment } from "./actions";
@@ -51,16 +52,8 @@ type CompanyPaymentPageProps = {
   }>;
 };
 
-const supportWhatsappNumber = process.env.NEXT_PUBLIC_KAMKER_SUPPORT_WHATSAPP || "923000000000";
-
 function formatPrice(value: number) {
   return `Rs ${value.toLocaleString("en-PK")}`;
-}
-
-function whatsappLink(message: string) {
-  const cleanNumber = supportWhatsappNumber.replace(/\D/g, "");
-
-  return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
 }
 
 const statusMessages = {
@@ -210,7 +203,7 @@ export default async function CompanyPaymentPage({
               </div>
 
               <Button asChild className="mt-6 h-12 w-full bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                <a href={whatsappLink(message)}>
+                <a href={getPaymentWhatsappLink(message)}>
                   <MessageCircle className="size-4" aria-hidden="true" />
                   Ask Kamker on WhatsApp
                 </a>
@@ -236,6 +229,31 @@ export default async function CompanyPaymentPage({
                     Submit the receipt or transfer screenshot here. Kamker AI checks the visible amount and reference. If it matches, the package activates automatically.
                   </p>
                 </div>
+              </div>
+
+              <div className="mt-5 rounded-xl border border-primary/20 bg-blue-50 p-4 text-sm">
+                <p className="font-semibold text-foreground">Pay to Kamker</p>
+                <dl className="mt-3 grid gap-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-muted-foreground">Method</dt>
+                    <dd className="font-semibold">{manualPaymentConfig.bankName}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-muted-foreground">Account title</dt>
+                    <dd className="font-semibold">{manualPaymentConfig.accountTitle}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-muted-foreground">Account number</dt>
+                    <dd className="font-semibold tracking-wide">{manualPaymentConfig.accountNumber}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-muted-foreground">Amount</dt>
+                    <dd className="font-semibold">{formatPrice(companyPackage.price_pkr)}</dd>
+                  </div>
+                </dl>
+                <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                  After payment, upload the receipt screenshot below for AI review.
+                </p>
               </div>
 
               <form action={submitCompanyPackagePayment} className="mt-5 grid gap-4">

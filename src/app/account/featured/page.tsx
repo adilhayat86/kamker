@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
+import { manualPaymentConfig } from "@/lib/payment-config";
 
 import { submitFeaturedProfileProof } from "./actions";
 
@@ -118,6 +119,34 @@ export default async function FeaturedProfilePage({
                 <Badge className="mt-3" variant={isFeatured ? "default" : "outline"}>
                   {isFeatured ? "Featured active" : "Get Featured"}
                 </Badge>
+              </div>
+
+              <div className="rounded-xl border border-primary/20 bg-blue-50 p-4">
+                <div className="flex items-start gap-3">
+                  <ReceiptText className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Payment account</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      Pay the selected featured amount, then upload the receipt screenshot below.
+                    </p>
+                  </div>
+                </div>
+                <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
+                  <div className="rounded-lg bg-white p-3">
+                    <dt className="text-muted-foreground">Method</dt>
+                    <dd className="mt-1 font-semibold">{manualPaymentConfig.bankName}</dd>
+                  </div>
+                  <div className="rounded-lg bg-white p-3">
+                    <dt className="text-muted-foreground">Account title</dt>
+                    <dd className="mt-1 font-semibold">{manualPaymentConfig.accountTitle}</dd>
+                  </div>
+                  <div className="rounded-lg bg-white p-3">
+                    <dt className="text-muted-foreground">Account number</dt>
+                    <dd className="mt-1 font-semibold tracking-wide">
+                      {manualPaymentConfig.accountNumber}
+                    </dd>
+                  </div>
+                </dl>
               </div>
 
               <div className="grid gap-4 lg:grid-cols-2">
