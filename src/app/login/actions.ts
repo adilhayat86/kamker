@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import {
   createProfessionalSession,
   findProfessionalByPhone,
+  findProfessionalsByPhone,
   verifySecret,
 } from "@/lib/auth";
 import { isLocalDemoStoreEnabled } from "@/lib/local-demo-store";
@@ -29,7 +30,15 @@ export async function loginProfessional(formData: FormData) {
     redirect("/login?status=not-configured");
   }
 
-  const professional = await findProfessionalByPhone(phoneNumber);
+  const matches = await findProfessionalsByPhone(phoneNumber);
+
+  if (matches.length > 1) {
+    redirect("/login?status=phone-review");
+  }
+
+  const professional = matches.length === 1
+    ? matches[0]
+    : await findProfessionalByPhone(phoneNumber);
   const isPasswordValid = await verifySecret(
     password,
     professional?.password_hash ?? null,

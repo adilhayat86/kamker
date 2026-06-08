@@ -14,7 +14,7 @@ import {
   getLocalProfessionalRecordById,
   getLocalProfessionalRecords,
 } from "@/lib/local-demo-store";
-import { normalizePakistanPhoneNumber } from "@/lib/phone";
+import { pakistanMobileNormalizedDigits } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 const scrypt = promisify(scryptCallback);
@@ -34,7 +34,7 @@ type AuthProfessional = {
 };
 
 export function normalizePhoneNumber(phoneNumber: string) {
-  return normalizePakistanPhoneNumber(phoneNumber).replace(/\D/g, "");
+  return pakistanMobileNormalizedDigits(phoneNumber);
 }
 
 function hashToken(token: string) {
@@ -122,16 +122,24 @@ export async function verifySecret(value: string, storedHash: string | null) {
 }
 
 export async function findProfessionalByPhone(phoneNumber: string) {
+  const matches = await findProfessionalsByPhone(phoneNumber);
+
+  return matches.length === 1 ? matches[0] : null;
+}
+
+export async function findProfessionalsByPhone(phoneNumber: string) {
   const normalizedPhone = normalizePhoneNumber(phoneNumber);
+
+  if (!normalizedPhone) {
+    return [] as AuthProfessional[];
+  }
 
   if (!isSupabaseConfigured || !supabase) {
     const professionals = await getLocalProfessionalRecords();
 
-    return (
-      professionals.find(
+    return professionals.filter(
         (professional) =>
           normalizePhoneNumber(professional.phone_number) === normalizedPhone,
-      ) ?? null
     );
   }
 
@@ -144,14 +152,12 @@ export async function findProfessionalByPhone(phoneNumber: string) {
 
   if (error) {
     console.error("Failed to find professional by phone", error);
-    return null;
+    return [] as AuthProfessional[];
   }
 
-  return (
-    ((data ?? []) as AuthProfessional[]).find(
+  return ((data ?? []) as AuthProfessional[]).filter(
       (professional) =>
         normalizePhoneNumber(professional.phone_number) === normalizedPhone,
-    ) ?? null
   );
 }
 

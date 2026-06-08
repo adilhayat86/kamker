@@ -87,6 +87,14 @@ export default async function SendRequirementPage({
     missingRequired && (failedFields.size === 0 || failedFields.has(field))
       ? message
       : undefined;
+  const phoneError =
+    missingRequired && failedFields.has("phoneInvalid")
+      ? "Enter a valid Pakistan mobile number, for example 03001234567."
+      : requiredError("phone", "Phone number is required.");
+  const whatsappError =
+    missingRequired && failedFields.has("whatsappInvalid")
+      ? "Enter a valid WhatsApp number or leave it blank."
+      : undefined;
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
@@ -193,11 +201,12 @@ export default async function SendRequirementPage({
                   label="Phone number"
                   name="phone"
                   type="tel"
+                  placeholder="0300 1234567"
                   defaultValue={draft.phone}
                   required
-                  error={requiredError("phone", "Phone number is required.")}
+                  error={phoneError}
                 />
-                <CountryPhoneField label="WhatsApp number" name="whatsapp" defaultValue={draft.whatsapp} />
+                <CountryPhoneField label="WhatsApp number" name="whatsapp" defaultValue={draft.whatsapp} error={whatsappError} />
               </div>
 
               <div className="grid gap-4 border-t pt-5">

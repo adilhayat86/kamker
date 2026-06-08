@@ -45,15 +45,22 @@ export default async function CustomerRegisterPage({
   const cityOptions = await getCityOptions();
   const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
   const errorFor = (field: string) => {
-    if (!failedFields.has(field)) {
+    const phoneError = field === "phone" && failedFields.has("phoneInvalid");
+
+    if (!failedFields.has(field) && !phoneError) {
       return undefined;
     }
 
     const messages: Record<string, string> = {
       fullName: "Full name is required.",
       phone: "Phone number is required.",
+      phoneInvalid: "Enter a valid Pakistan mobile number, for example 03001234567.",
       city: "Choose a city.",
     };
+
+    if (field === "phone" && failedFields.has("phoneInvalid")) {
+      return messages.phoneInvalid;
+    }
 
     return messages[field] ?? "This field needs attention.";
   };
@@ -97,6 +104,7 @@ export default async function CustomerRegisterPage({
                 label="Phone number"
                 name="phone"
                 type="tel"
+                placeholder="0300 1234567"
                 defaultValue={draft.phone}
                 error={errorFor("phone")}
                 required

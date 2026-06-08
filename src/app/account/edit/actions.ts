@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { getSessionProfessional } from "@/lib/auth";
-import { phoneFieldWithCountry } from "@/lib/phone";
+import { findProfessionalsByPhone, getSessionProfessional } from "@/lib/auth";
+import {
+  normalizePakistanMobilePhone,
+  validatePhoneFieldWithCountry,
+} from "@/lib/phone";
 import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -28,8 +31,11 @@ function ageField(formData: FormData) {
 
 export async function updateProfessionalProfile(formData: FormData) {
   const fullName = field(formData, "fullName");
-  const phoneNumber = field(formData, "phone");
-  const whatsappNumber = phoneFieldWithCountry(formData, "whatsapp");
+  const phoneInput = field(formData, "phone");
+  const phoneValidation = normalizePakistanMobilePhone(phoneInput);
+  const phoneNumber = phoneValidation.normalized || phoneInput;
+  const whatsappValidation = validatePhoneFieldWithCountry(formData, "whatsapp");
+  const whatsappNumber = whatsappValidation.normalized;
   const cityName = field(formData, "city");
   const area = field(formData, "area");
   const categoryName = field(formData, "category");
@@ -42,9 +48,17 @@ export async function updateProfessionalProfile(formData: FormData) {
   const tagline = field(formData, "tagline");
   const shortBio = field(formData, "bio");
 
+  if (phoneInput && !phoneValidation.ok) {
+    redirect("/account/edit?status=phone-invalid");
+  }
+
+  if (!whatsappValidation.ok) {
+    redirect("/account/edit?status=whatsapp-invalid");
+  }
+
   if (
     !fullName ||
-    !phoneNumber ||
+    !phoneInput ||
     !cityName ||
     !categoryName ||
     !gender ||
@@ -65,6 +79,15 @@ export async function updateProfessionalProfile(formData: FormData) {
 
   if (!sessionProfessional) {
     redirect("/login");
+  }
+
+  const duplicateProfessionals = await findProfessionalsByPhone(phoneNumber);
+  const duplicateProfessional = duplicateProfessionals.find(
+    (professional) => professional.id !== sessionProfessional.id,
+  );
+
+  if (duplicateProfessional) {
+    redirect("/account/edit?status=duplicate-phone");
   }
 
   const { data: city } = await supabase

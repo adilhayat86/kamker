@@ -108,6 +108,14 @@ export default async function CompanyListingNewPage({
     missingRequired && (failedFields.size === 0 || failedFields.has(field))
       ? message
       : undefined;
+  const phoneError =
+    missingRequired && failedFields.has("phoneInvalid")
+      ? "Enter a valid Pakistan mobile number or leave it blank."
+      : undefined;
+  const whatsappError =
+    missingRequired && failedFields.has("whatsappInvalid")
+      ? "Enter a valid WhatsApp number or leave it blank."
+      : undefined;
   const [companyName, activeSubscription, usage, cityOptions] = await Promise.all([
     getCompanyName(id),
     getActiveCompanySubscription(id),
@@ -247,8 +255,8 @@ export default async function CompanyListingNewPage({
                   uploadFolder="company-staff"
                   uploadTags={["company-staff-photo"]}
                 />
-                <FormField label="Phone optional" name="phone" type="tel" defaultValue={draft.phone} />
-                <CountryPhoneField label="WhatsApp optional" name="whatsapp" defaultValue={draft.whatsapp} />
+                <FormField label="Phone optional" name="phone" type="tel" placeholder="0300 1234567" defaultValue={draft.phone} error={phoneError} />
+                <CountryPhoneField label="WhatsApp optional" name="whatsapp" defaultValue={draft.whatsapp} error={whatsappError} />
                 <div className="sm:col-span-2">
                   <TextAreaField
                     label="Staff profile details"

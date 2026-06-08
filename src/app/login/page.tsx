@@ -16,6 +16,7 @@ export const metadata = {
 const statusMessages = {
   missing: "Please enter phone number and password.",
   invalid: "Phone number or password is incorrect.",
+  "phone-review": "This phone number needs admin review before login. Contact Kamker support.",
   "not-configured": "Supabase is not configured yet.",
   reset: "Password updated. You can log in now.",
   registered: "Registration submitted. Log in after your profile is ready.",

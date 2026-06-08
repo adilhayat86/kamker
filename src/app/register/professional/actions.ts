@@ -10,14 +10,21 @@ import {
   type WorkerTimeAvailability,
   workerAvailabilitySummary,
 } from "@/lib/worker-availability";
-import { createProfessionalSession, hashSecret } from "@/lib/auth";
+import {
+  createProfessionalSession,
+  findProfessionalsByPhone,
+  hashSecret,
+} from "@/lib/auth";
 import { trackAnalyticsEvent } from "@/lib/analytics";
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import {
   isLocalDemoStoreEnabled,
   saveLocalProfessional,
 } from "@/lib/local-demo-store";
-import { phoneFieldWithCountry } from "@/lib/phone";
+import {
+  normalizePakistanMobilePhone,
+  validatePhoneFieldWithCountry,
+} from "@/lib/phone";
 import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { findOrCreateCategoryId, findOrCreateCityId } from "@/lib/taxonomy";
@@ -79,8 +86,11 @@ async function saveProfessionalDraft(input: {
 
 export async function registerProfessional(formData: FormData) {
   const fullName = field(formData, "fullName");
-  const phoneNumber = field(formData, "phone");
-  const whatsappNumber = phoneFieldWithCountry(formData, "whatsapp");
+  const phoneInput = field(formData, "phone");
+  const phoneValidation = normalizePakistanMobilePhone(phoneInput);
+  const phoneNumber = phoneValidation.normalized || phoneInput;
+  const whatsappValidation = validatePhoneFieldWithCountry(formData, "whatsapp");
+  const whatsappNumber = whatsappValidation.normalized;
   const cityName = field(formData, "city");
   const area = field(formData, "area");
   const categoryName = field(formData, "category");
@@ -119,7 +129,9 @@ export async function registerProfessional(formData: FormData) {
 
   const errors = [
     !fullName ? "fullName" : null,
-    !phoneNumber ? "phone" : null,
+    !phoneInput ? "phone" : null,
+    phoneInput && !phoneValidation.ok ? "phoneInvalid" : null,
+    !whatsappValidation.ok ? "whatsappInvalid" : null,
     !cityName ? "city" : null,
     !categoryName ? "category" : null,
     !gender ? "gender" : null,
@@ -135,6 +147,13 @@ export async function registerProfessional(formData: FormData) {
 
   if (errors.length > 0) {
     await saveProfessionalDraft({ ...draftInput, errors });
+    redirect("/register/professional?status=missing");
+  }
+
+  const duplicateProfessionals = await findProfessionalsByPhone(phoneNumber);
+
+  if (duplicateProfessionals.length > 0) {
+    await saveProfessionalDraft({ ...draftInput, errors: ["phoneDuplicate"] });
     redirect("/register/professional?status=missing");
   }
 

@@ -74,7 +74,10 @@ export default async function CompanyRegisterPage({
   const cityOptions = await getCityOptions();
   const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
   const errorFor = (field: string) => {
-    if (!failedFields.has(field)) {
+    const phoneError = field === "phone" && failedFields.has("phoneInvalid");
+    const whatsappError = field === "whatsapp" && failedFields.has("whatsappInvalid");
+
+    if (!failedFields.has(field) && !phoneError && !whatsappError) {
       return undefined;
     }
 
@@ -84,8 +87,18 @@ export default async function CompanyRegisterPage({
       city: "Choose a city.",
       contactPerson: "Contact person is required.",
       phone: "Phone number is required.",
+      phoneInvalid: "Enter a valid Pakistan mobile number, for example 03001234567.",
+      whatsappInvalid: "Enter a valid WhatsApp number or leave it blank.",
       description: "Company description is required.",
     };
+
+    if (field === "phone" && failedFields.has("phoneInvalid")) {
+      return messages.phoneInvalid;
+    }
+
+    if (field === "whatsapp" && failedFields.has("whatsappInvalid")) {
+      return messages.whatsappInvalid;
+    }
 
     return messages[field] ?? "This field needs attention.";
   };
@@ -188,6 +201,7 @@ export default async function CompanyRegisterPage({
                   label="Phone number"
                   name="phone"
                   type="tel"
+                  placeholder="0300 1234567"
                   defaultValue={draft.phone}
                   error={errorFor("phone")}
                   required
@@ -196,6 +210,7 @@ export default async function CompanyRegisterPage({
                   label="WhatsApp number"
                   name="whatsapp"
                   defaultValue={draft.whatsapp}
+                  error={errorFor("whatsapp")}
                 />
                 <FormField
                   label="License number optional"

@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 
 import { trackAnalyticsEvent } from "@/lib/analytics";
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
-import { phoneFieldWithCountry } from "@/lib/phone";
+import {
+  normalizePakistanMobilePhone,
+  validatePhoneFieldWithCountry,
+} from "@/lib/phone";
 import { createRequirementMatches } from "@/lib/requirement-matching";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { findOrCreateCityId } from "@/lib/taxonomy";
@@ -37,8 +40,11 @@ export async function submitRequirement(formData: FormData) {
   const area = requiredValue(formData, "area");
   const availability = requiredValue(formData, "availability");
   const budget = requiredValue(formData, "budget");
-  const phoneNumber = requiredValue(formData, "phone");
-  const whatsappNumber = phoneFieldWithCountry(formData, "whatsapp");
+  const phoneInput = requiredValue(formData, "phone");
+  const phoneValidation = normalizePakistanMobilePhone(phoneInput);
+  const phoneNumber = phoneValidation.normalized || phoneInput;
+  const whatsappValidation = validatePhoneFieldWithCountry(formData, "whatsapp");
+  const whatsappNumber = whatsappValidation.normalized;
   const urgency = requiredValue(formData, "urgency");
   const details = requiredValue(formData, "details");
   const source = requiredValue(formData, "source") || "unknown";
@@ -48,7 +54,7 @@ export async function submitRequirement(formData: FormData) {
     area,
     availability,
     budget,
-    phone: phoneNumber,
+    phone: phoneInput,
     whatsapp: whatsappNumber,
     urgency,
     details,
@@ -56,7 +62,9 @@ export async function submitRequirement(formData: FormData) {
   const errors = [
     !requiredService ? "service" : null,
     !cityName ? "city" : null,
-    !phoneNumber ? "phone" : null,
+    !phoneInput ? "phone" : null,
+    phoneInput && !phoneValidation.ok ? "phoneInvalid" : null,
+    !whatsappValidation.ok ? "whatsappInvalid" : null,
     !urgency ? "urgency" : null,
     !details ? "details" : null,
   ].filter((error): error is string => Boolean(error));

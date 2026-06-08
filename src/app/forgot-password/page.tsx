@@ -23,6 +23,7 @@ const statusMessages = {
   "missing-answer": "Enter your secret answer.",
   "not-configured": "Supabase is not configured yet.",
   "not-found": "No professional account with recovery details was found.",
+  "phone-review": "This phone number needs admin review before password reset. Contact Kamker support.",
   "wrong-answer": "Secret answer is incorrect.",
   "recovery-expired": "Recovery session expired. Start again.",
   error: "Could not reset password. Please try again.",

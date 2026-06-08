@@ -48,7 +48,7 @@ export const metadata = {
 type DbProfessional = {
   id: string;
   full_name: string;
-  phone_number: string;
+  phone_number: string | null;
   whatsapp_number: string | null;
   area: string | null;
   gender?: string | null;
@@ -315,11 +315,11 @@ function DbProfessionalCard({
   professional: DbProfessional;
   featured?: boolean;
 }) {
-  const whatsappLink = buildWhatsappHref(
-    professional.whatsapp_number ?? professional.phone_number,
-  );
+  const contactPhone = professional.phone_number;
+  const whatsappDisplay = professional.whatsapp_number ?? contactPhone;
+  const whatsappLink = buildWhatsappHref(whatsappDisplay);
   const profilePath = `/professionals/${professional.id}`;
-  const phoneLink = `tel:${professional.phone_number}`;
+  const phoneLink = contactPhone ? `tel:${contactPhone}` : null;
   const trackedPhoneLink = trackedContactHref({
     href: phoneLink,
     eventType: "call_click",
@@ -429,22 +429,29 @@ function DbProfessionalCard({
           </div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <Button asChild variant="outline" className="h-11">
-            <a href={trackedPhoneLink ?? phoneLink}>
-              <Phone aria-hidden="true" />
-              <span className="sm:hidden">Call</span>
-              <span className="hidden max-w-[10rem] truncate sm:inline" title={professional.phone_number}>
-                {professional.phone_number}
+          <Button asChild={Boolean(phoneLink)} variant="outline" className="h-11" disabled={!phoneLink}>
+            {phoneLink ? (
+              <a href={trackedPhoneLink ?? phoneLink}>
+                <Phone aria-hidden="true" />
+                <span className="sm:hidden">Call</span>
+                <span className="hidden max-w-[10rem] truncate sm:inline" title={contactPhone ?? undefined}>
+                  {contactPhone}
+                </span>
+              </a>
+            ) : (
+              <span>
+                <Phone aria-hidden="true" />
+                Call
               </span>
-            </a>
+            )}
           </Button>
           <Button asChild={Boolean(trackedWhatsappLink)} className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
             {trackedWhatsappLink ? (
             <a href={trackedWhatsappLink}>
               <MessageCircle aria-hidden="true" />
               <span className="sm:hidden">WhatsApp</span>
-              <span className="hidden max-w-[10rem] truncate sm:inline" title={(professional.whatsapp_number ?? professional.phone_number) ?? undefined}>
-                {professional.whatsapp_number ?? professional.phone_number}
+              <span className="hidden max-w-[10rem] truncate sm:inline" title={whatsappDisplay ?? undefined}>
+                {whatsappDisplay}
               </span>
             </a>
             ) : (
@@ -472,11 +479,11 @@ function ConversionProfessionalCard({
   professional: DirectoryProfessional;
   featured?: boolean;
 }) {
-  const whatsappLink = buildWhatsappHref(
-    professional.whatsapp_number ?? professional.phone_number,
-  );
+  const contactPhone = professional.phone_number;
+  const whatsappDisplay = professional.whatsapp_number ?? contactPhone;
+  const whatsappLink = buildWhatsappHref(whatsappDisplay);
   const profilePath = `/professionals/${professional.id}`;
-  const phoneLink = `tel:${professional.phone_number}`;
+  const phoneLink = contactPhone ? `tel:${contactPhone}` : null;
   const trackedPhoneLink = trackedContactHref({
     href: phoneLink,
     eventType: "call_click",
@@ -574,22 +581,29 @@ function ConversionProfessionalCard({
         </div>
 
         <div className="mt-auto grid grid-cols-3 gap-2 pt-3">
-          <Button asChild variant="outline" className="h-10 px-2">
-            <a href={trackedPhoneLink ?? phoneLink}>
-              <Phone aria-hidden="true" />
-              <span className="sm:hidden">Call</span>
-              <span className="hidden max-w-[8rem] truncate sm:inline" title={professional.phone_number}>
-                {professional.phone_number}
+          <Button asChild={Boolean(phoneLink)} variant="outline" className="h-10 px-2" disabled={!phoneLink}>
+            {phoneLink ? (
+              <a href={trackedPhoneLink ?? phoneLink}>
+                <Phone aria-hidden="true" />
+                <span className="sm:hidden">Call</span>
+                <span className="hidden max-w-[8rem] truncate sm:inline" title={contactPhone ?? undefined}>
+                  {contactPhone}
+                </span>
+              </a>
+            ) : (
+              <span>
+                <Phone aria-hidden="true" />
+                Call
               </span>
-            </a>
+            )}
           </Button>
           <Button asChild={Boolean(trackedWhatsappLink)} className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
             {trackedWhatsappLink ? (
             <a href={trackedWhatsappLink}>
               <MessageCircle aria-hidden="true" />
               <span className="sm:hidden">WhatsApp</span>
-              <span className="hidden max-w-[8rem] truncate sm:inline" title={(professional.whatsapp_number ?? professional.phone_number) ?? undefined}>
-                {professional.whatsapp_number ?? professional.phone_number}
+              <span className="hidden max-w-[8rem] truncate sm:inline" title={whatsappDisplay ?? undefined}>
+                {whatsappDisplay}
               </span>
             </a>
             ) : (

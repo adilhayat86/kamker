@@ -26,7 +26,7 @@ type ProfessionalProfilePageProps = {
 type DbProfessional = {
   id: string;
   full_name: string;
-  phone_number: string;
+  phone_number: string | null;
   whatsapp_number: string | null;
   area: string | null;
   gender: string | null;
@@ -120,7 +120,7 @@ export default async function ProfessionalProfilePage({
   if (dbProfessional) {
     const whatsappNumber = dbProfessional.whatsapp_number ?? dbProfessional.phone_number;
     const whatsappLink = buildWhatsappHref(whatsappNumber);
-    const phoneLink = `tel:${dbProfessional.phone_number}`;
+    const phoneLink = dbProfessional.phone_number ? `tel:${dbProfessional.phone_number}` : null;
     const profilePath = `/professionals/${dbProfessional.id}`;
     const trackedPhoneLink = trackedContactHref({
       href: phoneLink,
@@ -242,12 +242,19 @@ export default async function ProfessionalProfilePage({
               </div>
 
               <div className="mt-6 hidden gap-2 sm:grid sm:grid-cols-3">
-                <Button asChild variant="outline" className="h-12">
-                  <a href={trackedPhoneLink ?? phoneLink}>
+                {phoneLink ? (
+                  <Button asChild variant="outline" className="h-12">
+                    <a href={trackedPhoneLink ?? phoneLink}>
+                      <Phone aria-hidden="true" />
+                      {dbProfessional.phone_number}
+                    </a>
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="h-12" disabled>
                     <Phone aria-hidden="true" />
-                    {dbProfessional.phone_number}
-                  </a>
-                </Button>
+                    Number removed
+                  </Button>
+                )}
                 <Button asChild={Boolean(trackedWhatsappLink)} className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
                   {trackedWhatsappLink ? (
                   <a href={trackedWhatsappLink}>
@@ -272,11 +279,18 @@ export default async function ProfessionalProfilePage({
           </Card>
         </section>
         <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 gap-2 border-t bg-white/95 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
-          <Button asChild variant="outline" className="h-12">
-            <a href={trackedPhoneLink ?? phoneLink}>
-              <Phone aria-hidden="true" />
-              Call
-            </a>
+          <Button asChild={Boolean(phoneLink)} variant="outline" className="h-12" disabled={!phoneLink}>
+            {phoneLink ? (
+              <a href={trackedPhoneLink ?? phoneLink}>
+                <Phone aria-hidden="true" />
+                Call
+              </a>
+            ) : (
+              <span>
+                <Phone aria-hidden="true" />
+                Call
+              </span>
+            )}
           </Button>
           <Button asChild={Boolean(trackedWhatsappLink)} className="h-12 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
             {trackedWhatsappLink ? (

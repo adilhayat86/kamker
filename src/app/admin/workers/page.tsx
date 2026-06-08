@@ -6,6 +6,7 @@ import {
   approveProfessional,
   deleteProfessional,
   makeProfessionalFeatured,
+  removeDisputedProfessionalNumber,
   rejectProfessional,
   removeProfessionalFeatured,
   verifyCnic,
@@ -24,6 +25,7 @@ import {
   isAdminAuthenticated,
   isAdminPasswordConfigured,
 } from "@/lib/admin-auth";
+import { pakistanMobileNormalizedDigits } from "@/lib/phone";
 import { fallbackProfessionalImage } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -36,7 +38,7 @@ export const dynamic = "force-dynamic";
 type WorkerRow = {
   id: string;
   full_name: string;
-  phone_number: string;
+  phone_number: string | null;
   whatsapp_number: string | null;
   area: string | null;
   gender: string | null;
@@ -94,7 +96,9 @@ async function getWorkers({
   }
 
   if (q) {
-    query = query.or(`full_name.ilike.%${q}%,phone_number.ilike.%${q}%`);
+    const normalizedQ = pakistanMobileNormalizedDigits(q);
+    const phoneSearch = normalizedQ ? `,phone_number.ilike.%${normalizedQ}%` : "";
+    query = query.or(`full_name.ilike.%${q}%,phone_number.ilike.%${q}%${phoneSearch}`);
   }
 
   const { data, error } = await query;
@@ -111,6 +115,22 @@ function dateInputValue(value: string | null) {
   return value ? value.slice(0, 10) : "";
 }
 
+function duplicatePhoneGroups(workers: WorkerRow[]) {
+  const groups = new Map<string, WorkerRow[]>();
+
+  for (const worker of workers) {
+    const normalized = pakistanMobileNormalizedDigits(worker.phone_number);
+
+    if (!normalized) {
+      continue;
+    }
+
+    groups.set(normalized, [...(groups.get(normalized) ?? []), worker]);
+  }
+
+  return Array.from(groups.entries()).filter(([, rows]) => rows.length > 1);
+}
+
 export default async function AdminWorkersPage({ searchParams }: WorkersPageProps) {
   const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
@@ -121,6 +141,7 @@ export default async function AdminWorkersPage({ searchParams }: WorkersPageProp
 
   const params = await searchParams;
   const workers = await getWorkers({ q: params?.q, status: params?.status });
+  const duplicatePhones = duplicatePhoneGroups(workers);
 
   return (
     <AdminShell
@@ -131,6 +152,12 @@ export default async function AdminWorkersPage({ searchParams }: WorkersPageProp
       {!isSupabaseConfigured ? (
         <AdminWarning title="Supabase is not configured">
           Worker review queues need Supabase data. Local demo profiles are not shown here.
+        </AdminWarning>
+      ) : null}
+
+      {duplicatePhones.length > 0 ? (
+        <AdminWarning title="Duplicate worker phone numbers need cleanup">
+          {duplicatePhones.length} phone number group{duplicatePhones.length === 1 ? "" : "s"} appear on more than one worker profile in this scan. Search the number, verify ownership proof, then use Remove Claimed Number on the wrong profile.
         </AdminWarning>
       ) : null}
 
@@ -198,7 +225,7 @@ export default async function AdminWorkersPage({ searchParams }: WorkersPageProp
                 <div className="mt-4">
                   <AdminMetaGrid
                     items={[
-                      { label: "Phone", value: worker.phone_number },
+                      { label: "Phone", value: worker.phone_number ?? "Removed / not provided" },
                       { label: "WhatsApp", value: worker.whatsapp_number ?? "Not provided" },
                       { label: "Age", value: worker.age ?? "Not added" },
                       { label: "Gender", value: worker.gender ?? "Not provided" },
@@ -253,6 +280,18 @@ export default async function AdminWorkersPage({ searchParams }: WorkersPageProp
                   />
                   <Button className="bg-red-600 text-white hover:bg-red-700" disabled={!adminAuthenticated}>
                     Reject/Delete Profile
+                  </Button>
+                </form>
+
+                <form action={removeDisputedProfessionalNumber} className="mt-3 grid gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 sm:grid-cols-[1fr_auto]">
+                  <input type="hidden" name="professionalId" value={worker.id} />
+                  <input
+                    name="confirmRemoveNumber"
+                    placeholder="Type REMOVE NUMBER after proof"
+                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  />
+                  <Button className="bg-amber-600 text-white hover:bg-amber-700" disabled={!adminAuthenticated || !worker.phone_number}>
+                    Remove Claimed Number
                   </Button>
                 </form>
               </div>

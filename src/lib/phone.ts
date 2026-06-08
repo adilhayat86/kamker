@@ -6,6 +6,91 @@ export const countryCodeOptions = [
   { value: "+1", label: "US +1" },
 ];
 
+export type PhoneValidationResult = {
+  ok: boolean;
+  normalized: string;
+  error?: "missing" | "invalid" | "fake";
+};
+
+export function validatePhoneDigits(value: string | null | undefined) {
+  const raw = (value ?? "").trim();
+
+  if (!raw) {
+    return { ok: false, normalized: "", error: "missing" } satisfies PhoneValidationResult;
+  }
+
+  if (/[^0-9+\s().-]/.test(raw)) {
+    return { ok: false, normalized: "", error: "invalid" } satisfies PhoneValidationResult;
+  }
+
+  const digits = raw.replace(/\D/g, "");
+
+  if (digits.length < 7 || digits.length > 15) {
+    return { ok: false, normalized: "", error: "invalid" } satisfies PhoneValidationResult;
+  }
+
+  if (/^(\d)\1+$/.test(digits)) {
+    return { ok: false, normalized: "", error: "fake" } satisfies PhoneValidationResult;
+  }
+
+  return { ok: true, normalized: digits } satisfies PhoneValidationResult;
+}
+
+export function normalizePakistanMobilePhone(value: string | null | undefined) {
+  const basic = validatePhoneDigits(value);
+
+  if (!basic.ok) {
+    return basic;
+  }
+
+  let digits = basic.normalized;
+
+  if (digits.startsWith("00")) {
+    digits = digits.slice(2);
+  }
+
+  if (digits.startsWith("92")) {
+    digits = digits.slice(2);
+  } else if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+
+  if (!/^3\d{9}$/.test(digits)) {
+    return { ok: false, normalized: "", error: "invalid" } satisfies PhoneValidationResult;
+  }
+
+  if (/^3(\d)\1{8}$/.test(digits)) {
+    return { ok: false, normalized: "", error: "fake" } satisfies PhoneValidationResult;
+  }
+
+  return { ok: true, normalized: `+92${digits}` } satisfies PhoneValidationResult;
+}
+
+export function pakistanMobileNormalizedDigits(value: string | null | undefined) {
+  const result = normalizePakistanMobilePhone(value);
+  return result.ok ? result.normalized.replace(/\D/g, "") : "";
+}
+
+export function normalizeInternationalPhone(
+  value: string | null | undefined,
+  countryCode = "+92",
+) {
+  const basic = validatePhoneDigits(value);
+
+  if (!basic.ok) {
+    return basic;
+  }
+
+  const normalized = normalizePhoneNumber(value, countryCode);
+  const digits = normalized.replace(/\D/g, "");
+
+  if (digits.length < 7 || digits.length > 15) {
+    return { ok: false, normalized: "", error: "invalid" } satisfies PhoneValidationResult;
+  }
+
+  return { ok: true, normalized } satisfies PhoneValidationResult;
+}
+
 export function normalizePhoneNumber(
   value: string | null | undefined,
   countryCode = "+92",
@@ -50,8 +135,29 @@ export function phoneFieldWithCountry(formData: FormData, key: string) {
   const value = formData.get(key);
   const countryCode = formData.get(`${key}CountryCode`);
 
-  return normalizePhoneNumber(
+  const rawValue = typeof value === "string" ? value : "";
+
+  if (!rawValue.trim()) {
+    return "";
+  }
+
+  return normalizeInternationalPhone(
     typeof value === "string" ? value : "",
+    typeof countryCode === "string" ? countryCode : "+92",
+  ).normalized;
+}
+
+export function validatePhoneFieldWithCountry(formData: FormData, key: string) {
+  const value = formData.get(key);
+  const countryCode = formData.get(`${key}CountryCode`);
+  const rawValue = typeof value === "string" ? value : "";
+
+  if (!rawValue.trim()) {
+    return { ok: true, normalized: "" } satisfies PhoneValidationResult;
+  }
+
+  return normalizeInternationalPhone(
+    rawValue,
     typeof countryCode === "string" ? countryCode : "+92",
   );
 }

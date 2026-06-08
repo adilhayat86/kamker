@@ -14,7 +14,10 @@ import {
   isLocalDemoStoreEnabled,
   saveLocalCompanyListing,
 } from "@/lib/local-demo-store";
-import { phoneFieldWithCountry } from "@/lib/phone";
+import {
+  normalizePakistanMobilePhone,
+  validatePhoneFieldWithCountry,
+} from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
@@ -73,8 +76,13 @@ export async function createCompanyListing(formData: FormData) {
   const description = field(formData, "description");
   const hourlyRate = optionalNumber(formData, "hourlyRate");
   const monthlyRate = optionalNumber(formData, "monthlyRate");
-  const phone = field(formData, "phone");
-  const whatsapp = phoneFieldWithCountry(formData, "whatsapp");
+  const phoneInput = field(formData, "phone");
+  const phoneValidation = phoneInput
+    ? normalizePakistanMobilePhone(phoneInput)
+    : { ok: true, normalized: "" };
+  const phone = phoneValidation.normalized || phoneInput;
+  const whatsappValidation = validatePhoneFieldWithCountry(formData, "whatsapp");
+  const whatsapp = whatsappValidation.normalized;
   const source = field(formData, "source") || "unknown";
   const draft = {
     title,
@@ -89,7 +97,7 @@ export async function createCompanyListing(formData: FormData) {
     yearsExperience: field(formData, "yearsExperience"),
     hourlyRate: field(formData, "hourlyRate"),
     monthlyRate: field(formData, "monthlyRate"),
-    phone,
+    phone: phoneInput,
     whatsapp,
     description,
   };
@@ -99,6 +107,8 @@ export async function createCompanyListing(formData: FormData) {
     !category ? "category" : null,
     !city ? "city" : null,
     age === null ? "age" : null,
+    phoneInput && !phoneValidation.ok ? "phoneInvalid" : null,
+    !whatsappValidation.ok ? "whatsappInvalid" : null,
     !tagline || tagline.length > 30 ? "tagline" : null,
     !description ? "description" : null,
   ].filter((error): error is string => Boolean(error));

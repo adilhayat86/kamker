@@ -18,7 +18,8 @@ create table if not exists cities (
 create table if not exists professionals (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
-  phone_number text not null,
+  phone_number text,
+  phone_normalized text,
   whatsapp_number text,
   city_id bigint references cities(id),
   area text,
@@ -60,6 +61,55 @@ create table if not exists professional_sessions (
   expires_at timestamptz not null,
   created_at timestamptz not null default now()
 );
+
+create or replace function kamker_normalize_pk_mobile(input text)
+returns text
+language plpgsql
+immutable
+as $$
+declare
+  digits text;
+begin
+  if input is null or btrim(input) = '' then
+    return null;
+  end if;
+
+  digits := regexp_replace(input, '\D', '', 'g');
+
+  if left(digits, 2) = '00' then
+    digits := substr(digits, 3);
+  end if;
+
+  if left(digits, 2) = '92' then
+    digits := substr(digits, 3);
+  elsif left(digits, 1) = '0' then
+    digits := substr(digits, 2);
+  end if;
+
+  if digits ~ '^3[0-9]{9}$' and digits !~ '^3([0-9])\1{8}$' then
+    return '+92' || digits;
+  end if;
+
+  return null;
+end;
+$$;
+
+create or replace function professionals_set_phone_normalized()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.phone_normalized := kamker_normalize_pk_mobile(new.phone_number);
+  return new;
+end;
+$$;
+
+drop trigger if exists professionals_set_phone_normalized on professionals;
+
+create trigger professionals_set_phone_normalized
+before insert or update of phone_number on professionals
+for each row
+execute function professionals_set_phone_normalized();
 
 create table if not exists customers (
   id uuid primary key default gen_random_uuid(),
@@ -216,6 +266,9 @@ create index if not exists professionals_city_category_idx on professionals(city
 create index if not exists professionals_active_idx on professionals(is_active);
 create index if not exists professionals_featured_idx on professionals(is_featured, featured_until);
 create index if not exists professionals_phone_number_idx on professionals(phone_number);
+create unique index if not exists professionals_phone_normalized_unique_idx
+  on professionals(phone_normalized)
+  where phone_normalized is not null;
 create index if not exists professionals_availability_time_idx on professionals(availability_time);
 create index if not exists professionals_availability_days_idx on professionals(availability_days);
 create index if not exists professionals_age_idx on professionals(age);

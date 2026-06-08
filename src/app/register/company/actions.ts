@@ -8,7 +8,10 @@ import {
   isLocalDemoStoreEnabled,
   saveLocalCompany,
 } from "@/lib/local-demo-store";
-import { phoneFieldWithCountry } from "@/lib/phone";
+import {
+  normalizePakistanMobilePhone,
+  validatePhoneFieldWithCountry,
+} from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
@@ -23,8 +26,11 @@ export async function registerCompany(formData: FormData) {
   const city = field(formData, "city");
   const area = field(formData, "area");
   const contactPerson = field(formData, "contactPerson");
-  const phone = field(formData, "phone");
-  const whatsapp = phoneFieldWithCountry(formData, "whatsapp");
+  const phoneInput = field(formData, "phone");
+  const phoneValidation = normalizePakistanMobilePhone(phoneInput);
+  const phone = phoneValidation.normalized || phoneInput;
+  const whatsappValidation = validatePhoneFieldWithCountry(formData, "whatsapp");
+  const whatsapp = whatsappValidation.normalized;
   const licenseNumber = field(formData, "licenseNumber");
   const description = field(formData, "description");
   const draft = {
@@ -33,7 +39,7 @@ export async function registerCompany(formData: FormData) {
     city,
     area,
     contactPerson,
-    phone,
+    phone: phoneInput,
     whatsapp,
     licenseNumber,
     description,
@@ -44,7 +50,9 @@ export async function registerCompany(formData: FormData) {
     !category ? "category" : null,
     !city ? "city" : null,
     !contactPerson ? "contactPerson" : null,
-    !phone ? "phone" : null,
+    !phoneInput ? "phone" : null,
+    phoneInput && !phoneValidation.ok ? "phoneInvalid" : null,
+    !whatsappValidation.ok ? "whatsappInvalid" : null,
     !description ? "description" : null,
   ].filter((error): error is string => Boolean(error));
 

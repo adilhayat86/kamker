@@ -10,6 +10,7 @@ import {
   getPublishedCompanyListingUsage,
 } from "@/lib/company-packages";
 import { categorySlug } from "@/lib/marketplace-data";
+import { pakistanMobileNormalizedDigits } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 async function canMutateAdmin() {
@@ -578,6 +579,77 @@ export async function deleteProfessional(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/workers");
   revalidatePath("/professionals");
+}
+
+export async function removeDisputedProfessionalNumber(formData: FormData) {
+  const id = formData.get("professionalId");
+  const confirmation = formData.get("confirmRemoveNumber");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    confirmation !== "REMOVE NUMBER" ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data: professional, error: loadError } = await supabase
+    .from("professionals")
+    .select("id, phone_number, whatsapp_number")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (loadError || !professional) {
+    console.error("Failed to load professional before disputed phone removal", loadError);
+    return;
+  }
+
+  const phoneDigits = pakistanMobileNormalizedDigits(professional.phone_number);
+  const whatsappDigits = pakistanMobileNormalizedDigits(professional.whatsapp_number);
+  const clearWhatsapp = Boolean(phoneDigits && phoneDigits === whatsappDigits);
+
+  const { error } = await supabase
+    .from("professionals")
+    .update({
+      phone_number: null,
+      phone_normalized: null,
+      whatsapp_number: clearWhatsapp ? null : professional.whatsapp_number,
+      is_phone_verified: false,
+      is_active: false,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to remove disputed professional phone number", error);
+    return;
+  }
+
+  const { error: sessionError } = await supabase
+    .from("professional_sessions")
+    .delete()
+    .eq("professional_id", id);
+
+  if (sessionError) {
+    console.error("Failed to clear sessions after disputed phone removal", sessionError);
+  }
+
+  await recordAdminAudit({
+    action: "remove_disputed_phone",
+    targetType: "professional",
+    targetId: id,
+    metadata: {
+      clearedWhatsapp: clearWhatsapp,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/workers");
+  revalidatePath("/professionals");
+  revalidatePath(`/professionals/${id}`);
 }
 
 export async function approveCompanyVerification(formData: FormData) {

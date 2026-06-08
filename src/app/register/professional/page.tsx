@@ -77,13 +77,21 @@ export default async function ProfessionalRegisterPage({
     (draft.errors ?? "").split(",").filter(Boolean),
   );
   const errorFor = (field: string) => {
-    if (!failedFields.has(field)) {
+    const phoneError = field === "phone" && (
+      failedFields.has("phoneInvalid") || failedFields.has("phoneDuplicate")
+    );
+    const whatsappError = field === "whatsapp" && failedFields.has("whatsappInvalid");
+
+    if (!failedFields.has(field) && !phoneError && !whatsappError) {
       return undefined;
     }
 
     const messages: Record<string, string> = {
       fullName: "Full name is required.",
       phone: "Phone number is required.",
+      phoneInvalid: "Enter a valid Pakistan mobile number, for example 03001234567.",
+      phoneDuplicate: "This phone number is already registered. Login or contact Kamker support if this is your number.",
+      whatsappInvalid: "Enter a valid WhatsApp number or leave it blank.",
       city: "Choose a city.",
       category: "Choose a profession/category.",
       gender: "Choose gender.",
@@ -96,6 +104,18 @@ export default async function ProfessionalRegisterPage({
       secretQuestion: "Secret question is required.",
       secretAnswer: "Secret answer is required. Re-enter it after this error.",
     };
+
+    if (field === "phone" && failedFields.has("phoneDuplicate")) {
+      return messages.phoneDuplicate;
+    }
+
+    if (field === "phone" && failedFields.has("phoneInvalid")) {
+      return messages.phoneInvalid;
+    }
+
+    if (field === "whatsapp" && failedFields.has("whatsappInvalid")) {
+      return messages.whatsappInvalid;
+    }
 
     return messages[field] ?? "This field needs attention.";
   };
@@ -155,8 +175,8 @@ export default async function ProfessionalRegisterPage({
                 </div>
                 <PhotoUploadField />
                 <FormField label="Full name" name="fullName" defaultValue={draft.fullName} error={errorFor("fullName")} required />
-                <FormField label="Phone number" name="phone" type="tel" defaultValue={draft.phone} error={errorFor("phone")} required />
-                <CountryPhoneField label="WhatsApp number" name="whatsapp" defaultValue={draft.whatsapp} />
+                <FormField label="Phone number" name="phone" type="tel" placeholder="0300 1234567" defaultValue={draft.phone} error={errorFor("phone")} required />
+                <CountryPhoneField label="WhatsApp number" name="whatsapp" defaultValue={draft.whatsapp} error={errorFor("whatsapp")} />
                 <SelectField label="City" name="city" options={cityOptions} defaultValue={draft.city} error={errorFor("city")} required />
                 <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" defaultValue={draft.area} />
                 <SelectField label="Gender" name="gender" options={genderOptions} defaultValue={draft.gender} error={errorFor("gender")} required />
