@@ -178,6 +178,7 @@ export function PhotoUploadField({
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
   const [previewUrl, setPreviewUrl] = useState("");
   const [fileName, setFileName] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -217,6 +218,7 @@ export function PhotoUploadField({
       setMessage(error);
       setUploadedUrl("");
       setFileName("");
+      setIsUploading(false);
       replacePreview("");
       return;
     }
@@ -224,6 +226,7 @@ export function PhotoUploadField({
     setInputError(input);
     setUploadedUrl("");
     setFileName(file.name);
+    setIsUploading(false);
     replacePreview(URL.createObjectURL(file));
 
     if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
@@ -232,12 +235,14 @@ export function PhotoUploadField({
       );
       setInputError(input, "Please choose a photo under 10MB.");
       setFileName("");
+      setIsUploading(false);
       replacePreview("");
       return;
     }
 
     setMessage(`Preparing ${formatSize(file.size)} photo...`);
     setInputError(input, "Please wait for the photo upload to finish.");
+    setIsUploading(true);
 
     try {
       const prepared =
@@ -252,21 +257,41 @@ export function PhotoUploadField({
       replacePreview(publicUrl);
       clearSelectedFile(input);
       setInputError(input);
+      setIsUploading(false);
       setMessage("Photo attached. Continue registration.");
     } catch {
       clearSelectedFile(input);
       setUploadedUrl("");
       setFileName("");
+      setIsUploading(false);
       replacePreview("");
       setInputError(input);
       setMessage("Photo upload failed. You can submit without photo and add it later.");
     }
   }
 
+  function clearPhoto() {
+    const input = inputRef.current;
+
+    if (input) {
+      clearSelectedFile(input);
+      setInputError(input);
+    }
+
+    setUploadedUrl("");
+    setFileName("");
+    setIsUploading(false);
+    replacePreview("");
+    setMessage(DEFAULT_MESSAGE);
+  }
+
   return (
-    <label className="grid gap-2 sm:col-span-2">
-      <span className="text-sm font-medium">{label}</span>
+    <div className="grid gap-2 sm:col-span-2">
+      <label htmlFor={`${uploadFolder}-photo`} className="text-sm font-medium">
+        {label}
+      </label>
       <input
+        id={`${uploadFolder}-photo`}
         ref={inputRef}
         name="photo"
         type="file"
@@ -286,16 +311,27 @@ export function PhotoUploadField({
           />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-sky-950">
-              {fileName || "Photo attached"}
+              {isUploading ? "Uploading photo..." : fileName || "Photo attached"}
             </p>
             <p className="text-xs text-sky-800">
-              Saved for this registration.
+              {uploadedUrl
+                ? "Saved for this registration."
+                : "Please wait for upload to finish."}
             </p>
           </div>
+          {uploadedUrl ? (
+            <button
+              type="button"
+              onClick={clearPhoto}
+              className="ml-auto rounded-md border border-sky-300 bg-white px-3 py-2 text-xs font-semibold text-sky-900"
+            >
+              Change
+            </button>
+          ) : null}
         </div>
       ) : null}
       <span className="text-xs text-muted-foreground">{message}</span>
       {helpText ? <span className="text-xs text-muted-foreground">{helpText}</span> : null}
-    </label>
+    </div>
   );
 }
