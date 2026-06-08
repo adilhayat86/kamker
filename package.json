@@ -23,6 +23,7 @@
     "qa:check-public-performance": "node scripts/qa/check-public-performance.mjs",
     "qa:check-mvp-production": "node scripts/qa/check-mvp-production.mjs",
     "qa:mvp-live-flow-checklist": "node scripts/qa/mvp-live-flow-checklist.mjs",
+    "qa:live-test-data": "node scripts/qa/generate-live-test-data.mjs",
     "qa:mvp-readiness": "node scripts/qa/mvp-readiness-report.mjs",
     "qa:build-supabase-sql": "node scripts/qa/build-mvp-supabase-sql.mjs",
     "qa:copy-supabase-sql": "node scripts/qa/build-mvp-supabase-sql.mjs --copy",

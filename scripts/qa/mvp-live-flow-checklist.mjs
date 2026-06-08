@@ -1,4 +1,5 @@
 import { logJson, productionConfig, supabaseExactCount, supabaseRest } from "./qa-utils.mjs";
+import { buildLiveTestData } from "./live-test-data.mjs";
 
 const testPrefix = "Admin Test";
 
@@ -189,6 +190,7 @@ async function main() {
   const { baseUrl } = productionConfig();
   const [counts, schemaStatus] = await Promise.all([getCounts(), getSchemaStatus()]);
   const blockers = buildBlockers(schemaStatus);
+  const sampleData = buildLiveTestData();
 
   logJson({
     ok: blockers.length === 0,
@@ -206,6 +208,7 @@ async function main() {
       "Keep pricing, packages, WhatsApp broadcast behavior, and AI proof rules unchanged.",
     ],
     coverage: summarizeCoverage(),
+    sampleData,
     flows,
     nextActions:
       blockers.length > 0

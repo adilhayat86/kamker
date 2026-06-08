@@ -7,6 +7,7 @@ without relying on clipboard automation.
 Usage inside the browser automation REPL:
   await kamkerSetField("fullName", "Admin Test Worker");
   await kamkerSetField("city", "Karachi");
+  await kamkerSetFields({ fullName: "Admin Test Worker", city: "Karachi" });
 */
 
 globalThis.kamkerSetField = async function kamkerSetField(name, value) {
@@ -56,4 +57,17 @@ globalThis.kamkerSetField = async function kamkerSetField(name, value) {
     },
     { name, value },
   );
+};
+
+globalThis.kamkerSetFields = async function kamkerSetFields(values) {
+  const results = [];
+
+  for (const [name, value] of Object.entries(values)) {
+    results.push(await globalThis.kamkerSetField(name, value));
+  }
+
+  return {
+    ok: results.every((result) => result.ok),
+    results,
+  };
 };
