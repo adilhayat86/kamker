@@ -75,6 +75,40 @@ export async function supabaseRest(path, options = {}) {
   return text ? JSON.parse(text) : null;
 }
 
+export async function supabaseRestResponse(path, options = {}) {
+  const { supabaseUrl } = productionConfig();
+  const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
+    ...options,
+    headers: restHeaders(options.headers ?? {}),
+  });
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `${options.method ?? "GET"} ${path} ${response.status}: ${text.slice(0, 800)}`,
+    );
+  }
+
+  return {
+    response,
+    data: text ? JSON.parse(text) : null,
+  };
+}
+
+export async function supabaseExactCount(table, filters = "") {
+  const suffix = filters ? `&${filters}` : "";
+  const { response } = await supabaseRestResponse(`${table}?select=id${suffix}`, {
+    headers: {
+      Prefer: "count=exact",
+      Range: "0-0",
+    },
+  });
+  const range = response.headers.get("content-range");
+  const countText = range?.split("/")?.[1];
+
+  return countText && countText !== "*" ? Number(countText) : null;
+}
+
 export async function firstRow(table, query) {
   const rows = await supabaseRest(`${table}?${query}&limit=1`);
 

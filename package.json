@@ -14,6 +14,7 @@
     "qa:seed-stress-production": "node scripts/qa/seed-production-stress.mjs",
     "qa:cleanup-stress-production": "node scripts/qa/cleanup-production-stress.mjs",
     "qa:verify-production": "node scripts/qa/verify-production-qa.mjs",
+    "qa:check-production-schema": "node scripts/qa/check-production-schema.mjs",
     "qa:list-production": "node scripts/qa/list-production-qa-records.mjs"
   },
   "keywords": [],

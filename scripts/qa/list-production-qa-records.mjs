@@ -1,4 +1,4 @@
-import { logJson, supabaseRest } from "./qa-utils.mjs";
+import { logJson, supabaseExactCount, supabaseRest } from "./qa-utils.mjs";
 
 const limit = Number(process.env.KAMKER_QA_LIST_LIMIT ?? 8);
 
@@ -36,10 +36,10 @@ async function main() {
   for (const query of queries) {
     const [rows, countRows] = await Promise.all([
       supabaseRest(query.path),
-      supabaseRest(query.countPath),
+      supabaseExactCount(query.name, query.countPath.split("?")[1]?.replace(/^select=id&/, "") ?? ""),
     ]);
     result[query.name] = rows;
-    counts[query.name] = countRows.length;
+    counts[query.name] = countRows;
   }
 
   logJson({
