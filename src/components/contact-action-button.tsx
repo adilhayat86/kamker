@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle, Phone } from "lucide-react";
+import { ExternalLink, MessageCircle, Phone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -23,20 +23,20 @@ export function ContactActionButton({
   disabledLabel,
 }: ContactActionButtonProps) {
   const [copied, setCopied] = useState(false);
+  const [revealed, setRevealed] = useState(false);
   const Icon = type === "call" ? Phone : MessageCircle;
   const mobileLabel = type === "call" ? "Call" : "WhatsApp";
-  const desktopLabel = type === "call" ? "Call" : "WhatsApp";
-  const copyLabel = copied
-    ? "Copied"
-    : displayValue
-      ? `${desktopLabel}: ${displayValue}`
-      : disabledLabel ?? mobileLabel;
+  const desktopLabel = type === "call" ? "Show number" : "Show WhatsApp";
+  const revealedLabel = type === "call" ? "Call number" : "WhatsApp number";
   const canUse = Boolean(href && displayValue);
+  const directHref = unwrapTrackedHref(href);
 
   async function copyNumber() {
     if (!displayValue) {
       return;
     }
+
+    setRevealed(true);
 
     try {
       await navigator.clipboard.writeText(displayValue);
@@ -67,19 +67,69 @@ export function ContactActionButton({
           </span>
         )}
       </Button>
-      <Button
-        type="button"
-        variant={variant}
-        className={`${className ?? ""} hidden sm:inline-flex`}
-        disabled={!displayValue}
-        onClick={copyNumber}
-        title={displayValue ? `Click to copy ${displayValue}` : undefined}
-      >
-        <Icon aria-hidden="true" />
-        <span className="max-w-[13rem] truncate">
-          {copyLabel}
-        </span>
-      </Button>
+      <div className="hidden min-w-0 sm:flex sm:flex-col sm:gap-1.5">
+        <Button
+          type="button"
+          variant={variant}
+          className={`${className ?? ""} w-full`}
+          disabled={!displayValue}
+          onClick={copyNumber}
+          title={displayValue ? `Show and copy ${displayValue}` : undefined}
+        >
+          <Icon aria-hidden="true" />
+          <span className="max-w-[13rem] truncate">
+            {copied ? "Copied" : revealed ? revealedLabel : desktopLabel}
+          </span>
+        </Button>
+        {revealed && displayValue ? (
+          <div className="rounded-md border bg-white p-2 text-xs leading-5 text-foreground shadow-sm">
+            <p className="font-semibold">{displayValue}</p>
+            <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+              <button
+                type="button"
+                className="font-medium text-primary hover:underline"
+                onClick={copyNumber}
+              >
+                {copied ? "Copied" : "Copy"}
+              </button>
+              {type === "whatsapp" && directHref ? (
+                <a
+                  className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                  href={directHref}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open WhatsApp
+                  <ExternalLink className="size-3" aria-hidden="true" />
+                </a>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
     </>
   );
+}
+
+function unwrapTrackedHref(href: string | null | undefined) {
+  if (!href) {
+    return null;
+  }
+
+  if (href.startsWith("https://wa.me/")) {
+    return href;
+  }
+
+  if (!href.startsWith("/api/analytics/contact")) {
+    return href;
+  }
+
+  try {
+    const url = new URL(href, "https://kamker.local");
+    const destination = url.searchParams.get("href");
+
+    return destination?.startsWith("https://wa.me/") ? destination : href;
+  } catch {
+    return href;
+  }
 }
