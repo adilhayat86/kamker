@@ -155,10 +155,13 @@ function buildMigrationHelp(failures, supabaseUrl) {
   return {
     needed: true,
     command: phoneOnly ? "npm run qa:copy-phone-sql" : "npm run qa:copy-supabase-sql",
+    helperCommand: phoneOnly ? "npm run qa:serve-phone-sql" : null,
+    helperUrl: phoneOnly ? "http://127.0.0.1:8787/" : null,
     sqlFile: "tmp/kamker-mvp-production.sql",
+    htmlHelperFile: "tmp/kamker-mvp-production.html",
     supabaseSqlEditorUrl: `https://supabase.com/dashboard/project/${projectRef}/sql/new`,
     message: phoneOnly
-      ? "Only the phone ownership migration is missing. Generate/copy the phone-only SQL bundle, paste it into Supabase SQL Editor, run it, then rerun npm run qa:mvp-readiness."
+      ? "Only the phone ownership migration is missing. Run npm run qa:serve-phone-sql, open http://127.0.0.1:8787/, copy the SQL into Supabase SQL Editor, run it, then rerun npm run qa:mvp-readiness."
       : "One or more production schema checks are missing. Generate/copy the full SQL bundle, paste it into Supabase SQL Editor, run it, then rerun npm run qa:mvp-readiness.",
   };
 }
