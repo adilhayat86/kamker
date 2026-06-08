@@ -30,8 +30,32 @@ export function ContactActionButton({
   const revealedLabel = type === "call" ? "Call number" : "WhatsApp number";
   const canUse = Boolean(href && displayValue);
   const directHref = unwrapTrackedHref(href);
+  const buttonLabel = !canUse
+    ? disabledLabel ?? mobileLabel
+    : copied
+      ? "Copied"
+      : revealed
+        ? revealedLabel
+        : mobileLabel;
 
-  async function copyNumber() {
+  async function handleContactClick() {
+    if (!canUse) {
+      return;
+    }
+
+    const isTouchPhone =
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
+    if (isTouchPhone && href) {
+      window.location.href = href;
+      return;
+    }
+
+    await revealAndCopy();
+  }
+
+  async function revealAndCopy() {
     if (!displayValue) {
       return;
     }
@@ -48,37 +72,19 @@ export function ContactActionButton({
   }
 
   return (
-    <>
-      <Button
-        asChild={canUse}
-        variant={variant}
-        className={`${className ?? ""} sm:hidden`}
-        disabled={!canUse}
-      >
-        {canUse ? (
-          <a href={href ?? undefined}>
-            <Icon aria-hidden="true" />
-            {mobileLabel}
-          </a>
-        ) : (
-          <span>
-            <Icon aria-hidden="true" />
-            {disabledLabel ?? mobileLabel}
-          </span>
-        )}
-      </Button>
-      <div className="hidden min-w-0 sm:flex sm:flex-col sm:gap-1.5">
+    <div className="min-w-0">
+      <div className="flex min-w-0 flex-col gap-1.5">
         <Button
           type="button"
           variant={variant}
           className={`${className ?? ""} w-full`}
-          disabled={!displayValue}
-          onClick={copyNumber}
-          title={displayValue ? `Show and copy ${displayValue}` : undefined}
+          disabled={!canUse}
+          onClick={handleContactClick}
+          title={displayValue ? `${desktopLabel}: ${displayValue}` : undefined}
         >
           <Icon aria-hidden="true" />
           <span className="max-w-[13rem] truncate">
-            {copied ? "Copied" : revealed ? revealedLabel : desktopLabel}
+            {buttonLabel}
           </span>
         </Button>
         {revealed && displayValue ? (
@@ -88,10 +94,19 @@ export function ContactActionButton({
               <button
                 type="button"
                 className="font-medium text-primary hover:underline"
-                onClick={copyNumber}
+                onClick={revealAndCopy}
               >
                 {copied ? "Copied" : "Copy"}
               </button>
+              {type === "call" && directHref ? (
+                <a
+                  className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                  href={directHref}
+                >
+                  Open dialer
+                  <ExternalLink className="size-3" aria-hidden="true" />
+                </a>
+              ) : null}
               {type === "whatsapp" && directHref ? (
                 <a
                   className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
@@ -107,7 +122,7 @@ export function ContactActionButton({
           </div>
         ) : null}
       </div>
-    </>
+    </div>
   );
 }
 
