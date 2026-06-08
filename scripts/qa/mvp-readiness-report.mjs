@@ -225,7 +225,7 @@ function buildNextActions(results) {
   }
 
   actions.push(
-    "Run visible browser QA for real submissions: worker, customer, company, package proof, company staff, requirement, and admin approval.",
+    "Run npm run qa:mvp-live-flow-checklist, then execute visible browser QA for real submissions: worker, customer, company, package proof, company staff, requirement, search, contact buttons, analytics, and admin approval.",
   );
 
   return actions;
