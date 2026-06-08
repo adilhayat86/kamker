@@ -4,13 +4,12 @@ import {
   BadgeCheck,
   Clock,
   MapPin,
-  MessageCircle,
-  Phone,
   Search,
   Sparkles,
   Star,
 } from "lucide-react";
 
+import { ContactActionButton } from "@/components/contact-action-button";
 import { ProfessionalCard } from "@/components/professional-card";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
@@ -429,38 +428,19 @@ function DbProfessionalCard({
           </div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <Button asChild={Boolean(phoneLink)} variant="outline" className="h-11" disabled={!phoneLink}>
-            {phoneLink ? (
-              <a href={trackedPhoneLink ?? phoneLink}>
-                <Phone aria-hidden="true" />
-                <span className="sm:hidden">Call</span>
-                <span className="hidden max-w-[10rem] truncate sm:inline" title={contactPhone ?? undefined}>
-                  {contactPhone}
-                </span>
-              </a>
-            ) : (
-              <span>
-                <Phone aria-hidden="true" />
-                Call
-              </span>
-            )}
-          </Button>
-          <Button asChild={Boolean(trackedWhatsappLink)} className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
-            {trackedWhatsappLink ? (
-            <a href={trackedWhatsappLink}>
-              <MessageCircle aria-hidden="true" />
-              <span className="sm:hidden">WhatsApp</span>
-              <span className="hidden max-w-[10rem] truncate sm:inline" title={whatsappDisplay ?? undefined}>
-                {whatsappDisplay}
-              </span>
-            </a>
-            ) : (
-              <span>
-                <MessageCircle aria-hidden="true" />
-                WhatsApp
-              </span>
-            )}
-          </Button>
+          <ContactActionButton
+            href={trackedPhoneLink ?? phoneLink}
+            displayValue={contactPhone}
+            type="call"
+            className="h-11"
+            variant="outline"
+          />
+          <ContactActionButton
+            href={trackedWhatsappLink}
+            displayValue={whatsappDisplay}
+            type="whatsapp"
+            className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]"
+          />
         </div>
         <Button asChild className="mt-2 h-11 w-full" variant="outline">
           <Link href={`/professionals/${professional.id}`}>View Profile</Link>
@@ -581,38 +561,19 @@ function ConversionProfessionalCard({
         </div>
 
         <div className="mt-auto grid grid-cols-3 gap-2 pt-3">
-          <Button asChild={Boolean(phoneLink)} variant="outline" className="h-10 px-2" disabled={!phoneLink}>
-            {phoneLink ? (
-              <a href={trackedPhoneLink ?? phoneLink}>
-                <Phone aria-hidden="true" />
-                <span className="sm:hidden">Call</span>
-                <span className="hidden max-w-[8rem] truncate sm:inline" title={contactPhone ?? undefined}>
-                  {contactPhone}
-                </span>
-              </a>
-            ) : (
-              <span>
-                <Phone aria-hidden="true" />
-                Call
-              </span>
-            )}
-          </Button>
-          <Button asChild={Boolean(trackedWhatsappLink)} className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
-            {trackedWhatsappLink ? (
-            <a href={trackedWhatsappLink}>
-              <MessageCircle aria-hidden="true" />
-              <span className="sm:hidden">WhatsApp</span>
-              <span className="hidden max-w-[8rem] truncate sm:inline" title={whatsappDisplay ?? undefined}>
-                {whatsappDisplay}
-              </span>
-            </a>
-            ) : (
-              <span>
-                <MessageCircle aria-hidden="true" />
-                WhatsApp
-              </span>
-            )}
-          </Button>
+          <ContactActionButton
+            href={trackedPhoneLink ?? phoneLink}
+            displayValue={contactPhone}
+            type="call"
+            className="h-10 px-2"
+            variant="outline"
+          />
+          <ContactActionButton
+            href={trackedWhatsappLink}
+            displayValue={whatsappDisplay}
+            type="whatsapp"
+            className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]"
+          />
           <Button asChild className="h-10 px-2" variant="outline">
             <Link href={`/professionals/${professional.id}`}>View Profile</Link>
           </Button>

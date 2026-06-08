@@ -10,11 +10,10 @@ import {
   Edit,
   LogOut,
   MapPin,
-  MessageCircle,
-  Phone,
   ShieldCheck,
 } from "lucide-react";
 
+import { ContactActionButton } from "@/components/contact-action-button";
 import {
   getAccountProfessional,
   getDemoAccountProfessional,
@@ -338,31 +337,20 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
               ) : null}
 
               <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                <Button asChild variant="outline" className="h-12">
-                  <a href={`tel:${phoneNumber}`}>
-                    <Phone aria-hidden="true" />
-                    <span className="sm:hidden">Call</span>
-                    <span className="hidden max-w-[10rem] truncate sm:inline" title={phoneNumber}>
-                      {phoneNumber}
-                    </span>
-                  </a>
-                </Button>
-                {whatsappLink ? (
-                  <Button asChild className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                    <a href={whatsappLink}>
-                      <MessageCircle aria-hidden="true" />
-                      <span className="sm:hidden">WhatsApp</span>
-                      <span className="hidden max-w-[10rem] truncate sm:inline" title={whatsappNumber ?? undefined}>
-                        {whatsappNumber}
-                      </span>
-                    </a>
-                  </Button>
-                ) : (
-                  <Button className="h-12" disabled variant="outline">
-                    <MessageCircle aria-hidden="true" />
-                    WhatsApp missing
-                  </Button>
-                )}
+                <ContactActionButton
+                  href={phoneNumber ? `tel:${phoneNumber}` : null}
+                  displayValue={phoneNumber}
+                  type="call"
+                  className="h-12"
+                  variant="outline"
+                />
+                <ContactActionButton
+                  href={whatsappLink}
+                  displayValue={whatsappNumber}
+                  type="whatsapp"
+                  className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]"
+                  disabledLabel="WhatsApp missing"
+                />
                 <Button asChild className="h-12">
                   <Link href={publicProfileHref}>
                     <BriefcaseBusiness aria-hidden="true" />

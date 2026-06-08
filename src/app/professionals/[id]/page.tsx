@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BadgeCheck, Crown, MapPin, MessageCircle, Phone, Send, Star } from "lucide-react";
 
+import { ContactActionButton } from "@/components/contact-action-button";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -242,32 +243,20 @@ export default async function ProfessionalProfilePage({
               </div>
 
               <div className="mt-6 hidden gap-2 sm:grid sm:grid-cols-3">
-                {phoneLink ? (
-                  <Button asChild variant="outline" className="h-12">
-                    <a href={trackedPhoneLink ?? phoneLink}>
-                      <Phone aria-hidden="true" />
-                      {dbProfessional.phone_number}
-                    </a>
-                  </Button>
-                ) : (
-                  <Button variant="outline" className="h-12" disabled>
-                    <Phone aria-hidden="true" />
-                    Number removed
-                  </Button>
-                )}
-                <Button asChild={Boolean(trackedWhatsappLink)} className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
-                  {trackedWhatsappLink ? (
-                  <a href={trackedWhatsappLink}>
-                    <MessageCircle aria-hidden="true" />
-                    {whatsappNumber}
-                  </a>
-                  ) : (
-                    <span>
-                      <MessageCircle aria-hidden="true" />
-                      WhatsApp
-                    </span>
-                  )}
-                </Button>
+                <ContactActionButton
+                  href={trackedPhoneLink ?? phoneLink}
+                  displayValue={dbProfessional.phone_number}
+                  type="call"
+                  className="h-12"
+                  variant="outline"
+                  disabledLabel="Number removed"
+                />
+                <ContactActionButton
+                  href={trackedWhatsappLink}
+                  displayValue={whatsappNumber}
+                  type="whatsapp"
+                  className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]"
+                />
                 <Button asChild className="h-12">
                   <Link href="/send-requirement">
                     <Send aria-hidden="true" />
@@ -400,16 +389,19 @@ export default async function ProfessionalProfilePage({
             </div>
 
             <div className="mt-6 hidden gap-2 sm:grid sm:grid-cols-3">
-              <Button variant="outline" className="h-12">
-                <Phone aria-hidden="true" />
-                <span className="sm:hidden">Call</span>
-                <span className="hidden sm:inline">{professional.phone}</span>
-              </Button>
-              <Button className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                <MessageCircle aria-hidden="true" />
-                <span className="sm:hidden">WhatsApp</span>
-                <span className="hidden sm:inline">{professional.whatsapp}</span>
-              </Button>
+              <ContactActionButton
+                href={professional.phone ? `tel:${professional.phone}` : null}
+                displayValue={professional.phone}
+                type="call"
+                className="h-12"
+                variant="outline"
+              />
+              <ContactActionButton
+                href={buildWhatsappHref(professional.whatsapp)}
+                displayValue={professional.whatsapp}
+                type="whatsapp"
+                className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]"
+              />
               <Button asChild className="h-12">
                 <Link href="/send-requirement">
                   <Send aria-hidden="true" />
@@ -421,13 +413,17 @@ export default async function ProfessionalProfilePage({
         </Card>
       </section>
       <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 gap-2 border-t bg-white/95 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
-        <Button variant="outline" className="h-12">
-          <Phone aria-hidden="true" />
-          Call
+        <Button asChild variant="outline" className="h-12">
+          <a href={`tel:${professional.phone}`}>
+            <Phone aria-hidden="true" />
+            Call
+          </a>
         </Button>
-        <Button className="h-12 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
-          <MessageCircle aria-hidden="true" />
-          WhatsApp
+        <Button asChild className="h-12 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
+          <a href={buildWhatsappHref(professional.whatsapp) ?? "#"}>
+            <MessageCircle aria-hidden="true" />
+            WhatsApp
+          </a>
         </Button>
         <Button asChild className="h-12 px-2">
           <Link href="/send-requirement">

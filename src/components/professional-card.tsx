@@ -1,10 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, Clock, MapPin, MessageCircle, Phone, Sparkles, Star } from "lucide-react";
+import { BadgeCheck, Clock, MapPin, Sparkles, Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ContactActionButton } from "@/components/contact-action-button";
 import { trackedProfessionalContactHref } from "@/lib/contact-tracking";
 import type { Professional } from "@/lib/marketplace-data";
 import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
@@ -146,38 +147,19 @@ export function ProfessionalCard({
           )}
         </div>
         <div className={actionGridClass}>
-          <Button asChild={Boolean(trackedPhoneHref)} variant="outline" className="h-10 px-2" disabled={!trackedPhoneHref}>
-            {trackedPhoneHref ? (
-              <a href={trackedPhoneHref}>
-                <Phone aria-hidden="true" />
-                <span className="sm:hidden">Call</span>
-                <span className="hidden max-w-[8rem] truncate sm:inline" title={professional.phone ?? undefined}>
-                  {professional.phone}
-                </span>
-              </a>
-            ) : (
-              <span>
-                <Phone aria-hidden="true" />
-                Call
-              </span>
-            )}
-          </Button>
-          <Button asChild={Boolean(trackedWhatsappHref)} className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappHref}>
-            {trackedWhatsappHref ? (
-              <a href={trackedWhatsappHref}>
-                <MessageCircle aria-hidden="true" />
-                <span className="sm:hidden">WhatsApp</span>
-                <span className="hidden max-w-[8rem] truncate sm:inline" title={professional.whatsapp ?? undefined}>
-                  {professional.whatsapp}
-                </span>
-              </a>
-            ) : (
-              <span>
-                <MessageCircle aria-hidden="true" />
-                WhatsApp
-              </span>
-            )}
-          </Button>
+          <ContactActionButton
+            href={trackedPhoneHref}
+            displayValue={professional.phone}
+            type="call"
+            className="h-10 px-2"
+            variant="outline"
+          />
+          <ContactActionButton
+            href={trackedWhatsappHref}
+            displayValue={professional.whatsapp}
+            type="whatsapp"
+            className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]"
+          />
           {professional.is_company_managed ? (
             <>
               <Button asChild className="h-10 px-2" variant="outline">

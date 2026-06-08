@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, Building2, MapPin, MessageCircle, Phone, Sparkles, Star } from "lucide-react";
+import { BadgeCheck, Building2, MapPin, Sparkles, Star } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { ContactActionButton } from "@/components/contact-action-button";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -238,28 +239,19 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
             ) : null}
 
             <div className="mt-6 grid gap-2 sm:grid-cols-3">
-              {trackedPhoneHref ? (
-                <Button asChild variant="outline" className="h-12">
-                  <a href={trackedPhoneHref}>
-                    <Phone className="size-4" aria-hidden="true" />
-                    <span className="sm:hidden">Call</span>
-                    <span className="hidden max-w-[10rem] truncate sm:inline" title={listing.phone ?? undefined}>
-                      {listing.phone}
-                    </span>
-                  </a>
-                </Button>
-              ) : null}
-              {trackedWhatsappHref ? (
-                <Button asChild className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                  <a href={trackedWhatsappHref}>
-                    <MessageCircle className="size-4" aria-hidden="true" />
-                    <span className="sm:hidden">WhatsApp</span>
-                    <span className="hidden max-w-[10rem] truncate sm:inline" title={listing.whatsapp ?? undefined}>
-                      {listing.whatsapp}
-                    </span>
-                  </a>
-                </Button>
-              ) : null}
+              <ContactActionButton
+                href={trackedPhoneHref}
+                displayValue={listing.phone}
+                type="call"
+                className="h-12"
+                variant="outline"
+              />
+              <ContactActionButton
+                href={trackedWhatsappHref}
+                displayValue={listing.whatsapp}
+                type="whatsapp"
+                className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]"
+              />
               <Button asChild className="h-12" variant="outline">
                 <Link href={`/send-requirement?category=${encodeURIComponent(listing.category)}&city=${encodeURIComponent(listing.city)}${listing.area ? `&area=${encodeURIComponent(listing.area)}` : ""}`}>
                   Send Requirement

@@ -7,14 +7,13 @@ import {
   Building2,
   ImageIcon,
   MapPin,
-  MessageCircle,
-  Phone,
   ShieldCheck,
   Sparkles,
   Users,
   Video,
 } from "lucide-react";
 
+import { ContactActionButton } from "@/components/contact-action-button";
 import { PageNavigation } from "@/components/page-navigation";
 import { ProfessionalCard } from "@/components/professional-card";
 import { Badge } from "@/components/ui/badge";
@@ -355,25 +354,19 @@ export default async function CompanyProfilePage({
                 Contact directly for staff availability, rates, and service areas.
               </p>
               <div className="mt-5 grid gap-2">
-                {trackedPhoneHref ? (
-                  <Button asChild variant="outline" className="h-12 justify-start bg-white">
-                    <a href={trackedPhoneHref}>
-                      <Phone className="size-4" aria-hidden="true" />
-                      {company.phone}
-                    </a>
-                  </Button>
-                ) : null}
-                {trackedWhatsappHref ? (
-                  <Button asChild className="h-12 justify-start bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                    <a href={trackedWhatsappHref}>
-                      <MessageCircle className="size-4" aria-hidden="true" />
-                      <span className="sm:hidden">WhatsApp</span>
-                      <span className="hidden max-w-[10rem] truncate sm:inline" title={company.whatsapp ?? undefined}>
-                        {company.whatsapp}
-                      </span>
-                    </a>
-                  </Button>
-                ) : null}
+                <ContactActionButton
+                  href={trackedPhoneHref}
+                  displayValue={company.phone}
+                  type="call"
+                  className="h-12 justify-start bg-white"
+                  variant="outline"
+                />
+                <ContactActionButton
+                  href={trackedWhatsappHref}
+                  displayValue={company.whatsapp}
+                  type="whatsapp"
+                  className="h-12 justify-start bg-[#25d366] text-white hover:bg-[#21bd5b]"
+                />
                 <Button asChild variant="outline" className="h-12 justify-start bg-white">
                   <Link href={`/send-requirement?city=${encodeURIComponent(company.city)}`}>
                     Send Requirement
