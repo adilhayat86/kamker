@@ -18,7 +18,7 @@ type SeoLandingPageViewProps = {
 };
 
 function jsonLdFor(page: SeoLandingPage) {
-  return {
+  const collectionPage = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: page.heading,
@@ -32,6 +32,26 @@ function jsonLdFor(page: SeoLandingPage) {
     about: page.focusCategory ?? "Part time workers",
     areaServed: page.focusCity ?? "Pakistan",
   };
+
+  if (!page.faqs?.length) {
+    return collectionPage;
+  }
+
+  return [
+    collectionPage,
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: page.faqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: faq.answer,
+        },
+      })),
+    },
+  ];
 }
 
 export function SeoLandingPageView({ page }: SeoLandingPageViewProps) {
@@ -149,6 +169,33 @@ export function SeoLandingPageView({ page }: SeoLandingPageViewProps) {
           </CardContent>
         </Card>
       </section>
+
+      {page.faqs?.length ? (
+        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <Card className="bg-white shadow-sm">
+            <CardContent className="p-5 sm:p-6">
+              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                Common questions
+              </p>
+              <h2 className="mt-1 text-2xl font-bold tracking-normal">
+                Questions about finding part time workers
+              </h2>
+              <div className="mt-5 divide-y divide-sky-100">
+                {page.faqs.map((faq) => (
+                  <details key={faq.question} className="group py-4">
+                    <summary className="cursor-pointer list-none text-base font-semibold text-slate-900">
+                      {faq.question}
+                    </summary>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      {faq.answer}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      ) : null}
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-4 rounded-xl bg-primary p-5 text-white shadow-sm sm:grid-cols-[1fr_auto] sm:items-center sm:p-6">

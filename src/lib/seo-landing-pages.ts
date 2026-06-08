@@ -6,6 +6,7 @@ export type SeoLandingPage = {
   heading: string;
   description: string;
   intro: string;
+  faqs?: SeoLandingFaq[];
   primaryHref: string;
   primaryLabel: string;
   secondaryHref: string;
@@ -13,6 +14,11 @@ export type SeoLandingPage = {
   focusCategory?: string;
   focusCity?: string;
   relatedCategories: string[];
+};
+
+export type SeoLandingFaq = {
+  question: string;
+  answer: string;
 };
 
 const citySet = new Set(cities);
@@ -64,6 +70,84 @@ const commonCategories = [
   "Electricians",
 ];
 
+const defaultFaqs: SeoLandingFaq[] = [
+  {
+    question: "Is Kamker a job board?",
+    answer:
+      "No. Kamker is a worker directory and requirement marketplace where customers browse worker profiles by category and city.",
+  },
+  {
+    question: "Can workers register free?",
+    answer:
+      "Yes. Workers can register free on Kamker. Kamker does not charge commission from workers.",
+  },
+  {
+    question: "How do I find part time workers by city?",
+    answer:
+      "Use the search and city filters, or open a city landing page and browse matching worker categories.",
+  },
+  {
+    question: "Can I contact workers directly?",
+    answer:
+      "Yes, where a worker has shared phone or WhatsApp contact details, customers can contact directly.",
+  },
+  {
+    question: "Is Send Requirement paid?",
+    answer:
+      "Send Requirement is a paid outreach option after Kamker reviews the request details.",
+  },
+];
+
+const categorySeoConfig = [
+  {
+    baseSlug: "part-time-maids",
+    category: "Maids",
+    plural: "maids",
+    relatedCategories: ["Maids", "Housekeepers", "Cleaners", "Cooks", "Babysitters"],
+    intro:
+      "Kamker keeps maid and domestic help search simple: choose a city, review worker profiles, and use direct contact where available.",
+    description:
+      "Find part time maids and domestic help in Pakistan by city. Search profiles and contact workers directly where available.",
+  },
+  {
+    baseSlug: "part-time-nurses",
+    category: "Nurses",
+    plural: "nurses",
+    relatedCategories: ["Nurses", "Caregivers", "Physiotherapists", "Lab Technicians"],
+    intro:
+      "Kamker helps families search nurses and healthcare support by city, area, and profile details before making direct contact.",
+    description:
+      "Find part time nurses and healthcare workers in Pakistan by city. Search profiles for home care, caregiving, and related support.",
+  },
+  {
+    baseSlug: "part-time-drivers",
+    category: "Drivers",
+    plural: "drivers",
+    relatedCategories: ["Drivers", "Delivery Riders", "Truck Drivers", "Bus Drivers"],
+    intro:
+      "Search driver profiles by city and compare availability, experience, and direct contact options where available.",
+    description:
+      "Find part time drivers, delivery riders, and transport workers in Pakistan by city through Kamker.",
+  },
+  {
+    baseSlug: "part-time-tutors",
+    category: "Home Tutors",
+    plural: "tutors",
+    relatedCategories: ["Home Tutors", "Online Tutors", "School Teachers", "Quran Teachers"],
+    intro:
+      "Kamker connects students and families with tutor categories such as home tutors, online tutors, Quran teachers, and school teachers.",
+    description:
+      "Find part time tutors, home tutors, online tutors, and school teachers in Pakistan by city.",
+  },
+];
+
+const categoryCityTargets: Record<string, string[]> = {
+  "part-time-maids": ["Karachi", "Lahore", "Islamabad"],
+  "part-time-nurses": ["Karachi", "Lahore"],
+  "part-time-drivers": ["Karachi", "Lahore"],
+  "part-time-tutors": ["Islamabad", "Lahore"],
+};
+
 export const partTimeWorkerPages: SeoLandingPage[] = [
   {
     slug: "part-time-workers",
@@ -73,6 +157,7 @@ export const partTimeWorkerPages: SeoLandingPage[] = [
       "Find part time workers in Pakistan by category and city, including maids, nurses, drivers, tutors, cooks, guards, and home service professionals.",
     intro:
       "Kamker helps customers search real worker categories and city filters without becoming a traditional part time job board. Browse profiles, compare details, and contact workers directly where phone or WhatsApp is available.",
+    faqs: defaultFaqs,
     primaryHref: "/professionals",
     primaryLabel: "Browse workers",
     secondaryHref: "/register",
@@ -85,6 +170,7 @@ export const partTimeWorkerPages: SeoLandingPage[] = [
     heading: `Find part time workers in ${city}`,
     description: `Find part time workers in ${city} by category, including maids, nurses, drivers, tutors, cooks, guards, and home service professionals.`,
     intro: `Use Kamker to search workers in ${city} by service category. Choose a profession, compare profiles, and contact directly where call or WhatsApp is available.`,
+    faqs: defaultFaqs,
     primaryHref: workerSearchHref(city),
     primaryLabel: `Browse workers in ${city}`,
     secondaryHref: requirementHref(undefined, city),
@@ -95,69 +181,46 @@ export const partTimeWorkerPages: SeoLandingPage[] = [
 ];
 
 export const partTimeCategoryPages: SeoLandingPage[] = [
-  {
-    slug: "part-time-maids",
-    title: "Find Part Time Maids in Pakistan",
-    heading: "Find part time maids in Pakistan",
-    description:
-      "Find part time maids and domestic help in Pakistan by city. Search profiles and contact workers directly where available.",
-    intro:
-      "Kamker keeps maid and domestic help search simple: choose a city, review worker profiles, and use direct contact where available.",
-    primaryHref: categorySearchHref("Maids"),
-    primaryLabel: "Browse maids",
-    secondaryHref: requirementHref("Maids"),
+  ...categorySeoConfig.map((config) => ({
+    slug: config.baseSlug,
+    title: `Find Part Time ${config.plural.replace(/^\w/, (letter) => letter.toUpperCase())} in Pakistan`,
+    heading: `Find part time ${config.plural} in Pakistan`,
+    description: config.description,
+    intro: config.intro,
+    faqs: defaultFaqs,
+    primaryHref: categorySearchHref(config.category),
+    primaryLabel: `Browse ${config.plural}`,
+    secondaryHref: requirementHref(config.category),
     secondaryLabel: "Send requirement",
-    focusCategory: "Maids",
-    relatedCategories: ["Maids", "Housekeepers", "Cleaners", "Cooks", "Babysitters"],
-  },
-  {
-    slug: "part-time-nurses",
-    title: "Find Part Time Nurses in Pakistan",
-    heading: "Find part time nurses in Pakistan",
-    description:
-      "Find part time nurses and healthcare workers in Pakistan by city. Search profiles for home care, caregiving, and related support.",
-    intro:
-      "Kamker helps families search nurses and healthcare support by city, area, and profile details before making direct contact.",
-    primaryHref: categorySearchHref("Nurses"),
-    primaryLabel: "Browse nurses",
-    secondaryHref: requirementHref("Nurses"),
-    secondaryLabel: "Send requirement",
-    focusCategory: "Nurses",
-    relatedCategories: ["Nurses", "Caregivers", "Physiotherapists", "Lab Technicians"],
-  },
-  {
-    slug: "part-time-drivers",
-    title: "Find Part Time Drivers in Pakistan",
-    heading: "Find part time drivers in Pakistan",
-    description:
-      "Find part time drivers, delivery riders, and transport workers in Pakistan by city through Kamker.",
-    intro:
-      "Search driver profiles by city and compare availability, experience, and direct contact options where available.",
-    primaryHref: categorySearchHref("Drivers"),
-    primaryLabel: "Browse drivers",
-    secondaryHref: requirementHref("Drivers"),
-    secondaryLabel: "Send requirement",
-    focusCategory: "Drivers",
-    relatedCategories: ["Drivers", "Delivery Riders", "Truck Drivers", "Bus Drivers"],
-  },
-  {
-    slug: "part-time-tutors",
-    title: "Find Part Time Tutors in Pakistan",
-    heading: "Find part time tutors in Pakistan",
-    description:
-      "Find part time tutors, home tutors, online tutors, and school teachers in Pakistan by city.",
-    intro:
-      "Kamker connects students and families with tutor categories such as home tutors, online tutors, Quran teachers, and school teachers.",
-    primaryHref: categorySearchHref("Home Tutors"),
-    primaryLabel: "Browse tutors",
-    secondaryHref: requirementHref("Home Tutors"),
-    secondaryLabel: "Send requirement",
-    focusCategory: "Home Tutors",
-    relatedCategories: ["Home Tutors", "Online Tutors", "School Teachers", "Quran Teachers"],
-  },
+    focusCategory: config.category,
+    relatedCategories: config.relatedCategories,
+  })),
 ];
 
-export const seoLandingPages = [...partTimeWorkerPages, ...partTimeCategoryPages];
+export const partTimeCategoryCityPages: SeoLandingPage[] = categorySeoConfig.flatMap(
+  (config) =>
+    (categoryCityTargets[config.baseSlug] ?? []).map((city) => ({
+      slug: `${config.baseSlug}/${categorySlug(city)}`,
+      title: `Find Part Time ${config.plural.replace(/^\w/, (letter) => letter.toUpperCase())} in ${city}`,
+      heading: `Find part time ${config.plural} in ${city}`,
+      description: `Find part time ${config.plural} in ${city}. Search Kamker worker profiles by category and city, then contact directly where available.`,
+      intro: `Use Kamker to find ${config.plural} in ${city}. Browse profiles, compare worker details, and use direct contact or reviewed requirement outreach when needed.`,
+      faqs: defaultFaqs,
+      primaryHref: categorySearchHref(config.category, city),
+      primaryLabel: `Browse ${config.plural} in ${city}`,
+      secondaryHref: requirementHref(config.category, city),
+      secondaryLabel: "Send requirement",
+      focusCategory: config.category,
+      focusCity: city,
+      relatedCategories: config.relatedCategories,
+    })),
+);
+
+export const seoLandingPages = [
+  ...partTimeWorkerPages,
+  ...partTimeCategoryPages,
+  ...partTimeCategoryCityPages,
+];
 
 export function getSeoLandingPage(slug: string) {
   return seoLandingPages.find((page) => page.slug === slug);

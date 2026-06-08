@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   BadgeCheck,
   Clock,
@@ -45,11 +46,6 @@ import {
 } from "@/lib/public-directory-lookups";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
-export const metadata = {
-  title: "Professionals | Kamker",
-  description: "Browse verified Kamker professional profiles.",
-};
-
 type DbProfessional = {
   id: string;
   full_name: string;
@@ -94,6 +90,32 @@ type ProfessionalsPageProps = {
     page?: string;
   }>;
 };
+
+export async function generateMetadata({
+  searchParams,
+}: ProfessionalsPageProps): Promise<Metadata> {
+  const filters = await searchParams;
+  const hasSearchFilters = Object.entries(filters ?? {}).some(
+    ([key, value]) => key !== "page" && Boolean(value?.trim()),
+  );
+
+  return {
+    title: "Professionals | Kamker",
+    description: "Browse verified Kamker professional profiles.",
+    alternates: {
+      canonical: "/professionals",
+    },
+    robots: hasSearchFilters
+      ? {
+          index: false,
+          follow: true,
+        }
+      : {
+          index: true,
+          follow: true,
+        },
+  };
+}
 
 const hourlyRateOptions = [
   { value: "under-300", label: "Under Rs. 300/hour", min: 0, max: 299 },

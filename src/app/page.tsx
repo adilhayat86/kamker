@@ -46,6 +46,18 @@ const steps = [
   ["Register", "Workers, companies, and customers choose the right registration path."],
 ];
 
+const popularSearchLinks = [
+  ["Part time workers", "/part-time-workers"],
+  ["Part time maids", "/part-time-maids"],
+  ["Part time nurses", "/part-time-nurses"],
+  ["Part time drivers", "/part-time-drivers"],
+  ["Part time tutors", "/part-time-tutors"],
+  ["Workers in Karachi", "/part-time-workers/karachi"],
+  ["Workers in Lahore", "/part-time-workers/lahore"],
+  ["Maids in Lahore", "/part-time-maids/lahore"],
+  ["Nurses in Karachi", "/part-time-nurses/karachi"],
+];
+
 const homepageJsonLd = {
   "@context": "https://schema.org",
   "@graph": [
@@ -216,6 +228,26 @@ export default async function HomePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8"><AdBanner label="Reserved ad space after categories" /></section>
+
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+          Popular searches
+        </p>
+        <h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">
+          Find workers by city and service
+        </h2>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {popularSearchLinks.map(([label, href]) => (
+            <Link
+              key={href}
+              href={href}
+              className="rounded-full border border-sky-100 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-primary hover:text-primary"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <section className="border-y bg-secondary/80">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
