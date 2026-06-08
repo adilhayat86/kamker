@@ -31,6 +31,13 @@ const checks = [
       "Worker phone uniqueness and validity before the phone ownership migration can be safely applied.",
   },
   {
+    area: "admin_route_protection",
+    command: "qa:check-admin-routes",
+    required: true,
+    description:
+      "Every production admin operations page must redirect to admin login when no admin session exists.",
+  },
+  {
     area: "media_storage",
     command: "qa:verify-production",
     required: false,
@@ -137,6 +144,7 @@ function buildMvpAreas(results, counts) {
   const performanceOk = byCommand["qa:check-public-performance"]?.ok;
   const schemaOk = byCommand["qa:check-production-schema"]?.ok;
   const phonesOk = byCommand["qa:check-production-phones"]?.ok;
+  const adminRoutesOk = byCommand["qa:check-admin-routes"]?.ok;
   const mediaOk = byCommand["qa:verify-production"]?.ok;
   const packagesOk = byCommand["qa:check-company-package-rules"]?.ok;
 
@@ -192,9 +200,9 @@ function buildMvpAreas(results, counts) {
     },
     {
       area: "Admin operations",
-      status: publicOk ? "protected_needs_live_action_qa" : "blocked",
+      status: adminRoutesOk ? "protected_needs_live_action_qa" : "blocked",
       evidence:
-        "Admin routes are protected in production smoke; logged-in action testing still needs visible browser QA.",
+        "All admin operation routes must redirect to login when logged out; logged-in action testing still needs visible browser QA.",
     },
     {
       area: "Media uploads",
@@ -246,6 +254,12 @@ function buildNextActions(results) {
   if (failed["qa:check-production-phones"]) {
     actions.push(
       "Clean duplicate/invalid worker phone numbers, then apply sql/20260608_phone_ownership_rules.sql in Supabase.",
+    );
+  }
+
+  if (failed["qa:check-admin-routes"]) {
+    actions.push(
+      "Fix admin route protection before production launch; every admin operations page must redirect to /admin/login when logged out.",
     );
   }
 
