@@ -118,6 +118,17 @@ function normalise(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? "";
 }
 
+function matchesSearchCategoryIntent(categoryName: string | null | undefined, query: string) {
+  if (!categoryName || !query) {
+    return false;
+  }
+
+  const categoryKey = normalise(categoryName);
+  return categoryNamesForSearch(query).some(
+    (matchedCategory) => normalise(matchedCategory) === categoryKey,
+  );
+}
+
 function parseHourlyRate(value: string | null | undefined) {
   if (!value) {
     return null;
@@ -192,6 +203,7 @@ function matchesCompanyProfessionalFilters(
     ? matches(professional.name, filters.q) ||
       matches(professional.area, filters.q) ||
       matches(professional.role, filters.q) ||
+      matchesSearchCategoryIntent(professional.role, filters.q) ||
       matches(professional.tagline, filters.q) ||
       matches(professional.bio, filters.q) ||
       matches(professional.city, filters.q)
@@ -748,6 +760,7 @@ export default async function ProfessionalsPage({
           matches(professional.short_bio, q) ||
           matches(professional.expected_rate, q) ||
           matches(professional.categories?.name, q) ||
+          matchesSearchCategoryIntent(professional.categories?.name, q) ||
           matches(professional.cities?.name, q)
         : true;
       const cityMatch = city ? professional.cities?.name === city : true;
