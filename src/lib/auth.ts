@@ -27,7 +27,7 @@ const RECOVERY_MAX_AGE_SECONDS = 60 * 10;
 
 type AuthProfessional = {
   id: string;
-  phone_number: string;
+  phone_number: string | null;
   password_hash: string | null;
   secret_question: string | null;
   secret_answer_hash: string | null;
@@ -35,6 +35,24 @@ type AuthProfessional = {
 
 export function normalizePhoneNumber(phoneNumber: string) {
   return pakistanMobileNormalizedDigits(phoneNumber);
+}
+
+function phoneLookupVariants(normalizedPhone: string, originalPhone: string) {
+  const digits = normalizedPhone.replace(/\D/g, "");
+  const national = digits.startsWith("92") ? digits.slice(2) : digits;
+  const variants = new Set([
+    originalPhone.trim(),
+    digits,
+    `+${digits}`,
+    `00${digits}`,
+    national,
+    `0${national}`,
+    `92${national}`,
+    `+92${national}`,
+    `0092${national}`,
+  ]);
+
+  return [...variants].filter(Boolean);
 }
 
 function hashToken(token: string) {
@@ -139,16 +157,33 @@ export async function findProfessionalsByPhone(phoneNumber: string) {
 
     return professionals.filter(
         (professional) =>
-          normalizePhoneNumber(professional.phone_number) === normalizedPhone,
+          normalizePhoneNumber(professional.phone_number ?? "") === normalizedPhone,
     );
   }
 
+  const selectColumns =
+    "id, phone_number, password_hash, secret_question, secret_answer_hash";
+  const normalizedE164 = `+${normalizedPhone}`;
+  const normalizedLookup = await supabase
+    .from("professionals")
+    .select(selectColumns)
+    .eq("phone_normalized", normalizedE164)
+    .limit(10);
+
+  if (!normalizedLookup.error) {
+    return (normalizedLookup.data ?? []) as AuthProfessional[];
+  }
+
+  if (normalizedLookup.error.code !== "42703") {
+    console.error("Failed to find professional by normalized phone", normalizedLookup.error);
+  }
+
+  const variants = phoneLookupVariants(normalizedPhone, phoneNumber);
   const { data, error } = await supabase
     .from("professionals")
-    .select(
-      "id, phone_number, password_hash, secret_question, secret_answer_hash",
-    )
-    .limit(500);
+    .select(selectColumns)
+    .in("phone_number", variants)
+    .limit(20);
 
   if (error) {
     console.error("Failed to find professional by phone", error);
@@ -157,7 +192,7 @@ export async function findProfessionalsByPhone(phoneNumber: string) {
 
   return ((data ?? []) as AuthProfessional[]).filter(
       (professional) =>
-        normalizePhoneNumber(professional.phone_number) === normalizedPhone,
+        normalizePhoneNumber(professional.phone_number ?? "") === normalizedPhone,
   );
 }
 
