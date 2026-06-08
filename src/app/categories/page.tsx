@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { ArrowLeft, Search } from "lucide-react";
 
 import { BroadcastRequirementCta } from "@/components/broadcast-requirement-cta";
@@ -20,6 +21,8 @@ export const metadata = {
   description: "Browse all Kamker service categories across Pakistan.",
 };
 
+export const revalidate = 120;
+
 type CategoriesPageProps = {
   searchParams?: Promise<{
     city?: string;
@@ -36,7 +39,7 @@ type DbCategoryCard = {
   parent_id: number | null;
 };
 
-async function getSupabaseCategoryCards() {
+const getSupabaseCategoryCards = unstable_cache(async function getSupabaseCategoryCards() {
   if (!isSupabaseConfigured || !supabase) {
     return [] as DbCategoryCard[];
   }
@@ -59,7 +62,7 @@ async function getSupabaseCategoryCards() {
     count: "",
     parent_id: category.parent_id,
   }));
-}
+}, ["public-category-cards"], { revalidate: 120 });
 
 function uniqueCategoryCards<T extends { name: string }>(items: T[]) {
   const seen = new Set<string>();
@@ -106,15 +109,18 @@ export default async function CategoriesPage({
   const city = params?.city?.trim() || undefined;
   const area = params?.area?.trim() || undefined;
   const q = params?.q?.trim() || "";
+  const hasFilter = Boolean(q || city || area);
   const [dbCategories, cityOptions] = await Promise.all([
     getSupabaseCategoryCards(),
     getCityOptions(),
   ]);
-  const liveCountMap = await getLiveCategoryCountMap([
-    ...dbCategories,
-    ...categories,
-    ...parentCategories,
-  ]);
+  const liveCountMap = hasFilter
+    ? await getLiveCategoryCountMap([
+        ...dbCategories,
+        ...categories,
+        ...parentCategories,
+      ])
+    : null;
   const countedDbCategories = dbCategories.map((category) => ({
     ...category,
     count: countForCategory(category, liveCountMap),
