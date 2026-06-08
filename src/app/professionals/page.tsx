@@ -1122,6 +1122,9 @@ export default async function ProfessionalsPage({
               <p className="mt-1 text-sm text-muted-foreground">
                 Showing {activeProfessionals.length} on this page.
               </p>
+              <p className="mt-1 text-xs font-medium text-slate-500">
+                Send Requirement is a paid outreach option after Kamker review.
+              </p>
             </div>
             <Button asChild className="h-11 w-full sm:w-auto">
               <Link href={sendRequirementHref}>
@@ -1135,6 +1138,10 @@ export default async function ProfessionalsPage({
         {totalVisibleProfessionals === 0 ? (
           <div className="mt-6 rounded-lg border border-dashed bg-white p-6 text-sm text-muted-foreground">
             <p>No professionals found. Try changing filters.</p>
+            <p className="mt-2 text-xs font-medium text-slate-500">
+              Paid outreach can still be requested after Kamker reviews your
+              details.
+            </p>
             <Button asChild className="mt-4 h-11 w-full sm:w-auto" variant="outline">
               <Link href={sendRequirementHref}>
                 <Send aria-hidden="true" />

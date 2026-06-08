@@ -111,7 +111,8 @@ export default async function SendRequirementPage({
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
             Describe your need once. Kamker will match it with relevant
-            professionals by service, city, area, and availability.
+            professionals by service, city, area, and availability. Outreach is
+            a paid option after review.
           </p>
         </div>
 
@@ -139,8 +140,8 @@ export default async function SendRequirementPage({
             <p className="font-semibold text-primary">Requirement review</p>
             <p className="mt-1 text-muted-foreground">
               Kamker reviews submitted requirements before any broadcast or
-              matching outreach. Broadcast messaging requires approval and
-              payment setup.
+              matching outreach. Paid broadcast messaging requires approval and
+              payment setup before professionals are contacted.
             </p>
           </CardContent>
         </Card>
