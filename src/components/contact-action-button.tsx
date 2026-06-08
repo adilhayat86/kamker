@@ -25,7 +25,12 @@ export function ContactActionButton({
   const [copied, setCopied] = useState(false);
   const Icon = type === "call" ? Phone : MessageCircle;
   const mobileLabel = type === "call" ? "Call" : "WhatsApp";
-  const copyLabel = copied ? "Copied" : displayValue;
+  const desktopLabel = type === "call" ? "Call" : "WhatsApp";
+  const copyLabel = copied
+    ? "Copied"
+    : displayValue
+      ? `${desktopLabel}: ${displayValue}`
+      : disabledLabel ?? mobileLabel;
   const canUse = Boolean(href && displayValue);
 
   async function copyNumber() {
@@ -71,8 +76,8 @@ export function ContactActionButton({
         title={displayValue ? `Click to copy ${displayValue}` : undefined}
       >
         <Icon aria-hidden="true" />
-        <span className="max-w-[10rem] truncate">
-          {copyLabel ?? disabledLabel ?? mobileLabel}
+        <span className="max-w-[13rem] truncate">
+          {copyLabel}
         </span>
       </Button>
     </>
