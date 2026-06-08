@@ -240,7 +240,7 @@ async function getCategoryProfessionals(
     .in("category_id", categoryIds)
     .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(48);
+    .limit(18);
 
   if (cityId !== null) {
     query = query.eq("city_id", cityId);
@@ -335,27 +335,30 @@ export default async function CategoryDetailPage({
         : dbCategory
           ? [dbCategory.name]
       : [];
-  const matchingProfessionals = await getCategoryProfessionals(
-    targetCategories,
-    city,
-    area,
-  );
-  const companyManagedProfessionals = await getApprovedCompanyListingCards({
-    categories: serviceGroup ? undefined : targetCategories,
-    serviceGroup: serviceGroup?.name,
-    city,
-    area,
-    limit: 20,
-  });
+  const [matchingProfessionals, companyManagedProfessionals, recipientCount] =
+    await Promise.all([
+      getCategoryProfessionals(
+        targetCategories,
+        city,
+        area,
+      ),
+      getApprovedCompanyListingCards({
+        categories: serviceGroup ? undefined : targetCategories,
+        serviceGroup: serviceGroup?.name,
+        city,
+        area,
+        limit: 12,
+      }),
+      getBroadcastRecipientCount({
+        category: serviceGroup?.name ?? parentGroup?.name ?? dbParentCategory?.name ?? category?.name ?? dbCategory?.name,
+        subcategory: category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined),
+        city,
+        area,
+      }),
+    ]);
   const visibleProfessionals = [...companyManagedProfessionals, ...matchingProfessionals].sort(
     (a, b) => Number(b.is_featured) - Number(a.is_featured),
   );
-  const recipientCount = await getBroadcastRecipientCount({
-    category: serviceGroup?.name ?? parentGroup?.name ?? dbParentCategory?.name ?? category?.name ?? dbCategory?.name,
-    subcategory: category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined),
-    city,
-    area,
-  });
 
   return (
     <main className="min-h-screen bg-background">
