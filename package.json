@@ -12,6 +12,7 @@
     "qa:sync-categories-production": "node scripts/qa/sync-production-categories.mjs",
     "qa:seed-production": "node scripts/qa/seed-production-qa.mjs",
     "qa:seed-stress-production": "node scripts/qa/seed-production-stress.mjs",
+    "qa:cleanup-production-tests": "node scripts/qa/cleanup-production-test-records.mjs",
     "qa:cleanup-stress-production": "node scripts/qa/cleanup-production-stress.mjs",
     "qa:verify-production": "node scripts/qa/verify-production-qa.mjs",
     "qa:check-production-schema": "node scripts/qa/check-production-schema.mjs",

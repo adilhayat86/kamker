@@ -16,6 +16,12 @@ const queries = [
       "companies?select=id&company_name=like.Admin%20Test*",
   },
   {
+    name: "customers",
+    path: `customers?select=id,full_name,created_at&full_name=like.Admin%20Test*&order=created_at.desc&limit=${limit}`,
+    countPath:
+      "customers?select=id&full_name=like.Admin%20Test*",
+  },
+  {
     name: "company_listings",
     path: `company_listings?select=id,title,company_id,created_at&title=like.Admin%20Test*&order=created_at.desc&limit=${limit}`,
     countPath:
@@ -26,6 +32,18 @@ const queries = [
     path: `requirements?select=id,details,created_at&details=like.Admin%20Test*&order=created_at.desc&limit=${limit}`,
     countPath:
       "requirements?select=id&details=like.Admin%20Test*",
+  },
+  {
+    name: "categories",
+    path: `categories?select=id,name,created_at&name=like.Admin%20Test*&order=created_at.desc&limit=${limit}`,
+    countPath:
+      "categories?select=id&name=like.Admin%20Test*",
+  },
+  {
+    name: "cities",
+    path: `cities?select=id,name,created_at&name=like.Admin%20Test*&order=created_at.desc&limit=${limit}`,
+    countPath:
+      "cities?select=id&name=like.Admin%20Test*",
   },
 ];
 
