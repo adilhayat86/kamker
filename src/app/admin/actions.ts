@@ -615,7 +615,6 @@ export async function removeDisputedProfessionalNumber(formData: FormData) {
     .from("professionals")
     .update({
       phone_number: null,
-      phone_normalized: null,
       whatsapp_number: clearWhatsapp ? null : professional.whatsapp_number,
       is_phone_verified: false,
       is_active: false,
