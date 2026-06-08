@@ -15,12 +15,13 @@ import { registerCompany } from "./actions";
 
 export const metadata = {
   title: "Register Company | Kamker",
-  description: "Register a company account to add multiple staff profiles on Kamker.",
+  description:
+    "Register a company account to add multiple company-managed professionals on Kamker.",
 };
 
 const statusMessages = {
   success:
-    "Company details saved. Next step is choosing a package for company-managed staff profiles.",
+    "Company details saved. Next step is choosing a package for company-managed professionals and staff profiles.",
   missing:
     "Fix the highlighted fields. Your entered company details are kept so you can correct them easily.",
   "not-configured": "Supabase is not configured yet.",
@@ -121,7 +122,7 @@ export default async function CompanyRegisterPage({
         </div>
 
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Register your agency or business as one company account. After package activation, your company can add multiple staff profiles in any category and city according to the selected package limit.
+          Register your agency or business as one company account. After package activation, your company can add multiple company-managed professionals and staff profiles in any category and city according to the selected package limit.
         </p>
 
         <DismissibleNotice className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950" contentClassName="flex gap-3" closeLabel="Close directory warning">
