@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 const MAX_DIRECT_UPLOAD_BYTES = 10 * 1024 * 1024;
 const TARGET_UPLOAD_BYTES = 2 * 1024 * 1024;
@@ -45,6 +45,15 @@ function imageFromDataUrl(dataUrl: string) {
     image.onload = () => resolve(image);
     image.onerror = reject;
     image.src = dataUrl;
+  });
+}
+
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }
 
@@ -182,24 +191,6 @@ export function PhotoUploadField({
   const [fileName, setFileName] = useState("");
   const [uploadState, setUploadState] = useState<UploadState>("idle");
 
-  useEffect(() => {
-    return () => {
-      if (previewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
-
-  function replacePreview(url: string) {
-    setPreviewUrl((current) => {
-      if (current.startsWith("blob:")) {
-        URL.revokeObjectURL(current);
-      }
-
-      return url;
-    });
-  }
-
   async function handleChange() {
     const input = inputRef.current;
     const file = input?.files?.[0];
@@ -222,7 +213,7 @@ export function PhotoUploadField({
       setUploadedUrl("");
       setFileName("");
       setUploadState("failed");
-      replacePreview("");
+      setPreviewUrl("");
       return;
     }
 
@@ -230,7 +221,12 @@ export function PhotoUploadField({
     setUploadedUrl("");
     setFileName(file.name);
     setUploadState("preparing");
-    replacePreview(URL.createObjectURL(file));
+
+    try {
+      setPreviewUrl(await fileToDataUrl(file));
+    } catch {
+      setPreviewUrl("");
+    }
 
     if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
       setMessage(
@@ -239,7 +235,7 @@ export function PhotoUploadField({
       setInputError(input, "Please choose a photo under 10MB.");
       setFileName("");
       setUploadState("failed");
-      replacePreview("");
+      setPreviewUrl("");
       return;
     }
 
@@ -282,7 +278,7 @@ export function PhotoUploadField({
     setUploadedUrl("");
     setFileName("");
     setUploadState("idle");
-    replacePreview("");
+    setPreviewUrl("");
     setMessage(DEFAULT_MESSAGE);
   }
 
