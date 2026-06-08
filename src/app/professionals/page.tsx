@@ -5,6 +5,7 @@ import {
   Clock,
   MapPin,
   Search,
+  Send,
   Sparkles,
   Star,
 } from "lucide-react";
@@ -127,6 +128,72 @@ function matchesSearchCategoryIntent(categoryName: string | null | undefined, qu
   return categoryNamesForSearch(query).some(
     (matchedCategory) => normalise(matchedCategory) === categoryKey,
   );
+}
+
+function cityFromSearchIntent(query: string, cityOptions: string[]) {
+  const queryKey = normalise(query);
+
+  if (!queryKey) {
+    return "";
+  }
+
+  return cityOptions.find((cityOption) => normalise(cityOption) === queryKey) ?? "";
+}
+
+function categoryFromSearchIntent(query: string) {
+  return categoryNamesForSearch(query)[0] ?? "";
+}
+
+function buildSearchResultSummary({
+  count,
+  city,
+  category,
+}: {
+  count: number;
+  city: string;
+  category: string;
+}) {
+  const countLabel = count.toLocaleString("en-PK");
+
+  if (category && city) {
+    return `Found ${countLabel} ${category} in ${city}`;
+  }
+
+  if (city) {
+    return `Found ${countLabel} professional${count === 1 ? "" : "s"} in ${city}`;
+  }
+
+  if (category) {
+    return `Found ${countLabel} ${category}`;
+  }
+
+  return `Found ${countLabel} approved professional${count === 1 ? "" : "s"}`;
+}
+
+function buildSearchRequirementHref({
+  q,
+  city,
+  category,
+}: {
+  q: string;
+  city: string;
+  category: string;
+}) {
+  const params = new URLSearchParams();
+
+  if (category) {
+    params.set("category", category);
+  } else if (q && !city) {
+    params.set("service", q);
+  }
+
+  if (city) {
+    params.set("city", city);
+  }
+
+  params.set("source", "professionals-search");
+
+  return `/send-requirement?${params.toString()}`;
 }
 
 function parseHourlyRate(value: string | null | undefined) {
@@ -840,6 +907,18 @@ export default async function ProfessionalsPage({
     filteredDbProfessionals.length +
     filteredCompanyProfessionals.length +
     (hasDbProfessionals ? 0 : filteredDemoProfessionals.length);
+  const inferredCity = city || cityFromSearchIntent(q, cityOptions);
+  const inferredCategory = category || (inferredCity ? "" : categoryFromSearchIntent(q));
+  const resultSummary = buildSearchResultSummary({
+    count: totalVisibleProfessionals,
+    city: inferredCity,
+    category: inferredCategory,
+  });
+  const sendRequirementHref = buildSearchRequirementHref({
+    q,
+    city: inferredCity,
+    category: inferredCategory,
+  });
   const pageHrefParams = {
     q,
     city,
@@ -1034,16 +1113,34 @@ export default async function ProfessionalsPage({
           </details>
         </form>
 
-        {hasDirectoryProfessionals ? (
-          <p className="mt-4 text-sm text-muted-foreground">
-            Showing {activeProfessionals.length} of {totalVisibleProfessionals} approved professional
-            {totalVisibleProfessionals === 1 ? "" : "s"}.
-          </p>
+        {totalVisibleProfessionals > 0 ? (
+          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-sky-100 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-base font-semibold text-foreground">
+                {resultSummary}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Showing {activeProfessionals.length} on this page.
+              </p>
+            </div>
+            <Button asChild className="h-11 w-full sm:w-auto">
+              <Link href={sendRequirementHref}>
+                <Send aria-hidden="true" />
+                Send Requirement
+              </Link>
+            </Button>
+          </div>
         ) : null}
 
-        {hasDirectoryProfessionals && activeProfessionals.length === 0 ? (
+        {totalVisibleProfessionals === 0 ? (
           <div className="mt-6 rounded-lg border border-dashed bg-white p-6 text-sm text-muted-foreground">
-            No professionals found. Try changing filters.
+            <p>No professionals found. Try changing filters.</p>
+            <Button asChild className="mt-4 h-11 w-full sm:w-auto" variant="outline">
+              <Link href={sendRequirementHref}>
+                <Send aria-hidden="true" />
+                Send Requirement anyway
+              </Link>
+            </Button>
           </div>
         ) : null}
 

@@ -47,6 +47,7 @@ type SendRequirementPageProps = {
     status?: keyof typeof statusMessages;
     category?: string;
     subcategory?: string;
+    service?: string;
     city?: string;
     area?: string;
     source?: string;
@@ -64,6 +65,7 @@ export default async function SendRequirementPage({
   const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
   const category = params?.category?.trim() || undefined;
   const subcategory = params?.subcategory?.trim() || undefined;
+  const service = params?.service?.trim() || undefined;
   const city = params?.city?.trim() || draft.city;
   const area = params?.area?.trim() || draft.area;
   const source = params?.source?.trim() ?? "";
@@ -72,7 +74,7 @@ export default async function SendRequirementPage({
     subcategory,
   });
   const selectedCity = cityOptions.includes(city ?? "") ? city : "";
-  const selectedServiceName = selectedService?.name ?? draft.service;
+  const selectedServiceName = selectedService?.name ?? service ?? draft.service;
   const hasBroadcastContext = Boolean(category || subcategory || city || area);
   const recipientCount = hasBroadcastContext
     ? await getBroadcastRecipientCount({
