@@ -25,5 +25,7 @@ screenshots/navigation-test/
 screenshots/navigation-test.zip
 screenshots/fixed-test-worker-visible.png
 screenshots/test-worker-signup-result.png
+playwright-report/
+test-results/
 
 .vercel
