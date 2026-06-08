@@ -30,6 +30,13 @@ const checks = [
     description:
       "Cloudinary signing, Supabase proof/company/professional storage buckets, key profile routes, and phone migration warning.",
   },
+  {
+    area: "company_package_rules",
+    command: "qa:check-company-package-rules",
+    required: true,
+    description:
+      "Approved company staff and featured company staff must stay within active package listing and featured limits.",
+  },
 ];
 
 async function main() {
@@ -133,9 +140,13 @@ function buildMvpAreas(results, counts) {
     },
     {
       area: "Company marketplace",
-      status: byCommand["qa:check-mvp-production"]?.ok ? "pass" : "blocked",
+      status:
+        byCommand["qa:check-mvp-production"]?.ok &&
+        byCommand["qa:check-company-package-rules"]?.ok
+          ? "pass"
+          : "blocked",
       evidence:
-        "Company package, payment, dashboard, public company profile, and company-managed staff routes are smoke-tested.",
+        "Company package, payment, dashboard, public company profile, staff routes, and package usage rules are checked.",
     },
     {
       area: "Admin operations",
@@ -198,6 +209,12 @@ function buildNextActions(results) {
   if (failed["qa:verify-production"]) {
     actions.push(
       "Review Cloudinary/Supabase storage and media settings; photo/video uploads are not fully proven until this is green.",
+    );
+  }
+
+  if (failed["qa:check-company-package-rules"]) {
+    actions.push(
+      "Fix company staff listings that exceed active package published/featured limits.",
     );
   }
 

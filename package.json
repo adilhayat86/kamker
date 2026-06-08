@@ -16,6 +16,7 @@
     "qa:verify-production": "node scripts/qa/verify-production-qa.mjs",
     "qa:check-production-schema": "node scripts/qa/check-production-schema.mjs",
     "qa:check-production-phones": "node scripts/qa/check-production-phones.mjs",
+    "qa:check-company-package-rules": "node scripts/qa/check-company-package-rules.mjs",
     "qa:check-mvp-production": "node scripts/qa/check-mvp-production.mjs",
     "qa:mvp-readiness": "node scripts/qa/mvp-readiness-report.mjs",
     "qa:build-supabase-sql": "node scripts/qa/build-mvp-supabase-sql.mjs",
