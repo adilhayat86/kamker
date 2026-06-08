@@ -1,8 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 const root = process.cwd();
 const outputPath = path.join(root, "tmp", "kamker-mvp-production.sql");
+const shouldCopy = process.argv.includes("--copy");
 
 const migrationFiles = [
   "schema.sql",
@@ -144,14 +146,39 @@ function main() {
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, content, "utf8");
 
+  const copiedToClipboard = shouldCopy ? copyToClipboard(content) : false;
+
   console.log(JSON.stringify({
     ok: true,
     outputPath,
     files: migrationFiles,
     bytes: Buffer.byteLength(content, "utf8"),
-    nextStep:
-      "Open tmp/kamker-mvp-production.sql, paste it into Supabase SQL Editor, run it, then npm run qa:mvp-readiness.",
+    copiedToClipboard,
+    nextStep: copiedToClipboard
+      ? "Paste into Supabase SQL Editor, run it, then npm run qa:mvp-readiness."
+      : "Open tmp/kamker-mvp-production.sql, paste it into Supabase SQL Editor, run it, then npm run qa:mvp-readiness.",
   }, null, 2));
+}
+
+function copyToClipboard(content) {
+  const command =
+    process.platform === "win32"
+      ? "clip"
+      : process.platform === "darwin"
+        ? "pbcopy"
+        : "xclip";
+  const args = process.platform === "linux" ? ["-selection", "clipboard"] : [];
+  const result = spawnSync(command, args, {
+    input: content,
+    encoding: "utf8",
+  });
+
+  if (result.status !== 0) {
+    const reason = result.stderr?.trim() || result.error?.message || "unknown clipboard error";
+    throw new Error(`Could not copy SQL bundle to clipboard: ${reason}`);
+  }
+
+  return true;
 }
 
 main();
