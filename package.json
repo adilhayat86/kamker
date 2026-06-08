@@ -17,6 +17,7 @@
     "qa:check-production-schema": "node scripts/qa/check-production-schema.mjs",
     "qa:check-production-phones": "node scripts/qa/check-production-phones.mjs",
     "qa:check-mvp-production": "node scripts/qa/check-mvp-production.mjs",
+    "qa:mvp-readiness": "node scripts/qa/mvp-readiness-report.mjs",
     "qa:list-production": "node scripts/qa/list-production-qa-records.mjs"
   },
   "keywords": [],
