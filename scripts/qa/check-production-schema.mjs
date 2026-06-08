@@ -1,4 +1,4 @@
-import { logJson, supabaseExactCount, supabaseRest } from "./qa-utils.mjs";
+import { logJson, productionConfig, supabaseExactCount, supabaseRest } from "./qa-utils.mjs";
 
 const checks = [
   {
@@ -113,10 +113,12 @@ const checks = [
 ];
 
 async function main() {
+  const { supabaseUrl } = productionConfig();
   const results = await Promise.all(checks.map(runCheck));
   const qaCounts = await getQaCounts();
   const failures = results.filter((result) => !result.ok);
   const requiredFailures = failures.filter((result) => result.required);
+  const migrationHelp = buildMigrationHelp(failures, supabaseUrl);
 
   logJson({
     ok: failures.length === 0,
@@ -127,6 +129,7 @@ async function main() {
         : "Apply the listed migrations in Supabase SQL Editor, then rerun this command.",
     requiredFailures: requiredFailures.map((failure) => failure.name),
     missingOrBrokenChecks: failures,
+    migrationHelp,
     qaCounts,
     results,
   });
@@ -134,6 +137,30 @@ async function main() {
   if (requiredFailures.length > 0) {
     process.exitCode = 1;
   }
+}
+
+function buildMigrationHelp(failures, supabaseUrl) {
+  if (failures.length === 0) {
+    return {
+      needed: false,
+      message: "No schema migration help needed.",
+    };
+  }
+
+  const missingNames = failures.map((failure) => failure.name);
+  const phoneOnly =
+    failures.length === 1 && missingNames.includes("professional phone ownership rules");
+  const projectRef = new URL(supabaseUrl).hostname.split(".")[0];
+
+  return {
+    needed: true,
+    command: phoneOnly ? "npm run qa:copy-phone-sql" : "npm run qa:copy-supabase-sql",
+    sqlFile: "tmp/kamker-mvp-production.sql",
+    supabaseSqlEditorUrl: `https://supabase.com/dashboard/project/${projectRef}/sql/new`,
+    message: phoneOnly
+      ? "Only the phone ownership migration is missing. Generate/copy the phone-only SQL bundle, paste it into Supabase SQL Editor, run it, then rerun npm run qa:mvp-readiness."
+      : "One or more production schema checks are missing. Generate/copy the full SQL bundle, paste it into Supabase SQL Editor, run it, then rerun npm run qa:mvp-readiness.",
+  };
 }
 
 async function runCheck(check) {

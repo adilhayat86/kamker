@@ -64,6 +64,7 @@ async function main() {
     productionCounts,
     blockers: blockers.map(summarizeResult),
     warnings: warnings.map(summarizeResult),
+    migrationHelp: extractMigrationHelp(results),
     results: results.map(summarizeResult),
     nextActions: buildNextActions(results),
   });
@@ -292,6 +293,13 @@ function summarizeResult(result) {
   };
 }
 
+function extractMigrationHelp(results) {
+  const schemaResult = results.find((result) => result.command === "qa:check-production-schema");
+  const schemaSummary = parseSummary(schemaResult?.stdoutSummary);
+
+  return schemaSummary?.migrationHelp ?? null;
+}
+
 function extractUsefulSummary(text) {
   const trimmed = (text ?? "").trim();
 
@@ -308,6 +316,7 @@ function extractUsefulSummary(text) {
         deployReady: parsed.deployReady,
         verdict: parsed.verdict,
         requiredFailures: parsed.requiredFailures,
+        migrationHelp: parsed.migrationHelp,
         summary: parsed.summary,
         qaData: parsed.qaData,
         failures: parsed.failures?.map?.((failure) => failure.name) ?? undefined,
@@ -320,6 +329,18 @@ function extractUsefulSummary(text) {
     );
   } catch {
     return trimmed.split(/\r?\n/).slice(-12).join("\n");
+  }
+}
+
+function parseSummary(text) {
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
   }
 }
 
