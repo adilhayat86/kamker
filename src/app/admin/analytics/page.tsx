@@ -499,7 +499,13 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
               </Panel>
             </div>
 
-            <div className="mt-4 grid gap-4 xl:grid-cols-3">
+            <div className="mt-4 grid gap-4 xl:grid-cols-4">
+              <Panel title="Search Terms" eyebrow="What people typed">
+                <HorizontalBars
+                  rows={report.searchTermBreakdown}
+                  empty="No search terms match this filter yet. Public searches will appear here after visitors search Kamker."
+                />
+              </Panel>
               <Panel title="Category Leaderboard" eyebrow="Where supply and demand moved">
                 <HorizontalBars
                   rows={report.categoryBreakdown}

@@ -90,6 +90,7 @@ export type AnalyticsReport = {
   categoryBreakdown: BreakdownRow[];
   cityBreakdown: BreakdownRow[];
   sourceBreakdown: BreakdownRow[];
+  searchTermBreakdown: BreakdownRow[];
   timeline: TimelineRow[];
   recentSignals: Array<{
     type: string;
@@ -282,6 +283,23 @@ function eventCity(event: EventRow) {
   return String(event.metadata?.city ?? "Unknown");
 }
 
+function eventSearchTerm(event: EventRow) {
+  const term = String(event.metadata?.search_term ?? event.metadata?.query ?? "").trim();
+
+  if (term) {
+    return term;
+  }
+
+  const category = String(event.metadata?.category ?? "").trim();
+  const city = String(event.metadata?.city ?? "").trim();
+
+  if (category && city) {
+    return `${category} in ${city}`;
+  }
+
+  return category || city || "Filtered search";
+}
+
 async function dateQuery<T>(table: string, select: string, filters: AnalyticsFilters, limit = 2500) {
   if (!supabase) {
     return [] as T[];
@@ -434,6 +452,7 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
   ).sort();
 
   const byEvent = countBy(events.map((event) => event.event_type ?? "unknown"));
+  const searchEvents = events.filter((event) => event.event_type === "search");
   const sourceSpecific = filters.source !== "all" && filters.source !== "unknown";
   const sourceWorkerRegistrations = events.filter(
     (event) => event.event_type === "worker_registration",
@@ -467,6 +486,7 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
     ...requirements.map(() => "unknown"),
     ...events.map(eventSource),
   ]);
+  const searchTermCounts = countBy(searchEvents.map(eventSearchTerm));
 
   const timelineMap = new Map<
     string,
@@ -596,6 +616,7 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
     categoryBreakdown: breakdown(categoryCounts, 12),
     cityBreakdown: breakdown(cityCounts, 10),
     sourceBreakdown: breakdown(sourceCounts, 8),
+    searchTermBreakdown: breakdown(searchTermCounts, 12),
     timeline,
     recentSignals,
   };
@@ -626,6 +647,7 @@ function emptyReport(filters: AnalyticsFilters): AnalyticsReport {
     categoryBreakdown: [],
     cityBreakdown: [],
     sourceBreakdown: [],
+    searchTermBreakdown: [],
     timeline: [],
     recentSignals: [],
   };
@@ -653,6 +675,9 @@ export function analyticsReportToCsv(report: AnalyticsReport) {
     [],
     ["Top cities", "Count"],
     ...report.cityBreakdown.map((item) => [item.label, item.value]),
+    [],
+    ["Top search terms", "Searches"],
+    ...report.searchTermBreakdown.map((item) => [item.label, item.value]),
     [],
     ["Timeline", "Workers", "Company staff", "Requirements", "Contacts"],
     ...report.timeline.map((item) => [
