@@ -18,6 +18,7 @@
     "qa:check-production-phones": "node scripts/qa/check-production-phones.mjs",
     "qa:cleanup-production-phone-claims": "node scripts/qa/cleanup-production-phone-claims.mjs",
     "qa:check-company-package-rules": "node scripts/qa/check-company-package-rules.mjs",
+    "qa:check-public-performance": "node scripts/qa/check-public-performance.mjs",
     "qa:check-mvp-production": "node scripts/qa/check-mvp-production.mjs",
     "qa:mvp-live-flow-checklist": "node scripts/qa/mvp-live-flow-checklist.mjs",
     "qa:mvp-readiness": "node scripts/qa/mvp-readiness-report.mjs",

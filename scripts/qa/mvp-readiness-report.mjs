@@ -125,46 +125,73 @@ async function getProductionCounts() {
 
 function buildMvpAreas(results, counts) {
   const byCommand = Object.fromEntries(results.map((result) => [result.command, result]));
+  const publicOk = byCommand["qa:check-mvp-production"]?.ok;
+  const schemaOk = byCommand["qa:check-production-schema"]?.ok;
+  const phonesOk = byCommand["qa:check-production-phones"]?.ok;
+  const mediaOk = byCommand["qa:verify-production"]?.ok;
+  const packagesOk = byCommand["qa:check-company-package-rules"]?.ok;
 
   return [
     {
       area: "Public discovery",
-      status: byCommand["qa:check-mvp-production"]?.ok ? "pass" : "blocked",
-      evidence: "Routes, public pages, no fake stats, no Post a Job wording.",
+      status: publicOk ? "pass" : "blocked",
+      evidence:
+        "Homepage, categories, professionals, category pages, profiles, and forbidden wording are smoke-tested.",
     },
     {
-      area: "Registration and login",
-      status: byCommand["qa:check-production-schema"]?.ok ? "ready_to_test" : "blocked",
+      area: "Search and category matching",
+      status: publicOk ? "pass" : "blocked",
       evidence:
-        "Professional/customer/company forms compile; production schema must match before final signup QA.",
+        "Production search/category smoke checks include filtered professionals, category pages, and company-managed staff.",
+    },
+    {
+      area: "Worker registration and login",
+      status: schemaOk ? "ready_for_live_qa" : "migration_pending",
+      evidence:
+        "Professional form renders in production; final duplicate-phone and ownership QA requires the phone migration.",
+    },
+    {
+      area: "Customer registration and requirements",
+      status: publicOk ? "ready_for_live_qa" : "blocked",
+      evidence:
+        "Customer registration and Send Requirement routes render publicly; live submit QA should verify rows and matches.",
+    },
+    {
+      area: "Company registration and packages",
+      status: publicOk && packagesOk ? "pass" : "blocked",
+      evidence:
+        "Company registration, package selection, payment proof route, dashboard route, and package limits are checked.",
     },
     {
       area: "Company marketplace",
       status:
-        byCommand["qa:check-mvp-production"]?.ok &&
-        byCommand["qa:check-company-package-rules"]?.ok
-          ? "pass"
-          : "blocked",
+        publicOk && packagesOk ? "pass" : "blocked",
       evidence:
-        "Company package, payment, dashboard, public company profile, staff routes, and package usage rules are checked.",
+        "Public company profiles and company-managed staff profiles are checked beside individual workers.",
+    },
+    {
+      area: "Payments and proof review",
+      status: mediaOk ? "ready_for_live_qa" : "warning",
+      evidence:
+        "Proof upload page, storage checks, Cloudinary signing, and AI-proof-safe paths are covered; live proof review still needs browser QA.",
     },
     {
       area: "Admin operations",
-      status: byCommand["qa:check-mvp-production"]?.ok ? "protected" : "blocked",
+      status: publicOk ? "protected_needs_live_action_qa" : "blocked",
       evidence:
-        "Admin routes are protected in production smoke; admin action testing still needs logged-in browser QA.",
+        "Admin routes are protected in production smoke; logged-in action testing still needs visible browser QA.",
     },
     {
       area: "Media uploads",
-      status: byCommand["qa:verify-production"]?.ok ? "pass" : "warning",
+      status: mediaOk ? "pass" : "warning",
       evidence:
-        "Cloudinary signing and Supabase storage upload/read checks are covered by qa:verify-production.",
+        "Cloudinary signing and Supabase storage upload/read checks are covered for profile/company/proof media.",
     },
     {
       area: "Phone ownership",
-      status: byCommand["qa:check-production-phones"]?.ok ? "pass" : "blocked",
+      status: schemaOk && phonesOk ? "pass" : phonesOk ? "migration_pending" : "blocked",
       evidence:
-        "Duplicate or invalid legacy worker phones must be cleaned before the unique phone migration is applied.",
+        "Production phone data is clean; the unique phone ownership column/index migration still must be applied.",
     },
     {
       area: "Analytics and test data",
@@ -174,6 +201,13 @@ function buildMvpAreas(results, counts) {
           : "warning",
       evidence:
         "Production counts are readable; analytics quality depends on real traffic and click tracking during QA.",
+    },
+    {
+      area: "Final launch cleanup",
+      status:
+        schemaOk && publicOk && packagesOk && mediaOk ? "ready_after_live_qa" : "not_ready",
+      evidence:
+        "After migrations and visible end-to-end QA pass, remove disposable Admin Test records before public launch.",
     },
   ];
 }
