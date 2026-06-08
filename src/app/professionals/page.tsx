@@ -432,14 +432,20 @@ function DbProfessionalCard({
           <Button asChild variant="outline" className="h-11">
             <a href={trackedPhoneLink ?? phoneLink}>
               <Phone aria-hidden="true" />
-              Call
+              <span className="sm:hidden">Call</span>
+              <span className="hidden max-w-[10rem] truncate sm:inline" title={professional.phone_number}>
+                {professional.phone_number}
+              </span>
             </a>
           </Button>
           <Button asChild={Boolean(trackedWhatsappLink)} className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
             {trackedWhatsappLink ? (
             <a href={trackedWhatsappLink}>
               <MessageCircle aria-hidden="true" />
-              WhatsApp
+              <span className="sm:hidden">WhatsApp</span>
+              <span className="hidden max-w-[10rem] truncate sm:inline" title={(professional.whatsapp_number ?? professional.phone_number) ?? undefined}>
+                {professional.whatsapp_number ?? professional.phone_number}
+              </span>
             </a>
             ) : (
               <span>
@@ -571,14 +577,20 @@ function ConversionProfessionalCard({
           <Button asChild variant="outline" className="h-10 px-2">
             <a href={trackedPhoneLink ?? phoneLink}>
               <Phone aria-hidden="true" />
-              Call
+              <span className="sm:hidden">Call</span>
+              <span className="hidden max-w-[8rem] truncate sm:inline" title={professional.phone_number}>
+                {professional.phone_number}
+              </span>
             </a>
           </Button>
           <Button asChild={Boolean(trackedWhatsappLink)} className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
             {trackedWhatsappLink ? (
             <a href={trackedWhatsappLink}>
               <MessageCircle aria-hidden="true" />
-              WhatsApp
+              <span className="sm:hidden">WhatsApp</span>
+              <span className="hidden max-w-[8rem] truncate sm:inline" title={(professional.whatsapp_number ?? professional.phone_number) ?? undefined}>
+                {professional.whatsapp_number ?? professional.phone_number}
+              </span>
             </a>
             ) : (
               <span>

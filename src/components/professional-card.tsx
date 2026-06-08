@@ -150,7 +150,10 @@ export function ProfessionalCard({
             {trackedPhoneHref ? (
               <a href={trackedPhoneHref}>
                 <Phone aria-hidden="true" />
-                Call
+                <span className="sm:hidden">Call</span>
+                <span className="hidden max-w-[8rem] truncate sm:inline" title={professional.phone ?? undefined}>
+                  {professional.phone}
+                </span>
               </a>
             ) : (
               <span>
@@ -163,7 +166,10 @@ export function ProfessionalCard({
             {trackedWhatsappHref ? (
               <a href={trackedWhatsappHref}>
                 <MessageCircle aria-hidden="true" />
-                WhatsApp
+                <span className="sm:hidden">WhatsApp</span>
+                <span className="hidden max-w-[8rem] truncate sm:inline" title={professional.whatsapp ?? undefined}>
+                  {professional.whatsapp}
+                </span>
               </a>
             ) : (
               <span>

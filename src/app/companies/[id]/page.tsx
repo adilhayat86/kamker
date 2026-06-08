@@ -367,7 +367,10 @@ export default async function CompanyProfilePage({
                   <Button asChild className="h-12 justify-start bg-[#25d366] text-white hover:bg-[#21bd5b]">
                     <a href={trackedWhatsappHref}>
                       <MessageCircle className="size-4" aria-hidden="true" />
-                      WhatsApp
+                      <span className="sm:hidden">WhatsApp</span>
+                      <span className="hidden max-w-[10rem] truncate sm:inline" title={company.whatsapp ?? undefined}>
+                        {company.whatsapp}
+                      </span>
                     </a>
                   </Button>
                 ) : null}

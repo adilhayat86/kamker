@@ -245,14 +245,14 @@ export default async function ProfessionalProfilePage({
                 <Button asChild variant="outline" className="h-12">
                   <a href={trackedPhoneLink ?? phoneLink}>
                     <Phone aria-hidden="true" />
-                    Call
+                    {dbProfessional.phone_number}
                   </a>
                 </Button>
                 <Button asChild={Boolean(trackedWhatsappLink)} className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
                   {trackedWhatsappLink ? (
                   <a href={trackedWhatsappLink}>
                     <MessageCircle aria-hidden="true" />
-                    WhatsApp
+                    {whatsappNumber}
                   </a>
                   ) : (
                     <span>
@@ -388,11 +388,13 @@ export default async function ProfessionalProfilePage({
             <div className="mt-6 hidden gap-2 sm:grid sm:grid-cols-3">
               <Button variant="outline" className="h-12">
                 <Phone aria-hidden="true" />
-                Call
+                <span className="sm:hidden">Call</span>
+                <span className="hidden sm:inline">{professional.phone}</span>
               </Button>
               <Button className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
                 <MessageCircle aria-hidden="true" />
-                WhatsApp
+                <span className="sm:hidden">WhatsApp</span>
+                <span className="hidden sm:inline">{professional.whatsapp}</span>
               </Button>
               <Button asChild className="h-12">
                 <Link href="/send-requirement">

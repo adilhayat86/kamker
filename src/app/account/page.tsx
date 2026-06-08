@@ -341,14 +341,20 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                 <Button asChild variant="outline" className="h-12">
                   <a href={`tel:${phoneNumber}`}>
                     <Phone aria-hidden="true" />
-                    Call
+                    <span className="sm:hidden">Call</span>
+                    <span className="hidden max-w-[10rem] truncate sm:inline" title={phoneNumber}>
+                      {phoneNumber}
+                    </span>
                   </a>
                 </Button>
                 {whatsappLink ? (
                   <Button asChild className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
                     <a href={whatsappLink}>
                       <MessageCircle aria-hidden="true" />
-                      WhatsApp
+                      <span className="sm:hidden">WhatsApp</span>
+                      <span className="hidden max-w-[10rem] truncate sm:inline" title={whatsappNumber ?? undefined}>
+                        {whatsappNumber}
+                      </span>
                     </a>
                   </Button>
                 ) : (

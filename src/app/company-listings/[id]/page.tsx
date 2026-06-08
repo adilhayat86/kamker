@@ -242,7 +242,10 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
                 <Button asChild variant="outline" className="h-12">
                   <a href={trackedPhoneHref}>
                     <Phone className="size-4" aria-hidden="true" />
-                    Call
+                    <span className="sm:hidden">Call</span>
+                    <span className="hidden max-w-[10rem] truncate sm:inline" title={listing.phone ?? undefined}>
+                      {listing.phone}
+                    </span>
                   </a>
                 </Button>
               ) : null}
@@ -250,7 +253,10 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
                 <Button asChild className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
                   <a href={trackedWhatsappHref}>
                     <MessageCircle className="size-4" aria-hidden="true" />
-                    WhatsApp
+                    <span className="sm:hidden">WhatsApp</span>
+                    <span className="hidden max-w-[10rem] truncate sm:inline" title={listing.whatsapp ?? undefined}>
+                      {listing.whatsapp}
+                    </span>
                   </a>
                 </Button>
               ) : null}
