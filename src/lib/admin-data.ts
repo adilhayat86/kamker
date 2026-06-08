@@ -382,6 +382,10 @@ async function getDatabaseSchemaReadiness() {
       ready: await hasReadableColumn("professionals", "profile_photo_url"),
     },
     {
+      column: "professionals.phone_normalized",
+      ready: await hasReadableColumn("professionals", "phone_normalized"),
+    },
+    {
       column: "company_listings.service_group",
       ready: await hasReadableColumn("company_listings", "service_group"),
     },

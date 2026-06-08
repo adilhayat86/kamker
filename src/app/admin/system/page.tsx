@@ -105,11 +105,14 @@ export default async function AdminSystemPage() {
             <li>sql/20260607_company_staff_requirement_matches.sql</li>
             <li>sql/20260607_storage_upload_limits.sql</li>
             <li>sql/20260607_disable_mvp_rls.sql</li>
+            <li>sql/20260608_phone_ownership_rules.sql</li>
+            <li>sql/20260608_canonical_categories.sql</li>
+            <li>sql/20260608_public_browse_performance.sql</li>
           </ol>
           <p className="mt-3 text-xs leading-5 text-muted-foreground">
             This check covers core marketplace tables, company packages/payments,
             staff profiles, proof reviews, analytics, WhatsApp logs, admin passwords,
-            audit logs, and the newer age/tagline/photo/company-media columns.
+            audit logs, phone ownership, and the newer age/tagline/photo/company-media columns.
           </p>
         </div>
       </AdminSection>
