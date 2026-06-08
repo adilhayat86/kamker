@@ -259,6 +259,19 @@ async function loadLookups(canonicalCategories) {
   };
 }
 
+async function hasProfessionalPhoneNormalizedColumn() {
+  try {
+    await supabaseRest("professionals?select=id,phone_normalized&limit=1");
+    return true;
+  } catch (error) {
+    if (String(error.message).includes("phone_normalized")) {
+      return false;
+    }
+
+    throw error;
+  }
+}
+
 async function insertBatches(table, rows, select = "id") {
   const created = [];
 
@@ -326,7 +339,14 @@ async function createCompanies() {
   return companies;
 }
 
-async function createWorkers({ canonicalCategories, weightedCategories, cityByName, categoryByName, total }) {
+async function createWorkers({
+  canonicalCategories,
+  weightedCategories,
+  cityByName,
+  categoryByName,
+  total,
+  hasPhoneNormalized,
+}) {
   const passwordHash = await hashSecret("TestPass123!");
   const secretAnswerHash = await hashSecret("blue");
   const rows = Array.from({ length: total }, (_, index) => {
@@ -340,11 +360,11 @@ async function createWorkers({ canonicalCategories, weightedCategories, cityByNa
     const availabilityTime = pick(availabilityTimeOptions, index);
     const availabilityDays = pick(availabilityDayOptions, index + 1);
 
-    return {
+    const phone = qaMobile(index + 1);
+    const row = {
       full_name: `${qaPrefix} Stress Worker ${fullName(gender, index)} ${category.name} ${index + 1} ${runId}`,
-      phone_number: qaMobile(index + 1),
-      phone_normalized: qaMobile(index + 1),
-      whatsapp_number: qaMobile(index + 1),
+      phone_number: phone,
+      whatsapp_number: phone,
       city_id: city.id,
       area: pick(cityAreas, index),
       category_id: categoryRow.id,
@@ -372,6 +392,12 @@ async function createWorkers({ canonicalCategories, weightedCategories, cityByNa
         ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
         : null,
     };
+
+    if (hasPhoneNormalized) {
+      row.phone_normalized = phone;
+    }
+
+    return row;
   });
 
   await insertBatches("professionals", rows, "id");
@@ -454,6 +480,7 @@ async function main() {
   }
 
   const { cityByName, categoryByName } = await loadLookups(canonicalCategories);
+  const hasPhoneNormalized = await hasProfessionalPhoneNormalizedColumn();
   const companies = await createCompanies();
   const workers = await createWorkers({
     canonicalCategories,
@@ -461,6 +488,7 @@ async function main() {
     cityByName,
     categoryByName,
     total: workerTotal,
+    hasPhoneNormalized,
   });
   const staff = await createStaff({
     companies,
@@ -481,6 +509,9 @@ async function main() {
       "All records use Admin Test prefixes.",
       "Company staff featured profiles are capped to 5 per company for starter-package behavior.",
       "Security attack payloads are intentionally not seeded into production.",
+      hasPhoneNormalized
+        ? "professionals.phone_normalized is present and populated."
+        : "professionals.phone_normalized is missing in production; stress workers were seeded without that column.",
     ],
     nextChecks: [
       "/professionals?q=nurse&city=Karachi",
