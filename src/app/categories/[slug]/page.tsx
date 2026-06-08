@@ -360,6 +360,24 @@ export default async function CategoryDetailPage({
     (a, b) => Number(b.is_featured) - Number(a.is_featured),
   );
   const isParentCategoryPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
+  const distinctParentRoles = new Set(
+    visibleProfessionals
+      .map((professional) => normaliseMatchValue(professional.role))
+      .filter(Boolean),
+  );
+  const professionalPreview = isParentCategoryPage
+    ? visibleProfessionals.filter(
+        (professional, index, list) =>
+          list.findIndex(
+            (item) =>
+              normaliseMatchValue(item.role) ===
+              normaliseMatchValue(professional.role),
+          ) === index,
+      )
+    : visibleProfessionals;
+  const shouldShowProfessionalSection =
+    !isParentCategoryPage ||
+    (distinctParentRoles.size > 1 && professionalPreview.length > 0);
   const professionalSectionLabel = isParentCategoryPage
     ? "Featured professionals"
     : "Available professionals";
@@ -369,6 +387,7 @@ export default async function CategoryDetailPage({
   const directoryHref = isParentCategoryPage
     ? "/categories"
     : `/professionals?category=${encodeURIComponent(category?.name ?? dbCategory?.name ?? "")}`;
+  const directoryLabel = isParentCategoryPage ? "View all categories" : "View directory";
 
   return (
     <main className="min-h-screen bg-background">
@@ -428,43 +447,45 @@ export default async function CategoryDetailPage({
           </Card>
         ) : null}
 
-        <section className="mt-7">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-                {professionalSectionLabel}
-              </p>
-              <h2 className="mt-1 text-2xl font-bold tracking-normal">
-                {professionalSectionTitle}
-              </h2>
-            </div>
-            <Button asChild variant="outline" className="h-11 w-full sm:w-auto">
-              <Link href={directoryHref}>View directory</Link>
-            </Button>
-          </div>
-
-          {visibleProfessionals.length > 0 ? (
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              {visibleProfessionals.slice(0, 6).map((professional) => (
-                <ProfessionalCard
-                  key={professional.id}
-                  professional={professional}
-                  featured={professional.is_featured}
-                />
-              ))}
-            </div>
-          ) : (
-            <Card className="mt-5 bg-white shadow-sm">
-              <CardContent className="p-5">
-                <p className="font-semibold">No visible profiles yet</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Approved professionals will appear here. You can still send a
-                  requirement so Kamker can match it when profiles are available.
+        {shouldShowProfessionalSection ? (
+          <section className="mt-7">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                  {professionalSectionLabel}
                 </p>
-              </CardContent>
-            </Card>
-          )}
-        </section>
+                <h2 className="mt-1 text-2xl font-bold tracking-normal">
+                  {professionalSectionTitle}
+                </h2>
+              </div>
+              <Button asChild variant="outline" className="h-11 w-full sm:w-auto">
+                <Link href={directoryHref}>{directoryLabel}</Link>
+              </Button>
+            </div>
+
+            {professionalPreview.length > 0 ? (
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                {professionalPreview.slice(0, 6).map((professional) => (
+                  <ProfessionalCard
+                    key={professional.id}
+                    professional={professional}
+                    featured={professional.is_featured}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card className="mt-5 bg-white shadow-sm">
+                <CardContent className="p-5">
+                  <p className="font-semibold">No visible profiles yet</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Approved professionals will appear here. You can still send a
+                    requirement so Kamker can match it when profiles are available.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </section>
+        ) : null}
 
         {!isParentCategoryPage && (parentGroup || dbParentCategory) ? (
           <Card className="mt-8 bg-white shadow-sm">
