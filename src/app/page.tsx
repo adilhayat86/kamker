@@ -23,6 +23,8 @@ import { getCityOptions } from "@/lib/city-options";
 import { categories, cities, parentCategories } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
+export const revalidate = 120;
+
 const bottomNavItems = [
   { label: "Home", icon: Home, href: "/" },
   { label: "Categories", icon: ClipboardList, href: "/categories" },
