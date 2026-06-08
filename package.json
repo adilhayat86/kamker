@@ -8,7 +8,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "node -e \"require('fs').rmSync('tsconfig.tsbuildinfo',{force:true})\" && next typegen && tsc --noEmit"
+    "typecheck": "node -e \"require('fs').rmSync('tsconfig.tsbuildinfo',{force:true})\" && next typegen && tsc --noEmit",
+    "qa:seed-production": "node scripts/qa/seed-production-qa.mjs",
+    "qa:verify-production": "node scripts/qa/verify-production-qa.mjs",
+    "qa:list-production": "node scripts/qa/list-production-qa-records.mjs"
   },
   "keywords": [],
   "author": "",
