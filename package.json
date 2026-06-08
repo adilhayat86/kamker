@@ -10,6 +10,8 @@
     "lint": "eslint .",
     "typecheck": "node -e \"require('fs').rmSync('tsconfig.tsbuildinfo',{force:true})\" && next typegen && tsc --noEmit",
     "qa:seed-production": "node scripts/qa/seed-production-qa.mjs",
+    "qa:seed-stress-production": "node scripts/qa/seed-production-stress.mjs",
+    "qa:cleanup-stress-production": "node scripts/qa/cleanup-production-stress.mjs",
     "qa:verify-production": "node scripts/qa/verify-production-qa.mjs",
     "qa:list-production": "node scripts/qa/list-production-qa-records.mjs"
   },
