@@ -127,7 +127,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                     className="size-20 shrink-0 rounded-full bg-white object-cover ring-2 ring-white/60"
                   />
                   <div>
-                    <p className="text-sm text-white/75">Worker Account</p>
+                    <p className="text-sm text-white/75">Account Dashboard</p>
                     <h1 className="mt-1 text-3xl font-bold tracking-normal">
                       {fullName}
                     </h1>
@@ -154,7 +154,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                   >
                     <Link href={publicProfileHref}>
                       <BriefcaseBusiness aria-hidden="true" />
-                      View Profile
+                      View Public Profile
                     </Link>
                   </Button>
                 </div>
@@ -273,17 +273,11 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                 </section>
               </div>
 
-              <div className="mt-6 grid gap-2 sm:grid-cols-3">
+              <div className="mt-6 grid gap-2 sm:grid-cols-2">
                 <Button asChild className="h-12">
                   <Link href="/account/edit">
                     <Edit aria-hidden="true" />
                     Edit Profile
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="h-12">
-                  <Link href={publicProfileHref}>
-                    <BriefcaseBusiness aria-hidden="true" />
-                    View Public Profile
                   </Link>
                 </Button>
                 <form action={logoutProfessional}>

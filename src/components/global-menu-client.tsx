@@ -182,7 +182,7 @@ export function GlobalMenuClient() {
         <MenuSection title="Account">
           {session.professionalLoggedIn ? (
             <>
-              <MenuItem href="/account" label="My Profile" icon={User} />
+              <MenuItem href="/account" label="My Account" icon={User} />
               <MenuItem href="/account/edit" label="Edit Profile" icon={UserCog} />
               <LogoutLink href="/api/logout/professional" label="Logout" />
             </>
