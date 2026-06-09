@@ -18,7 +18,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { GlobalMenuShell } from "@/components/global-menu-shell";
@@ -96,40 +96,69 @@ function LogoutLink({ href, label }: { href: string; label: string }) {
 export function GlobalMenuClient() {
   const [session, setSession] = useState<MenuSession>(guestSession);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadSession = useCallback(async () => {
+    try {
+      const response = await fetch("/api/menu/session", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
 
-    async function loadSession() {
-      try {
-        const response = await fetch("/api/menu/session", {
-          cache: "no-store",
-          credentials: "same-origin",
-        });
-
-        if (!response.ok) {
-          return;
-        }
-
-        const nextSession = (await response.json()) as MenuSession;
-
-        if (!cancelled) {
-          setSession({
-            professionalLoggedIn: Boolean(nextSession.professionalLoggedIn),
-            adminAuthenticated: Boolean(nextSession.adminAuthenticated),
-            adminConfigured: Boolean(nextSession.adminConfigured),
-          });
-        }
-      } catch {
-        // Keep the static guest menu if session lookup fails.
+      if (!response.ok) {
+        return;
       }
-    }
 
+      const nextSession = (await response.json()) as MenuSession;
+
+      setSession({
+        professionalLoggedIn: Boolean(nextSession.professionalLoggedIn),
+        adminAuthenticated: Boolean(nextSession.adminAuthenticated),
+        adminConfigured: Boolean(nextSession.adminConfigured),
+      });
+    } catch {
+      // Keep the current menu if session lookup fails.
+    }
+  }, []);
+
+  useEffect(() => {
     loadSession();
+  }, [loadSession]);
+
+  useEffect(() => {
+    const refreshSession = () => {
+      void loadSession();
+    };
+
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+
+    window.history.pushState = function pushState(...args) {
+      const result = originalPushState.apply(this, args);
+      window.dispatchEvent(new Event("kamker:navigation"));
+      return result;
+    };
+
+    window.history.replaceState = function replaceState(...args) {
+      const result = originalReplaceState.apply(this, args);
+      window.dispatchEvent(new Event("kamker:navigation"));
+      return result;
+    };
+
+    window.addEventListener("kamker:navigation", refreshSession);
+    window.addEventListener("popstate", refreshSession);
+    window.addEventListener("focus", refreshSession);
+    window.addEventListener("pageshow", refreshSession);
+    document.addEventListener("visibilitychange", refreshSession);
 
     return () => {
-      cancelled = true;
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+      window.removeEventListener("kamker:navigation", refreshSession);
+      window.removeEventListener("popstate", refreshSession);
+      window.removeEventListener("focus", refreshSession);
+      window.removeEventListener("pageshow", refreshSession);
+      document.removeEventListener("visibilitychange", refreshSession);
     };
-  }, []);
+  }, [loadSession]);
 
   return (
     <GlobalMenuShell>

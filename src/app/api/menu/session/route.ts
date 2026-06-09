@@ -11,9 +11,16 @@ export async function GET() {
     isAdminAuthenticated(),
   ]);
 
-  return NextResponse.json({
-    professionalLoggedIn: Boolean(professional),
-    adminAuthenticated,
-    adminConfigured: isAdminPasswordConfigured(),
-  });
+  return NextResponse.json(
+    {
+      professionalLoggedIn: Boolean(professional),
+      adminAuthenticated,
+      adminConfigured: isAdminPasswordConfigured(),
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+      },
+    },
+  );
 }
