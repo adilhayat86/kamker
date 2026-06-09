@@ -6,6 +6,7 @@ import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { PhotoUploadField } from "@/components/photo-upload-field";
+import { ProfessionCategoryField } from "@/components/profession-category-field";
 import { RegistrationSensitiveFieldRestore } from "@/components/registration-sensitive-field-restore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -205,13 +206,10 @@ export default async function ProfessionalRegisterPage({
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Service details</p>
                   <p className="mt-1 text-sm text-muted-foreground">This is what customers scan first.</p>
                 </div>
-                <SelectField
-                  label="Profession/category"
-                  name="category"
+                <ProfessionCategoryField
                   options={categories.map((category) => category.name)}
                   defaultValue={draft.category}
                   error={errorFor("category")}
-                  required
                 />
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Work time</span>
