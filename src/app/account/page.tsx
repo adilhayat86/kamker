@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -19,8 +18,10 @@ import {
 } from "@/lib/account";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { deleteOwnProfessionalProfile } from "@/app/account/actions";
 import { logoutProfessional } from "@/app/logout/actions";
 import { PageNavigation } from "@/components/page-navigation";
+import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import { fallbackProfessionalImage } from "@/lib/professional-photo";
 
 export const metadata = {
@@ -33,6 +34,8 @@ const statusMessages = {
   registered: "Welcome to Kamker. Your professional profile has been created.",
   "registered-photo-skipped":
     "Welcome to Kamker. Your profile was created, but the photo could not be saved. You can add it later from Edit Profile.",
+  "delete-confirmation": "Type DELETE exactly to delete your profile.",
+  "delete-error": "Could not delete your profile. Please try again or contact Kamker support.",
 } as const;
 
 type AccountPageProps = {
@@ -119,12 +122,14 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
             <div className="bg-primary p-5 text-primary-foreground sm:p-7">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">
-                  <Image
+                  <ProfilePhotoViewer
                     src={profilePhotoUrl}
                     alt={`${fullName} profile photo`}
                     width={96}
                     height={96}
-                    className="size-20 shrink-0 rounded-full bg-white object-cover ring-2 ring-white/60"
+                    priority
+                    buttonClassName="size-20 bg-white ring-white/60"
+                    imageClassName="size-20"
                   />
                   <div>
                     <p className="text-sm text-white/75">Account Dashboard</p>
@@ -295,6 +300,24 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                   </p>
                 </div>
               ) : null}
+
+              <section className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
+                <p className="text-sm font-semibold text-red-900">Delete profile</p>
+                <p className="mt-1 text-sm leading-6 text-red-800">
+                  This permanently removes your worker profile from Kamker and logs you out.
+                  Type DELETE to confirm.
+                </p>
+                <form action={deleteOwnProfessionalProfile} className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <input
+                    name="confirmDeleteProfile"
+                    placeholder="Type DELETE"
+                    className="h-11 rounded-md border border-red-200 bg-white px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                  />
+                  <Button variant="outline" className="h-11 border-red-600 bg-red-600 text-white hover:bg-red-700 hover:text-white">
+                    Delete My Profile
+                  </Button>
+                </form>
+              </section>
             </div>
           </CardContent>
         </Card>

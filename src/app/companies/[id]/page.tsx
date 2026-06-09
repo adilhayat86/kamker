@@ -15,6 +15,7 @@ import {
 
 import { ContactActionButton } from "@/components/contact-action-button";
 import { PageNavigation } from "@/components/page-navigation";
+import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import { ProfessionalCard } from "@/components/professional-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -268,18 +269,20 @@ export default async function CompanyProfilePage({
           <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
             <div className="p-5 sm:p-7">
               <div className="flex items-start gap-4">
-                <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl border bg-muted sm:size-24">
+                <div className="shrink-0">
                   {company.logo_url ? (
-                    <Image
+                    <ProfilePhotoViewer
                       src={company.logo_url}
                       alt={`${company.company_name} logo`}
-                      fill
+                      width={96}
+                      height={96}
                       priority
-                      sizes="96px"
-                      className="object-cover"
+                      buttonClassName="size-20 rounded-2xl border bg-muted sm:size-24"
+                      imageClassName="size-20 rounded-2xl sm:size-24"
+                      overlayLabel="View logo"
                     />
                   ) : (
-                    <div className="flex size-full items-center justify-center text-primary">
+                    <div className="flex size-20 items-center justify-center rounded-2xl border bg-muted text-primary sm:size-24">
                       <Building2 className="size-9" aria-hidden="true" />
                     </div>
                   )}

@@ -183,6 +183,22 @@ export async function getLocalProfessionalRecordById(id: string) {
   return records.find((professional) => professional.id === id) ?? null;
 }
 
+export async function deleteLocalProfessionalRecordById(id: string) {
+  if (!isLocalDemoStoreEnabled) {
+    return false;
+  }
+
+  const records = await readLocalProfessionals();
+  const nextRecords = records.filter((professional) => professional.id !== id);
+
+  if (nextRecords.length === records.length) {
+    return false;
+  }
+
+  await writeLocalJsonFile(localProfessionalsPath, nextRecords);
+  return true;
+}
+
 export async function getLocalCompanyRecords() {
   if (!isLocalDemoStoreEnabled) {
     return [];

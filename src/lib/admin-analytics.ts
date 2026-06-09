@@ -78,6 +78,9 @@ export type AnalyticsReport = {
     approvedCompanyStaff: number;
     requirementsSubmitted: number;
     profileViews: number;
+    pageViews: number;
+    uniqueVisitors: number;
+    trackedSearches: number;
     callClicks: number;
     whatsappClicks: number;
     contactClicks: number;
@@ -91,6 +94,7 @@ export type AnalyticsReport = {
   cityBreakdown: BreakdownRow[];
   sourceBreakdown: BreakdownRow[];
   searchTermBreakdown: BreakdownRow[];
+  pageBreakdown: BreakdownRow[];
   timeline: TimelineRow[];
   recentSignals: Array<{
     type: string;
@@ -300,6 +304,14 @@ function eventSearchTerm(event: EventRow) {
   return category || city || "Filtered search";
 }
 
+function eventPath(event: EventRow) {
+  return String(event.metadata?.path ?? "Unknown");
+}
+
+function eventVisitorId(event: EventRow) {
+  return String(event.metadata?.visitor_id ?? "").trim();
+}
+
 async function dateQuery<T>(table: string, select: string, filters: AnalyticsFilters, limit = 800) {
   if (!supabase) {
     return [] as T[];
@@ -453,6 +465,14 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
 
   const byEvent = countBy(events.map((event) => event.event_type ?? "unknown"));
   const searchEvents = events.filter((event) => event.event_type === "search");
+  const pageViewEvents = events.filter((event) => event.event_type === "view");
+  const trackedSearchEvents = [
+    ...searchEvents,
+    ...pageViewEvents.filter((event) => eventSearchTerm(event) !== "Filtered search"),
+  ];
+  const uniqueVisitorCount = new Set(
+    events.map(eventVisitorId).filter(Boolean),
+  ).size;
   const sourceSpecific = filters.source !== "all" && filters.source !== "unknown";
   const sourceWorkerRegistrations = events.filter(
     (event) => event.event_type === "worker_registration",
@@ -480,13 +500,9 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
     ...requirements.map((item) => relationName(item.cities)),
     ...events.map(eventCity),
   ]);
-  const sourceCounts = countBy([
-    ...workers.map(() => "unknown"),
-    ...staff.map(() => "unknown"),
-    ...requirements.map(() => "unknown"),
-    ...events.map(eventSource),
-  ]);
-  const searchTermCounts = countBy(searchEvents.map(eventSearchTerm));
+  const sourceCounts = countBy(events.map(eventSource));
+  const searchTermCounts = countBy(trackedSearchEvents.map(eventSearchTerm));
+  const pageCounts = countBy(pageViewEvents.map(eventPath));
 
   const timelineMap = new Map<
     string,
@@ -590,6 +606,9 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
         : staff.filter((item) => item.status === "approved").length,
       requirementsSubmitted: requirementCount,
       profileViews: byEvent.view ?? 0,
+      pageViews: pageViewEvents.length,
+      uniqueVisitors: uniqueVisitorCount,
+      trackedSearches: searchEvents.length,
       callClicks,
       whatsappClicks,
       contactClicks,
@@ -601,8 +620,8 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
         : contactClicks,
     },
     funnel: [
-      { label: "Searches / views", value: byEvent.search ?? byEvent.view ?? 0, percent: 100 },
-      { label: "Profile views", value: byEvent.view ?? 0, percent: 0 },
+      { label: "Searches / views", value: (byEvent.search ?? 0) + pageViewEvents.length, percent: 100 },
+      { label: "Profile / page views", value: pageViewEvents.length, percent: 0 },
       { label: "Call / WhatsApp clicks", value: contactClicks, percent: 0 },
       { label: "Requirements submitted", value: requirementCount, percent: 0 },
       { label: "Workers registered", value: workerRegistrationCount + companyStaffProfileCount, percent: 0 },
@@ -617,6 +636,7 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
     cityBreakdown: breakdown(cityCounts, 10),
     sourceBreakdown: breakdown(sourceCounts, 8),
     searchTermBreakdown: breakdown(searchTermCounts, 12),
+    pageBreakdown: breakdown(pageCounts, 12),
     timeline,
     recentSignals,
   };
@@ -635,6 +655,9 @@ function emptyReport(filters: AnalyticsFilters): AnalyticsReport {
       approvedCompanyStaff: 0,
       requirementsSubmitted: 0,
       profileViews: 0,
+      pageViews: 0,
+      uniqueVisitors: 0,
+      trackedSearches: 0,
       callClicks: 0,
       whatsappClicks: 0,
       contactClicks: 0,
@@ -648,6 +671,7 @@ function emptyReport(filters: AnalyticsFilters): AnalyticsReport {
     cityBreakdown: [],
     sourceBreakdown: [],
     searchTermBreakdown: [],
+    pageBreakdown: [],
     timeline: [],
     recentSignals: [],
   };
@@ -665,6 +689,9 @@ export function analyticsReportToCsv(report: AnalyticsReport) {
     ["Worker registrations", report.stats.workerRegistrations],
     ["Company staff profiles", report.stats.companyStaffProfiles],
     ["Requirements submitted", report.stats.requirementsSubmitted],
+    ["Page views", report.stats.pageViews],
+    ["Unique visitors", report.stats.uniqueVisitors],
+    ["Tracked searches", report.stats.trackedSearches],
     ["Profile views", report.stats.profileViews],
     ["Call clicks", report.stats.callClicks],
     ["WhatsApp clicks", report.stats.whatsappClicks],
@@ -678,6 +705,9 @@ export function analyticsReportToCsv(report: AnalyticsReport) {
     [],
     ["Top search terms", "Searches"],
     ...report.searchTermBreakdown.map((item) => [item.label, item.value]),
+    [],
+    ["Top pages", "Views"],
+    ...report.pageBreakdown.map((item) => [item.label, item.value]),
     [],
     ["Timeline", "Workers", "Company staff", "Requirements", "Contacts"],
     ...report.timeline.map((item) => [

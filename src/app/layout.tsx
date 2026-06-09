@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 
+import { AnalyticsPageView } from "@/components/analytics-page-view";
 import { GlobalMenu } from "@/components/global-menu";
 
 import "./globals.css";
@@ -55,6 +57,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans">
+        <Suspense fallback={null}>
+          <AnalyticsPageView />
+        </Suspense>
         <GlobalMenu />
         {children}
       </body>

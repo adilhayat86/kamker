@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { BadgeCheck, Clock, MapPin, Sparkles, Star } from "lucide-react";
 
@@ -6,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ContactActionButton } from "@/components/contact-action-button";
+import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import { trackedProfessionalContactHref } from "@/lib/contact-tracking";
 import type { Professional } from "@/lib/marketplace-data";
 import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
@@ -56,13 +56,13 @@ export function ProfessionalCard({
     >
       <CardContent className="flex h-full flex-col p-3.5 sm:p-4">
         <div className="flex items-start gap-3.5">
-          <Image
+          <ProfilePhotoViewer
             src={professional.image}
             alt={`${professional.name} profile photo`}
             width={96}
             height={96}
-            loading="lazy"
-            className="size-20 shrink-0 rounded-full bg-accent object-cover sm:size-24"
+            buttonClassName="size-20 sm:size-24"
+            imageClassName="size-20 sm:size-24"
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2">

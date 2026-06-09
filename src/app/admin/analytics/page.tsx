@@ -413,7 +413,21 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
               <AnalyticsPrintButton />
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+              <MetricCard
+                label="Page views"
+                value={report.stats.pageViews}
+                helper={`${numberFormat(report.stats.uniqueVisitors)} unique visitor signals tracked`}
+                icon={Activity}
+                tone="blue"
+              />
+              <MetricCard
+                label="Searches"
+                value={report.stats.trackedSearches}
+                helper="Search terms captured from search pages and query URLs"
+                icon={Search}
+                tone="cyan"
+              />
               <MetricCard
                 label="Worker registrations"
                 value={report.stats.workerRegistrations}
@@ -499,7 +513,13 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
               </Panel>
             </div>
 
-            <div className="mt-4 grid gap-4 xl:grid-cols-4">
+            <div className="mt-4 grid gap-4 xl:grid-cols-5">
+              <Panel title="Top Pages" eyebrow="Where visitors browsed">
+                <HorizontalBars
+                  rows={report.pageBreakdown}
+                  empty="No page views tracked yet. New public visits will appear here after this deploy."
+                />
+              </Panel>
               <Panel title="Search Terms" eyebrow="What people typed">
                 <HorizontalBars
                   rows={report.searchTermBreakdown}

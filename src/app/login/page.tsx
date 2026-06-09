@@ -20,6 +20,7 @@ const statusMessages = {
   "not-configured": "Supabase is not configured yet.",
   reset: "Password updated. You can log in now.",
   registered: "Registration submitted. Log in after your profile is ready.",
+  "profile-deleted": "Your professional profile has been deleted.",
 } as const;
 
 type LoginPageProps = {

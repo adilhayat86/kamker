@@ -5,14 +5,29 @@ import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type ProfilePhotoViewerProps = {
   src: string;
   alt: string;
   priority?: boolean;
+  width?: number;
+  height?: number;
+  buttonClassName?: string;
+  imageClassName?: string;
+  overlayLabel?: string;
 };
 
-export function ProfilePhotoViewer({ src, alt, priority = false }: ProfilePhotoViewerProps) {
+export function ProfilePhotoViewer({
+  src,
+  alt,
+  priority = false,
+  width = 128,
+  height = 128,
+  buttonClassName,
+  imageClassName,
+  overlayLabel = "View photo",
+}: ProfilePhotoViewerProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -40,19 +55,25 @@ export function ProfilePhotoViewer({ src, alt, priority = false }: ProfilePhotoV
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group relative size-28 shrink-0 overflow-hidden rounded-full bg-accent ring-2 ring-transparent transition hover:ring-primary focus:outline-none focus:ring-2 focus:ring-primary"
+        className={cn(
+          "group relative shrink-0 overflow-hidden rounded-full bg-accent ring-2 ring-transparent transition hover:ring-primary focus:outline-none focus:ring-2 focus:ring-primary",
+          buttonClassName ?? "size-28",
+        )}
         aria-label="Open full profile photo"
       >
         <Image
           src={src}
           alt={alt}
-          width={128}
-          height={128}
+          width={width}
+          height={height}
           priority={priority}
-          className="size-28 object-cover transition group-hover:scale-105"
+          className={cn(
+            "object-cover transition group-hover:scale-105",
+            imageClassName ?? "size-28",
+          )}
         />
         <span className="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-[10px] font-semibold text-white opacity-0 transition group-hover:opacity-100 group-focus:opacity-100">
-          View photo
+          {overlayLabel}
         </span>
       </button>
 

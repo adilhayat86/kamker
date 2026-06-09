@@ -11,7 +11,12 @@ type TrackEventInput = {
     | "whatsapp_click"
     | "requirement_match"
     | "broadcast_sent";
-  targetType: "professional" | "company" | "company_listing" | "requirement";
+  targetType:
+    | "professional"
+    | "company"
+    | "company_listing"
+    | "requirement"
+    | "page";
   targetId?: string | null;
   metadata?: Record<string, string | number | boolean | null>;
 };

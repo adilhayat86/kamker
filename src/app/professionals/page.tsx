@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
@@ -12,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { ContactActionButton } from "@/components/contact-action-button";
+import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import { ProfessionalCard } from "@/components/professional-card";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
@@ -546,13 +546,13 @@ function DbProfessionalCard({
     >
       <CardContent className="p-4">
         <div className="flex gap-4">
-          <Image
+          <ProfilePhotoViewer
             src={professional.profile_photo_url || "/kamker-professionals.png"}
             alt={`${professional.full_name} profile photo`}
             width={88}
             height={88}
-            loading="lazy"
-            className="size-20 rounded-full bg-accent object-cover"
+            buttonClassName="size-20"
+            imageClassName="size-20"
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -686,13 +686,13 @@ function ConversionProfessionalCard({
     >
       <CardContent className="flex h-full flex-col p-3.5 sm:p-4">
         <div className="flex gap-3.5">
-          <Image
+          <ProfilePhotoViewer
             src={professional.profile_photo_url || "/kamker-professionals.png"}
             alt={`${professional.full_name} profile photo`}
             width={88}
             height={88}
-            loading="lazy"
-            className="size-20 shrink-0 rounded-full bg-accent object-cover"
+            buttonClassName="size-20"
+            imageClassName="size-20"
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2">

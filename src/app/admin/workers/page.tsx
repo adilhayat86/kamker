@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -21,6 +20,7 @@ import {
 } from "@/components/admin/admin-ui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import {
   isAdminAuthenticated,
   isAdminPasswordConfigured,
@@ -142,12 +142,13 @@ function WorkerCard({
     <div className="rounded-xl border bg-white p-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex gap-3">
-          <Image
+          <ProfilePhotoViewer
             src={worker.profile_photo_url ?? fallbackProfessionalImage()}
             alt={`${worker.full_name} profile photo`}
             width={72}
             height={72}
-            className="size-16 rounded-full bg-accent object-cover"
+            buttonClassName="size-16"
+            imageClassName="size-16"
           />
           <div>
             <div className="flex flex-wrap items-center gap-2">

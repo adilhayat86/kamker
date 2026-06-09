@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { BadgeCheck, Building2, MapPin, Sparkles, Star } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { ContactActionButton } from "@/components/contact-action-button";
 import { PageNavigation } from "@/components/page-navigation";
+import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -158,13 +158,14 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5 sm:p-7">
             <div className="grid gap-6 md:grid-cols-[180px_1fr]">
-              <Image
+              <ProfilePhotoViewer
                 src={listing.profile_photo_url ?? listing.photo_url ?? "/kamker-professionals.png"}
                 alt={`${listing.title} profile photo`}
                 width={180}
                 height={180}
                 priority
-                className="size-36 rounded-2xl bg-accent object-cover sm:size-44"
+                buttonClassName="size-36 rounded-2xl sm:size-44"
+                imageClassName="size-36 rounded-2xl sm:size-44"
               />
               <div>
                 <div className="flex flex-wrap gap-2">
