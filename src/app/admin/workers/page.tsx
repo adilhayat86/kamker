@@ -131,6 +131,119 @@ function duplicatePhoneGroups(workers: WorkerRow[]) {
   return Array.from(groups.entries()).filter(([, rows]) => rows.length > 1);
 }
 
+function WorkerCard({
+  worker,
+  adminAuthenticated,
+}: {
+  worker: WorkerRow;
+  adminAuthenticated: boolean;
+}) {
+  return (
+    <div className="rounded-xl border bg-white p-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex gap-3">
+          <Image
+            src={worker.profile_photo_url ?? fallbackProfessionalImage()}
+            alt={`${worker.full_name} profile photo`}
+            width={72}
+            height={72}
+            className="size-16 rounded-full bg-accent object-cover"
+          />
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-semibold">{worker.full_name}</h2>
+              <AdminStatusBadge>{worker.is_active ? "Approved" : "Unapproved"}</AdminStatusBadge>
+              {worker.is_featured ? <Badge>Featured</Badge> : null}
+              {worker.is_cnic_verified ? <Badge variant="outline">CNIC verified</Badge> : null}
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {worker.categories?.name ?? "Professional"} - {worker.cities?.name ?? "Unknown city"}
+              {worker.area ? ` - ${worker.area}` : ""}
+            </p>
+            <p className="mt-2 text-sm font-medium">{worker.tagline ?? "No tagline added"}</p>
+          </div>
+        </div>
+        <Button asChild variant="outline" className="w-full lg:w-auto">
+          <Link href={`/professionals/${worker.id}`}>View Public Profile</Link>
+        </Button>
+      </div>
+
+      <div className="mt-4">
+        <AdminMetaGrid
+          items={[
+            { label: "Phone", value: worker.phone_number ?? "Removed / not provided" },
+            { label: "WhatsApp", value: worker.whatsapp_number ?? "Not provided" },
+            { label: "Age", value: worker.age ?? "Not added" },
+            { label: "Gender", value: worker.gender ?? "Not provided" },
+            { label: "Availability", value: worker.availability ?? "Not provided" },
+            { label: "Hourly Rate", value: worker.expected_rate ?? "Not provided" },
+            { label: "Experience", value: `${worker.years_experience ?? 0} years` },
+            { label: "Phone Verified", value: worker.is_phone_verified ? "Yes" : "No" },
+            { label: "CNIC", value: worker.cnic ? "Provided" : "Not provided" },
+          ]}
+        />
+      </div>
+
+      {worker.short_bio ? (
+        <p className="mt-4 text-sm leading-6 text-muted-foreground">{worker.short_bio}</p>
+      ) : null}
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        <form action={approveProfessional}>
+          <input type="hidden" name="professionalId" value={worker.id} />
+          <Button className="w-full" disabled={!adminAuthenticated || worker.is_active}>Approve</Button>
+        </form>
+        <form action={rejectProfessional}>
+          <input type="hidden" name="professionalId" value={worker.id} />
+          <Button className="w-full" variant="outline" disabled={!adminAuthenticated || !worker.is_active}>Move to Unapproved</Button>
+        </form>
+        <form action={verifyCnic}>
+          <input type="hidden" name="professionalId" value={worker.id} />
+          <Button className="w-full" variant="outline" disabled={!adminAuthenticated || worker.is_cnic_verified}>Mark CNIC Verified</Button>
+        </form>
+        <form action={makeProfessionalFeatured} className="grid gap-2">
+          <input type="hidden" name="professionalId" value={worker.id} />
+          <input
+            name="featuredUntil"
+            type="date"
+            defaultValue={dateInputValue(worker.featured_until)}
+            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          />
+          <Button disabled={!adminAuthenticated}>Make Featured</Button>
+        </form>
+        <form action={removeProfessionalFeatured}>
+          <input type="hidden" name="professionalId" value={worker.id} />
+          <Button className="w-full" variant="outline" disabled={!adminAuthenticated || !worker.is_featured}>Remove Featured</Button>
+        </form>
+      </div>
+
+      <form action={deleteProfessional} className="mt-4 grid gap-2 rounded-lg border border-red-200 bg-red-50 p-3 sm:grid-cols-[1fr_auto]">
+        <input type="hidden" name="professionalId" value={worker.id} />
+        <input
+          name="confirmDelete"
+          placeholder="Type DELETE to reject/delete"
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+        />
+        <Button className="bg-red-600 text-white hover:bg-red-700" disabled={!adminAuthenticated}>
+          Reject/Delete Profile
+        </Button>
+      </form>
+
+      <form action={removeDisputedProfessionalNumber} className="mt-3 grid gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 sm:grid-cols-[1fr_auto]">
+        <input type="hidden" name="professionalId" value={worker.id} />
+        <input
+          name="confirmRemoveNumber"
+          placeholder="Type REMOVE NUMBER after proof"
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+        />
+        <Button className="bg-amber-600 text-white hover:bg-amber-700" disabled={!adminAuthenticated || !worker.phone_number}>
+          Remove Claimed Number
+        </Button>
+      </form>
+    </div>
+  );
+}
+
 export default async function AdminWorkersPage({ searchParams }: WorkersPageProps) {
   const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
@@ -142,6 +255,14 @@ export default async function AdminWorkersPage({ searchParams }: WorkersPageProp
   const params = await searchParams;
   const workers = await getWorkers({ q: params?.q, status: params?.status });
   const duplicatePhones = duplicatePhoneGroups(workers);
+  const unapprovedWorkers = workers.filter((worker) => !worker.is_active);
+  const approvedWorkers = workers.filter((worker) => worker.is_active);
+  const statusLabel =
+    params?.status === "pending"
+      ? "unapproved"
+      : params?.status === "approved"
+        ? "approved"
+        : params?.status ?? "all";
 
   return (
     <AdminShell
@@ -189,115 +310,32 @@ export default async function AdminWorkersPage({ searchParams }: WorkersPageProp
         </div>
       </AdminSection>
 
-      <AdminSection title="Worker Profiles" description={`${workers.length} profile${workers.length === 1 ? "" : "s"} loaded.`}>
+      <AdminSection
+        title="Unapproved Workers"
+        description={`${unapprovedWorkers.length} unapproved profile${unapprovedWorkers.length === 1 ? "" : "s"} loaded for the current ${statusLabel} filter. Approving a worker moves them into the Approved Workers section.`}
+      >
         <div className="grid gap-4">
-          {workers.length > 0 ? (
-            workers.map((worker) => (
-              <div key={worker.id} className="rounded-xl border bg-white p-4">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="flex gap-3">
-                    <Image
-                      src={worker.profile_photo_url ?? fallbackProfessionalImage()}
-                      alt={`${worker.full_name} profile photo`}
-                      width={72}
-                      height={72}
-                      className="size-16 rounded-full bg-accent object-cover"
-                    />
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="font-semibold">{worker.full_name}</h2>
-                        <AdminStatusBadge>{worker.is_active ? "Approved" : "Pending"}</AdminStatusBadge>
-                        {worker.is_featured ? <Badge>Featured</Badge> : null}
-                        {worker.is_cnic_verified ? <Badge variant="outline">CNIC verified</Badge> : null}
-                      </div>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {worker.categories?.name ?? "Professional"} - {worker.cities?.name ?? "Unknown city"}
-                        {worker.area ? ` - ${worker.area}` : ""}
-                      </p>
-                      <p className="mt-2 text-sm font-medium">{worker.tagline ?? "No tagline added"}</p>
-                    </div>
-                  </div>
-                  <Button asChild variant="outline" className="w-full lg:w-auto">
-                    <Link href={`/professionals/${worker.id}`}>View Public Profile</Link>
-                  </Button>
-                </div>
-
-                <div className="mt-4">
-                  <AdminMetaGrid
-                    items={[
-                      { label: "Phone", value: worker.phone_number ?? "Removed / not provided" },
-                      { label: "WhatsApp", value: worker.whatsapp_number ?? "Not provided" },
-                      { label: "Age", value: worker.age ?? "Not added" },
-                      { label: "Gender", value: worker.gender ?? "Not provided" },
-                      { label: "Availability", value: worker.availability ?? "Not provided" },
-                      { label: "Hourly Rate", value: worker.expected_rate ?? "Not provided" },
-                      { label: "Experience", value: `${worker.years_experience ?? 0} years` },
-                      { label: "Phone Verified", value: worker.is_phone_verified ? "Yes" : "No" },
-                      { label: "CNIC", value: worker.cnic ? "Provided" : "Not provided" },
-                    ]}
-                  />
-                </div>
-
-                {worker.short_bio ? (
-                  <p className="mt-4 text-sm leading-6 text-muted-foreground">{worker.short_bio}</p>
-                ) : null}
-
-                <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-                  <form action={approveProfessional}>
-                    <input type="hidden" name="professionalId" value={worker.id} />
-                    <Button className="w-full" disabled={!adminAuthenticated || worker.is_active}>Approve</Button>
-                  </form>
-                  <form action={rejectProfessional}>
-                    <input type="hidden" name="professionalId" value={worker.id} />
-                    <Button className="w-full" variant="outline" disabled={!adminAuthenticated || !worker.is_active}>Keep Pending</Button>
-                  </form>
-                  <form action={verifyCnic}>
-                    <input type="hidden" name="professionalId" value={worker.id} />
-                    <Button className="w-full" variant="outline" disabled={!adminAuthenticated || worker.is_cnic_verified}>Mark CNIC Verified</Button>
-                  </form>
-                  <form action={makeProfessionalFeatured} className="grid gap-2">
-                    <input type="hidden" name="professionalId" value={worker.id} />
-                    <input
-                      name="featuredUntil"
-                      type="date"
-                      defaultValue={dateInputValue(worker.featured_until)}
-                      className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                    />
-                    <Button disabled={!adminAuthenticated}>Make Featured</Button>
-                  </form>
-                  <form action={removeProfessionalFeatured}>
-                    <input type="hidden" name="professionalId" value={worker.id} />
-                    <Button className="w-full" variant="outline" disabled={!adminAuthenticated || !worker.is_featured}>Remove Featured</Button>
-                  </form>
-                </div>
-
-                <form action={deleteProfessional} className="mt-4 grid gap-2 rounded-lg border border-red-200 bg-red-50 p-3 sm:grid-cols-[1fr_auto]">
-                  <input type="hidden" name="professionalId" value={worker.id} />
-                  <input
-                    name="confirmDelete"
-                    placeholder="Type DELETE to reject/delete"
-                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                  />
-                  <Button className="bg-red-600 text-white hover:bg-red-700" disabled={!adminAuthenticated}>
-                    Reject/Delete Profile
-                  </Button>
-                </form>
-
-                <form action={removeDisputedProfessionalNumber} className="mt-3 grid gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 sm:grid-cols-[1fr_auto]">
-                  <input type="hidden" name="professionalId" value={worker.id} />
-                  <input
-                    name="confirmRemoveNumber"
-                    placeholder="Type REMOVE NUMBER after proof"
-                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                  />
-                  <Button className="bg-amber-600 text-white hover:bg-amber-700" disabled={!adminAuthenticated || !worker.phone_number}>
-                    Remove Claimed Number
-                  </Button>
-                </form>
-              </div>
+          {unapprovedWorkers.length > 0 ? (
+            unapprovedWorkers.map((worker) => (
+              <WorkerCard key={worker.id} worker={worker} adminAuthenticated={adminAuthenticated} />
             ))
           ) : (
-            <AdminEmptyState>No worker profiles match this filter.</AdminEmptyState>
+            <AdminEmptyState>No unapproved worker profiles match this filter.</AdminEmptyState>
+          )}
+        </div>
+      </AdminSection>
+
+      <AdminSection
+        title="Approved Workers"
+        description={`${approvedWorkers.length} approved profile${approvedWorkers.length === 1 ? "" : "s"} loaded for the current ${statusLabel} filter.`}
+      >
+        <div className="grid gap-4">
+          {approvedWorkers.length > 0 ? (
+            approvedWorkers.map((worker) => (
+              <WorkerCard key={worker.id} worker={worker} adminAuthenticated={adminAuthenticated} />
+            ))
+          ) : (
+            <AdminEmptyState>No approved worker profiles match this filter.</AdminEmptyState>
           )}
         </div>
       </AdminSection>
