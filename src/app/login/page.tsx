@@ -72,6 +72,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                   <input
                     name="phone"
                     type="tel"
+                    maxLength={16}
                     className="h-11 w-full rounded-md border border-input bg-background px-3 pl-9 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     placeholder="Phone number"
                   />

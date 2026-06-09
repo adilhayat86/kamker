@@ -107,6 +107,7 @@ export default async function CustomerRegisterPage({
                 placeholder="0300 1234567"
                 defaultValue={draft.phone}
                 error={errorFor("phone")}
+                maxLength={16}
                 required
               />
               <SelectField

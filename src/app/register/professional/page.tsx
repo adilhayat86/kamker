@@ -183,7 +183,7 @@ export default async function ProfessionalRegisterPage({
                 </div>
                 <PhotoUploadField />
                 <FormField label="Full name" name="fullName" defaultValue={draft.fullName} error={errorFor("fullName")} required />
-                <FormField label="Phone number" name="phone" type="tel" placeholder="0300 1234567" defaultValue={draft.phone} error={errorFor("phone")} required />
+                <FormField label="Phone number" name="phone" type="tel" placeholder="0300 1234567" defaultValue={draft.phone} error={errorFor("phone")} maxLength={16} required />
                 <CountryPhoneField label="WhatsApp number" name="whatsapp" defaultValue={draft.whatsapp} error={errorFor("whatsapp")} />
                 <SelectField label="City" name="city" options={cityOptions} defaultValue={draft.city} error={errorFor("city")} required />
                 <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" defaultValue={draft.area} />

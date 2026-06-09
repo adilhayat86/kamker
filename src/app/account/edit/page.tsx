@@ -206,6 +206,7 @@ export default async function EditAccountPage({
                     name="phone"
                     type="tel"
                     value={phoneNumber}
+                    maxLength={16}
                     disabled
                   />
                   <TextInput
@@ -224,6 +225,7 @@ export default async function EditAccountPage({
                     type="tel"
                     value={phoneNumber}
                     error={phoneError}
+                    maxLength={16}
                   />
                   <CountryPhoneField
                     label="WhatsApp number"

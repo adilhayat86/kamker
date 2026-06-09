@@ -206,6 +206,7 @@ export default async function SendRequirementPage({
                   type="tel"
                   placeholder="0300 1234567"
                   defaultValue={draft.phone}
+                  maxLength={16}
                   required
                   error={phoneError}
                 />
