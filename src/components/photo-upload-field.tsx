@@ -268,7 +268,6 @@ export function PhotoUploadField({
       setUploadState("attached");
       setMessage("Photo attached. Continue registration.");
     } catch (error) {
-      clearSelectedFile(input);
       setUploadedUrl("");
       setUploadState("failed");
       setInputError(input);
@@ -278,7 +277,7 @@ export function PhotoUploadField({
           : error instanceof Error && error.message.startsWith("upload-")
             ? `Cloudinary rejected this upload (${error.message.replace("upload-", "")}).`
             : "Photo upload failed.";
-      setMessage(`${reason} Submit without photo or choose another photo.`);
+      setMessage(`${reason} The selected photo is still attached; submit again or choose another photo.`);
     }
   }
 

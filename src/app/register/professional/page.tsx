@@ -6,6 +6,7 @@ import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { PhotoUploadField } from "@/components/photo-upload-field";
+import { RegistrationSensitiveFieldRestore } from "@/components/registration-sensitive-field-restore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -28,7 +29,7 @@ const statusMessages = {
   "local-success":
     "Test worker saved locally because Supabase is not configured. Configure Supabase for real registrations and login.",
   missing:
-    "Fix the highlighted fields. For security, password and photo are not saved after the form leaves this page, but the browser now blocks missing required fields before sending.",
+    "Fix the highlighted fields. Your typed values, password, and selected photo should remain on this device so you can correct the form.",
   "not-configured": "Supabase is not configured yet.",
   "invalid-photo": "Upload a jpg, png, or webp image under 10MB.",
   "photo-error": "Could not upload profile photo. Please try again.",
@@ -71,6 +72,11 @@ export default async function ProfessionalRegisterPage({
   const status = params?.status;
   const source = params?.source?.trim() ?? "";
   const statusMessage = status ? statusMessages[status] : null;
+  const shouldRestoreSensitiveFields =
+    status === "missing" ||
+    status === "invalid-photo" ||
+    status === "photo-error" ||
+    status === "error";
   const draft = await getFormDraft<ProfessionalDraft>("professional");
   const cityOptions = await getCityOptions();
   const failedFields = new Set(
@@ -167,6 +173,7 @@ export default async function ProfessionalRegisterPage({
               </div>
             </div>
             <form action={registerProfessional} className="grid gap-6">
+              <RegistrationSensitiveFieldRestore restoreOnMount={shouldRestoreSensitiveFields} />
               <input type="hidden" name="source" value={source} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
