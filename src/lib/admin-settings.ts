@@ -4,7 +4,7 @@ const AUTO_APPROVE_KEY = "auto_approve_professionals";
 
 export async function getAutoApproveProfessionals() {
   if (!isSupabaseConfigured || !supabase) {
-    return false;
+    return true;
   }
 
   const { data, error } = await supabase
@@ -15,10 +15,10 @@ export async function getAutoApproveProfessionals() {
 
   if (error) {
     console.error("Failed to load auto approval setting", error);
-    return false;
+    return true;
   }
 
-  return data?.value === "true";
+  return data?.value !== "false";
 }
 
 export async function setAutoApproveProfessionals(enabled: boolean) {

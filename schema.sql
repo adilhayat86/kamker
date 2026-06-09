@@ -205,7 +205,7 @@ create table if not exists admin_settings (
 );
 
 insert into admin_settings (key, value)
-values ('auto_approve_professionals', 'false')
+values ('auto_approve_professionals', 'true')
 on conflict (key) do nothing;
 
 alter table professionals add column if not exists gender text;
