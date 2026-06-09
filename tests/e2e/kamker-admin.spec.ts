@@ -108,7 +108,7 @@ test.describe("Kamker admin operations smoke tests", () => {
     const pages = [
       {
         route: "/admin/workers",
-        requiredText: ["Search & Filters", "Worker Profiles"],
+        requiredText: ["Search & Filters", "Unapproved Workers", "Approved Workers"],
       },
       {
         route: "/admin/companies",

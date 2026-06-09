@@ -27,13 +27,11 @@ if (supabaseHostname) {
   );
 }
 
-if (cloudinaryCloudName) {
-  remotePatterns.push({
-    protocol: "https",
-    hostname: "res.cloudinary.com",
-    pathname: `/${cloudinaryCloudName}/**`,
-  });
-}
+remotePatterns.push({
+  protocol: "https",
+  hostname: "res.cloudinary.com",
+  pathname: cloudinaryCloudName ? `/${cloudinaryCloudName}/**` : "/**",
+});
 
 const sharedConfig: NextConfig = {
   experimental: {

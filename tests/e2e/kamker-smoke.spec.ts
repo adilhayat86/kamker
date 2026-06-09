@@ -84,7 +84,6 @@ test.describe("Kamker public smoke tests", () => {
       'select[name="city"]',
       'select[name="gender"]',
       'input[name="age"]',
-      'select[name="category"]',
       'select[name="availabilityTime"]',
       'select[name="availabilityDays"]',
       'input[name="rate"]',
@@ -98,6 +97,8 @@ test.describe("Kamker public smoke tests", () => {
       await expect(page.locator(selector), selector).toBeVisible();
     }
 
+    await expect(page.getByLabel("Profession/category")).toBeVisible();
+    await expect(page.locator('input[name="category"]')).toHaveCount(1);
     await expect(page.locator('select[name="availabilityTime"]')).toContainText("Morning");
     await expect(page.locator('select[name="availabilityTime"]')).toContainText("Evening");
     await expect(page.locator('select[name="availabilityTime"]')).toContainText("Full Time");
