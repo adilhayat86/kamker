@@ -73,6 +73,7 @@ function MenuItem({ href, label, icon: Icon }: MenuLink) {
   return (
     <Link
       href={href}
+      prefetch={false}
       className="flex min-h-9 items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
     >
       <Icon className="size-4 text-primary" aria-hidden />
@@ -85,6 +86,7 @@ function LogoutLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
+      prefetch={false}
       className="flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm font-medium text-destructive hover:bg-destructive/10"
     >
       <LogOut className="size-4" aria-hidden />
