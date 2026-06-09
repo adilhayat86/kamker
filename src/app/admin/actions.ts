@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { recordAdminAudit } from "@/lib/admin-audit";
 import { requireAdmin } from "@/lib/admin-auth";
@@ -1159,13 +1160,16 @@ export async function updateAutoApprovalMode(formData: FormData) {
     return;
   }
 
-  await setAutoApproveProfessionals(formData.get("autoApprove") === "on");
+  const enabled = formData.get("autoApprove") === "on";
+
+  await setAutoApproveProfessionals(enabled);
   await recordAdminAudit({
     action: "update_auto_approval",
     targetType: "admin_setting",
     targetId: "auto_approve_professionals",
-    metadata: { enabled: formData.get("autoApprove") === "on" },
+    metadata: { enabled },
   });
   revalidatePath("/admin");
   revalidatePath("/admin/settings");
+  redirect(`/admin/settings?status=${enabled ? "auto-approval-on" : "auto-approval-off"}`);
 }

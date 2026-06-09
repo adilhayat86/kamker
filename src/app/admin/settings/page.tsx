@@ -21,7 +21,18 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminSettingsPage() {
+const statusMessages = {
+  "auto-approval-on": "Auto-approval is ON. New workers will be approved immediately after registration.",
+  "auto-approval-off": "Auto-approval is OFF. New workers will go to Unapproved Workers for admin review.",
+} as const;
+
+type AdminSettingsPageProps = {
+  searchParams?: Promise<{
+    status?: keyof typeof statusMessages;
+  }>;
+};
+
+export default async function AdminSettingsPage({ searchParams }: AdminSettingsPageProps) {
   const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
@@ -29,6 +40,8 @@ export default async function AdminSettingsPage() {
     redirect("/admin/login");
   }
 
+  const params = await searchParams;
+  const statusMessage = params?.status ? statusMessages[params.status] : null;
   const [autoApprove, health] = await Promise.all([
     getAutoApproveProfessionals(),
     getSystemHealth(),
@@ -40,6 +53,12 @@ export default async function AdminSettingsPage() {
       title="Settings"
       description="Operational toggles and configuration readiness. Secret values are never shown."
     >
+      {statusMessage ? (
+        <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm font-semibold text-sky-900">
+          {statusMessage}
+        </div>
+      ) : null}
+
       {!health.adminAuth ? (
         <AdminWarning title="Admin auth needs setup">
           Set KAMKER_OWNER_ADMIN_PASSWORD, optional KAMKER_MANAGER_ADMIN_PASSWORD,
@@ -49,6 +68,12 @@ export default async function AdminSettingsPage() {
 
       <AdminSection title="Auto-Approval Mode" description="Controls whether new individual worker profiles appear publicly without manual review.">
         <form action={updateAutoApprovalMode} className="max-w-md rounded-lg border bg-slate-50 p-4">
+          <div className="mb-4 flex items-center justify-between rounded-lg bg-white px-3 py-2 text-sm">
+            <span className="font-medium">Current mode</span>
+            <span className={autoApprove ? "font-bold text-emerald-700" : "font-bold text-amber-700"}>
+              {autoApprove ? "ON" : "OFF"}
+            </span>
+          </div>
           <label className="flex items-center gap-3 text-sm font-medium">
             <input
               name="autoApprove"
