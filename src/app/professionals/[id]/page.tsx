@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BadgeCheck, Crown, MapPin, MessageCircle, Phone, Send, Star } from "lucide-react";
 
 import { ContactActionButton } from "@/components/contact-action-button";
 import { PageNavigation } from "@/components/page-navigation";
+import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -149,13 +149,10 @@ export default async function ProfessionalProfilePage({
           <Card className="mt-6 bg-white shadow-sm">
             <CardContent className="p-5">
               <div className="flex flex-col gap-5 sm:flex-row">
-                <Image
+                <ProfilePhotoViewer
                   src={dbProfessional.profile_photo_url || "/kamker-professionals.png"}
                   alt={`${dbProfessional.full_name} profile photo`}
-                  width={128}
-                  height={128}
                   priority
-                  className="size-28 rounded-full bg-accent object-cover"
                 />
                 <div className="flex-1">
                   <Badge className="gap-1 bg-primary text-primary-foreground">
@@ -315,13 +312,10 @@ export default async function ProfessionalProfilePage({
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
             <div className="flex flex-col gap-5 sm:flex-row">
-              <Image
+              <ProfilePhotoViewer
                 src={professional.image}
                 alt={`${professional.name} profile photo`}
-                width={128}
-                height={128}
                 priority
-                className="size-28 rounded-full bg-accent object-cover"
               />
               <div className="flex-1">
                 <Badge className="gap-1 bg-primary text-primary-foreground">
