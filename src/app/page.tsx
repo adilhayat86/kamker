@@ -211,20 +211,17 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {stats.map(([value, label]) => (
-            <Card key={label} className="border-primary/10 bg-white shadow-sm"><CardContent className="p-4 text-center sm:p-6"><p className="text-2xl font-bold text-primary sm:text-4xl">{value}</p><p className="mt-1.5 text-sm font-semibold text-muted-foreground">{label}</p></CardContent></Card>
-          ))}
-        </div>
-      </section>
-
       <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8"><AdBanner label="Reserved ad space below hero" /></section>
 
       <section id="categories" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="flex items-end justify-between gap-4"><div><p className="text-sm font-semibold uppercase tracking-normal text-primary">Popular services</p><h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">Browse by service group</h2></div></div>
         <CategoryGrid categories={parentCategories} />
         <Button asChild variant="outline" className="mt-5 h-12 w-full sm:w-auto"><Link href="/categories">View All Categories</Link></Button>
+        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {stats.map(([value, label]) => (
+            <Card key={label} className="border-primary/10 bg-white shadow-sm"><CardContent className="p-4 text-center sm:p-6"><p className="text-2xl font-bold text-primary sm:text-4xl">{value}</p><p className="mt-1.5 text-sm font-semibold text-muted-foreground">{label}</p></CardContent></Card>
+          ))}
+        </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8"><AdBanner label="Reserved ad space after categories" /></section>
