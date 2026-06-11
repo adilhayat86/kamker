@@ -7,6 +7,7 @@ type CountryPhoneFieldProps = {
   defaultValue?: string | null;
   error?: string;
   required?: boolean;
+  helperText?: string;
 };
 
 function detectedCountryCode(value: string | null | undefined) {
@@ -40,10 +41,17 @@ export function CountryPhoneField({
   defaultValue,
   error,
   required = false,
+  helperText,
 }: CountryPhoneFieldProps) {
+  const helpId = helperText ? `${name}-help` : undefined;
+  const errorId = error ? `${name}-error` : undefined;
+
   return (
     <label className="grid gap-2">
-      <span className="text-sm font-medium">{label}</span>
+      <span className="text-sm font-medium">
+        {label}
+        {required ? <span className="ml-1 text-red-600">*</span> : null}
+      </span>
       <div
         className={cn(
           "grid grid-cols-[112px_1fr] overflow-hidden rounded-md border border-input bg-background shadow-sm focus-within:ring-2 focus-within:ring-ring",
@@ -53,6 +61,7 @@ export function CountryPhoneField({
         <select
           name={`${name}CountryCode`}
           defaultValue={detectedCountryCode(defaultValue)}
+          aria-label={`${label} country code`}
           className="h-11 border-r bg-background px-2 text-sm outline-none"
         >
           {countryCodeOptions.map((option) => (
@@ -67,12 +76,18 @@ export function CountryPhoneField({
           inputMode="tel"
           defaultValue={localPhoneValue(defaultValue)}
           required={required}
+          aria-describedby={[helpId, errorId].filter(Boolean).join(" ") || undefined}
           aria-invalid={Boolean(error)}
-          placeholder="300 5314191"
+          placeholder="Local mobile number"
           className="h-11 min-w-0 bg-transparent px-3 text-sm outline-none placeholder:text-muted-foreground"
         />
       </div>
-      {error ? <span className="text-xs font-medium text-red-600">{error}</span> : null}
+      {helperText ? (
+        <span id={helpId} className="text-xs leading-5 text-muted-foreground">
+          {helperText}
+        </span>
+      ) : null}
+      {error ? <span id={errorId} className="text-xs font-medium text-red-600">{error}</span> : null}
     </label>
   );
 }
