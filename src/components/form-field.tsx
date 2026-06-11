@@ -1,17 +1,45 @@
+import type { HTMLInputTypeAttribute, InputHTMLAttributes } from "react";
+
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+
+type FieldLabelProps = {
+  label: string;
+  required?: boolean;
+};
+
+function FieldLabel({ label, required }: FieldLabelProps) {
+  return (
+    <span className="text-sm font-medium">
+      {label}
+      {required ? (
+        <>
+          <span aria-hidden="true" className="ml-1 text-red-600">
+            *
+          </span>
+          <span className="sr-only"> required</span>
+        </>
+      ) : null}
+    </span>
+  );
+}
 
 type FormFieldProps = {
   label: string;
   name: string;
   placeholder?: string;
-  type?: string;
+  type?: HTMLInputTypeAttribute;
   defaultValue?: string;
   maxLength?: number;
   error?: string;
   required?: boolean;
   min?: number;
   max?: number;
+  helperText?: string;
+  autoComplete?: string;
+  inputMode?: InputHTMLAttributes<HTMLInputElement>["inputMode"];
+  pattern?: string;
+  title?: string;
 };
 
 export function FormField({
@@ -25,10 +53,18 @@ export function FormField({
   required,
   min,
   max,
+  helperText,
+  autoComplete,
+  inputMode,
+  pattern,
+  title,
 }: FormFieldProps) {
+  const helpId = helperText ? `${name}-help` : undefined;
+  const errorId = error ? `${name}-error` : undefined;
+
   return (
     <label className="grid gap-2">
-      <span className="text-sm font-medium">{label}</span>
+      <FieldLabel label={label} required={required} />
       <Input
         name={name}
         placeholder={placeholder ?? label}
@@ -38,10 +74,20 @@ export function FormField({
         required={required}
         min={min}
         max={max}
+        autoComplete={autoComplete}
+        inputMode={inputMode}
+        pattern={pattern}
+        title={title}
+        aria-describedby={[helpId, errorId].filter(Boolean).join(" ") || undefined}
         aria-invalid={Boolean(error)}
         className={error ? "border-red-500 bg-red-50 focus-visible:ring-red-500" : undefined}
       />
-      {error ? <span className="text-xs font-medium text-red-600">{error}</span> : null}
+      {helperText ? (
+        <span id={helpId} className="text-xs leading-5 text-muted-foreground">
+          {helperText}
+        </span>
+      ) : null}
+      {error ? <span id={errorId} className="text-xs font-medium text-red-600">{error}</span> : null}
     </label>
   );
 }
@@ -53,6 +99,7 @@ type TextAreaFieldProps = {
   defaultValue?: string;
   error?: string;
   required?: boolean;
+  helperText?: string;
 };
 
 export function TextAreaField({
@@ -62,22 +109,32 @@ export function TextAreaField({
   defaultValue,
   error,
   required,
+  helperText,
 }: TextAreaFieldProps) {
+  const helpId = helperText ? `${name}-help` : undefined;
+  const errorId = error ? `${name}-error` : undefined;
+
   return (
     <label className="grid gap-2">
-      <span className="text-sm font-medium">{label}</span>
+      <FieldLabel label={label} required={required} />
       <textarea
         name={name}
         placeholder={placeholder ?? label}
         defaultValue={defaultValue}
         required={required}
+        aria-describedby={[helpId, errorId].filter(Boolean).join(" ") || undefined}
         aria-invalid={Boolean(error)}
         className={cn(
           "min-h-28 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
           error && "border-red-500 bg-red-50 focus-visible:ring-red-500",
         )}
       />
-      {error ? <span className="text-xs font-medium text-red-600">{error}</span> : null}
+      {helperText ? (
+        <span id={helpId} className="text-xs leading-5 text-muted-foreground">
+          {helperText}
+        </span>
+      ) : null}
+      {error ? <span id={errorId} className="text-xs font-medium text-red-600">{error}</span> : null}
     </label>
   );
 }
@@ -92,6 +149,7 @@ type SelectFieldProps = {
   placeholder?: string;
   error?: string;
   required?: boolean;
+  helperText?: string;
 };
 
 export function SelectField({
@@ -102,14 +160,19 @@ export function SelectField({
   placeholder,
   error,
   required,
+  helperText,
 }: SelectFieldProps) {
+  const helpId = helperText ? `${name}-help` : undefined;
+  const errorId = error ? `${name}-error` : undefined;
+
   return (
     <label className="grid gap-2">
-      <span className="text-sm font-medium">{label}</span>
+      <FieldLabel label={label} required={required} />
       <select
         name={name}
         defaultValue={defaultValue}
         required={required}
+        aria-describedby={[helpId, errorId].filter(Boolean).join(" ") || undefined}
         aria-invalid={Boolean(error)}
         className={cn(
           "h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -130,7 +193,12 @@ export function SelectField({
           );
         })}
       </select>
-      {error ? <span className="text-xs font-medium text-red-600">{error}</span> : null}
+      {helperText ? (
+        <span id={helpId} className="text-xs leading-5 text-muted-foreground">
+          {helperText}
+        </span>
+      ) : null}
+      {error ? <span id={errorId} className="text-xs font-medium text-red-600">{error}</span> : null}
     </label>
   );
 }
