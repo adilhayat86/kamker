@@ -20,6 +20,120 @@ type CategoryLookupRow = {
   parent_id: number | null;
 };
 
+const extraCategoryAliases: Record<string, string[]> = {
+  Plumbers: [
+    "sanitary worker",
+    "sanitary wala",
+    "sanitary plumber",
+    "sanitary fitting",
+    "bathroom repair",
+    "water pipe repair",
+    "leak repair",
+    "pipe repair",
+    "pipe fitting",
+    "drain cleaner",
+    "drain cleaning",
+    "sewerage worker",
+    "water tank fitting",
+  ],
+  Electricians: [
+    "electrical man",
+    "electric man",
+    "bijli wala",
+    "bijli ka kaam",
+    "wiring expert",
+    "wiring electrician",
+    "house wiring",
+    "light fitting",
+    "switch board repair",
+    "ups wiring",
+  ],
+  Drivers: [
+    "chauffeur",
+    "private driver",
+    "personal driver",
+    "family driver",
+    "pick and drop driver",
+    "pick drop",
+    "school van driver",
+    "car wala",
+  ],
+  Maids: [
+    "home worker",
+    "house worker",
+    "domestic help",
+    "housemaid",
+    "cleaning maid",
+    "sweeper",
+    "safai kaam",
+  ],
+  Housekeepers: [
+    "house keeper",
+    "home manager",
+    "house manager",
+    "housekeeping",
+    "room attendant",
+  ],
+  Cleaners: [
+    "cleaning lady",
+    "cleaning woman",
+    "sanitation worker",
+    "sweeper",
+    "safai worker",
+    "office cleaner",
+  ],
+  Babysitters: [
+    "nanny",
+    "child minder",
+    "child care worker",
+    "baby care",
+    "baby care taker",
+  ],
+  Caregivers: [
+    "care taker",
+    "caretaker",
+    "elderly care",
+    "elder care",
+    "patient care",
+    "home nurse",
+    "attendant",
+    "patient attendant",
+  ],
+  Nurses: [
+    "home nurse",
+    "male nurse",
+    "female nurse",
+    "patient care",
+    "medical attendant",
+  ],
+  "Car Mechanics": [
+    "mechanic",
+    "auto mechanic",
+    "car repair",
+    "engine mechanic",
+    "motor mechanic",
+    "vehicle mechanic",
+  ],
+  "Auto Electricians": [
+    "auto electrical",
+    "car electrician",
+    "vehicle electrician",
+    "car wiring",
+    "car ac wiring",
+  ],
+  "AC Technicians": [
+    "ac wala",
+    "ac repair",
+    "ac service",
+    "ac mechanic",
+    "air conditioner repair",
+    "split ac repair",
+  ],
+  "School Teachers": ["teacher", "school teacher", "tuition teacher"],
+  "Home Tutors": ["tutor", "home tuition", "private tutor"],
+  "Quran Teachers": ["qari sahib", "quran tutor", "tajweed tutor"],
+};
+
 function normalize(value: string | null | undefined) {
   return (value ?? "")
     .toLowerCase()
@@ -30,6 +144,13 @@ function normalize(value: string | null | undefined) {
 
 function singular(value: string) {
   return value.replace(/s$/, "");
+}
+
+function allTermsForCategory(categoryName: string) {
+  return [
+    ...searchTermsForCategory(categoryName),
+    ...(extraCategoryAliases[categoryName] ?? []),
+  ];
 }
 
 export const getPublicCityLookup = unstable_cache(
@@ -98,7 +219,10 @@ export async function getCategoryIdsByNames(categoryNames: string[]) {
         (category) => normalize(category.name) === normalized,
       );
       const aliasTerms = fallbackCategory
-        ? aliasesForCategory(fallbackCategory.name).map(normalize)
+        ? [
+            ...aliasesForCategory(fallbackCategory.name),
+            ...(extraCategoryAliases[fallbackCategory.name] ?? []),
+          ].map(normalize)
         : [];
 
       return [normalized, singular(normalized), ...aliasTerms];
@@ -131,7 +255,7 @@ export function categoryNamesForSearch(value: string) {
       const nameKey = normalize(category.name);
       const slugKey = normalize(categorySlug(category.name));
       const singularName = singular(nameKey);
-      const searchableTerms = searchTermsForCategory(category.name).map(normalize);
+      const searchableTerms = allTermsForCategory(category.name).map(normalize);
 
       return (
         nameKey.includes(valueKey) ||
