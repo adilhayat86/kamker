@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bot, Crown, ReceiptText, ShieldCheck, Sparkles, UploadCloud } from "lucide-react";
+import { AlertCircle, Bot, Crown, ReceiptText, ShieldCheck, Sparkles, UploadCloud } from "lucide-react";
 
 import { getAccountProfessional, isAccountFeatured } from "@/lib/account";
 import { Button } from "@/components/ui/button";
@@ -90,9 +90,7 @@ export default async function FeaturedProfilePage({
                     Get more visibility on Kamker
                   </h1>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-white/85">
-                    Choose a featured package, upload payment proof, and Kamker
-                    AI will review the screenshot. Clear matching payments can
-                    activate automatically.
+                    Choose a featured package, pay the exact amount, then upload a clear receipt screenshot. Clear matching payments may activate automatically; unclear proofs go to admin review.
                   </p>
                 </div>
               </div>
@@ -119,6 +117,18 @@ export default async function FeaturedProfilePage({
                 <Badge className="mt-3" variant={isFeatured ? "default" : "outline"}>
                   {isFeatured ? "Featured active" : "Get Featured"}
                 </Badge>
+              </div>
+
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                <div className="flex gap-3">
+                  <AlertCircle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                  <div>
+                    <p className="font-semibold">Important before payment</p>
+                    <p>
+                      Pay only after you choose the package below. Use the exact amount shown for that package and keep the receipt screenshot ready. Most clear proofs are reviewed quickly, but admin review can take up to 24 hours.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="rounded-xl border border-primary/20 bg-blue-50 p-4">
@@ -180,7 +190,7 @@ export default async function FeaturedProfilePage({
                       </div>
 
                       <div className="rounded-xl border bg-background p-4">
-                        <p className="text-sm text-muted-foreground">Amount</p>
+                        <p className="text-sm text-muted-foreground">Amount to pay</p>
                         <p className="mt-1 text-3xl font-bold text-primary">
                           {featuredPackage.price}
                         </p>
@@ -196,15 +206,16 @@ export default async function FeaturedProfilePage({
                           value={featuredPackage.key}
                         />
                         <label className="grid gap-2 text-sm font-medium">
-                          Payment screenshot
+                          Payment screenshot <span className="text-red-600">*</span>
                           <input
                             name="proofImage"
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
+                            required
                             className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
                           />
                           <span className="text-xs font-normal text-muted-foreground">
-                            JPG, PNG, or WebP. Maximum 8MB.
+                            Upload the actual receipt screenshot after paying exactly {featuredPackage.price}. JPG, PNG, or WebP. Maximum 8MB.
                           </span>
                         </label>
                         <Button className="h-12">
@@ -236,7 +247,7 @@ export default async function FeaturedProfilePage({
                   <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
                   <p className="mt-3 text-sm font-semibold">Admin audit</p>
                   <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                    Unclear proofs stay pending for Kamker admin review.
+                    Unclear proofs stay pending for Kamker admin review, usually within 24 hours.
                   </p>
                 </div>
               </div>
