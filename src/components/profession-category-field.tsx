@@ -33,11 +33,16 @@ export function ProfessionCategoryField({
   return (
     <div className="grid gap-2">
       <label className="grid gap-2">
-        <span className="text-sm font-medium">Profession/category</span>
+        <span className="text-sm font-medium">
+          Profession/category
+          <span aria-hidden="true" className="ml-1 text-red-600">*</span>
+          <span className="sr-only"> required</span>
+        </span>
         <select
           value={selectedValue}
           onChange={(event) => setSelectedValue(event.target.value)}
           aria-invalid={Boolean(error)}
+          aria-describedby="profession-category-help"
           className={cn(
             "h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
             error && "border-red-500 bg-red-50 focus-visible:ring-red-500",
@@ -55,10 +60,17 @@ export function ProfessionCategoryField({
           <option value={OTHER_VALUE}>Other</option>
         </select>
       </label>
+      <span id="profession-category-help" className="text-xs leading-5 text-muted-foreground">
+        Choose the service customers will search for first.
+      </span>
 
       {isOther ? (
         <label className="grid gap-2">
-          <span className="text-sm font-medium">What profession?</span>
+          <span className="text-sm font-medium">
+            What profession?
+            <span aria-hidden="true" className="ml-1 text-red-600">*</span>
+            <span className="sr-only"> required</span>
+          </span>
           <Input
             value={otherValue}
             onChange={(event) => setOtherValue(event.target.value)}
