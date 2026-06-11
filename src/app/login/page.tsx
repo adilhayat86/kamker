@@ -15,7 +15,7 @@ export const metadata = {
 
 const statusMessages = {
   missing: "Please enter phone number and password.",
-  invalid: "Phone number or password is incorrect.",
+  invalid: "Phone number or password is incorrect. Use the same phone number you entered during registration.",
   "phone-review": "This phone number needs admin review before login. Contact Kamker support.",
   "not-configured": "Supabase is not configured yet.",
   reset: "Password updated. You can log in now.",
@@ -28,6 +28,17 @@ type LoginPageProps = {
     status?: keyof typeof statusMessages;
   }>;
 };
+
+function RequiredMark() {
+  return (
+    <>
+      <span aria-hidden="true" className="ml-1 text-red-600">
+        *
+      </span>
+      <span className="sr-only"> required</span>
+    </>
+  );
+}
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
@@ -50,8 +61,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
         </div>
         <p className="mt-3 text-muted-foreground">
-          Use your registered phone number and password to manage your Kamker
-          profile.
+          Use your registered phone number and password to manage your Kamker profile.
         </p>
 
         {statusMessage ? (
@@ -64,7 +74,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <CardContent className="p-5">
             <form action={loginProfessional} className="grid gap-4">
               <label className="grid gap-2">
-                <span className="text-sm font-medium">Phone Number</span>
+                <span className="text-sm font-medium">Phone Number<RequiredMark /></span>
                 <div className="relative">
                   <Phone
                     className="pointer-events-none absolute left-3 top-3.5 size-4 text-muted-foreground"
@@ -74,16 +84,25 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                     name="phone"
                     type="tel"
                     maxLength={16}
+                    required
+                    inputMode="tel"
+                    autoComplete="tel"
                     className="h-11 w-full rounded-md border border-input bg-background px-3 pl-9 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    placeholder="Phone number"
+                    placeholder="Registered phone number"
+                    aria-describedby="login-phone-help"
                   />
                 </div>
+                <span id="login-phone-help" className="text-xs leading-5 text-muted-foreground">
+                  Enter the same number used during registration.
+                </span>
               </label>
               <label className="grid gap-2">
-                <span className="text-sm font-medium">Password</span>
+                <span className="text-sm font-medium">Password<RequiredMark /></span>
                 <input
                   name="password"
                   type="password"
+                  required
+                  autoComplete="current-password"
                   className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   placeholder="Password"
                 />
@@ -95,9 +114,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                   className="mt-1 size-4 rounded border-input text-primary accent-primary"
                 />
                 <span className="grid gap-0.5">
-                  <span className="text-sm font-medium">Remember password</span>
+                  <span className="text-sm font-medium">Keep me logged in</span>
                   <span className="text-xs leading-5 text-muted-foreground">
-                    Keep this professional account logged in on this device.
+                    Use only on your own phone or computer.
                   </span>
                 </span>
               </label>
