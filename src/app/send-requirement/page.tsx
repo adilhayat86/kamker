@@ -11,7 +11,7 @@ import {
 } from "@/lib/broadcast";
 import { getCityOptions } from "@/lib/city-options";
 import { getFormDraft } from "@/lib/form-draft";
-import { categories } from "@/lib/marketplace-data";
+import { categories, serviceGroups } from "@/lib/marketplace-data";
 import { workerPostingBlockedStatus } from "@/lib/worker-status";
 
 import { submitRequirement } from "./actions";
@@ -81,9 +81,35 @@ export default async function SendRequirementPage({
     category,
     subcategory,
   });
-  const selectedCity = cityOptions.includes(city ?? "") ? city : "";
-  const selectedServiceName = selectedService?.name ?? service ?? draft.service;
+  const selectedCity = city ?? "";
+  const cityOptionsWithSelected =
+    selectedCity && !cityOptions.includes(selectedCity)
+      ? [selectedCity, ...cityOptions]
+      : cityOptions;
+  const serviceGroup = category
+    ? serviceGroups.find((group) => group.name === category)
+    : null;
+  const selectedServiceName =
+    subcategory ?? selectedService?.name ?? service ?? category ?? draft.service;
+  const serviceOptions = selectedServiceName && !categories.some((item) => item.name === selectedServiceName)
+    ? [
+        {
+          value: selectedServiceName,
+          label: serviceGroup
+            ? `${selectedServiceName} (all related services)`
+            : selectedServiceName,
+        },
+        ...categories.map((category) => category.name),
+      ]
+    : categories.map((category) => category.name);
   const hasBroadcastContext = Boolean(category || subcategory || city || area);
+  const contextLocation = [area, city].filter(Boolean).join(", ");
+  const contextServiceLabel = selectedServiceName || "matching professionals";
+  const defaultDetails =
+    draft.details ||
+    (hasBroadcastContext
+      ? `I need ${contextServiceLabel}${contextLocation ? ` in ${contextLocation}` : ""}. Please contact me with availability and rate.`
+      : "");
   const recipientCount = hasBroadcastContext
     ? await getBroadcastRecipientCount({
         category,
@@ -125,31 +151,48 @@ export default async function SendRequirementPage({
         </div>
 
         {hasBroadcastContext ? (
-          <Card className="mt-5 border-primary/20 bg-accent text-accent-foreground shadow-sm">
+          <Card className="mt-5 border-primary/20 bg-sky-50 text-foreground shadow-sm">
             <CardContent className="p-5">
-              <p className="font-semibold">
-                Your requirement is prepared for matching professionals in this
-                category after Kamker review.
+              <p className="text-xs font-semibold uppercase tracking-normal text-primary">
+                Requirement context
               </p>
-              {recipientCount !== null ? (
-                <p className="mt-1 text-sm">
-                  Estimated matching pool:{" "}
-                  {recipientCount > 0
-                    ? `${recipientCount.toLocaleString()} professionals`
-                    : "professionals will be matched after review"}
-                </p>
-              ) : null}
+              <h2 className="mt-1 text-xl font-bold">
+                {contextServiceLabel}
+                {contextLocation ? ` in ${contextLocation}` : ""}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                This form was opened from the matching category page. The service,
+                city, and area have been filled from that page where available.
+              </p>
+              <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+                <div className="rounded-md border bg-white px-3 py-2">
+                  <span className="font-semibold">Service:</span>{" "}
+                  {contextServiceLabel}
+                </div>
+                <div className="rounded-md border bg-white px-3 py-2">
+                  <span className="font-semibold">Estimated recipients:</span>{" "}
+                  {recipientCount !== null
+                    ? `${recipientCount.toLocaleString()} approved profiles`
+                    : "Calculated after review"}
+                </div>
+                {contextLocation ? (
+                  <div className="rounded-md border bg-white px-3 py-2 sm:col-span-2">
+                    <span className="font-semibold">Location:</span>{" "}
+                    {contextLocation}
+                  </div>
+                ) : null}
+              </div>
             </CardContent>
           </Card>
         ) : null}
 
-        <Card className="mt-5 border-primary/20 bg-white shadow-sm">
+        <Card className="mt-5 border-amber-200 bg-amber-50 shadow-sm">
           <CardContent className="p-5 text-sm">
-            <p className="font-semibold text-primary">Requirement review</p>
+            <p className="font-semibold text-amber-950">Paid broadcast notice</p>
             <p className="mt-1 text-muted-foreground">
-              Kamker reviews submitted requirements before any broadcast or
-              matching outreach. Paid broadcast messaging requires approval and
-              payment setup before professionals are contacted.
+              Submitting this form saves your requirement for Kamker review.
+              Professionals are not contacted for free automatically. Broadcast
+              messaging is a paid option after review and confirmation.
             </p>
           </CardContent>
         </Card>
@@ -182,7 +225,7 @@ export default async function SendRequirementPage({
                 <SelectField
                   label="Required service"
                   name="service"
-                  options={categories.map((category) => category.name)}
+                  options={serviceOptions}
                   defaultValue={selectedServiceName}
                   required
                   error={requiredError("service", "Choose a required service.")}
@@ -190,7 +233,7 @@ export default async function SendRequirementPage({
                 <SelectField
                   label="City"
                   name="city"
-                  options={cityOptions}
+                  options={cityOptionsWithSelected}
                   defaultValue={selectedCity}
                   required
                   error={requiredError("city", "Choose a city.")}
@@ -246,7 +289,7 @@ export default async function SendRequirementPage({
                   label="Details"
                   name="details"
                   placeholder="Explain the service, timing, location, and any preferences."
-                  defaultValue={draft.details}
+                  defaultValue={defaultDetails}
                   required
                   error={requiredError("details", "Requirement details are required.")}
                 />

@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { serviceGroups } from "@/lib/marketplace-data";
 
 type RequirementForMatching = {
   id: string;
@@ -31,6 +32,34 @@ function sameText(left?: string | null, right?: string | null) {
   );
 }
 
+function normalize(value?: string | null) {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function serviceMatches(workerService?: string | null, requiredService?: string | null) {
+  if (sameText(workerService, requiredService)) {
+    return true;
+  }
+
+  const requiredKey = normalize(requiredService);
+  const workerKey = normalize(workerService);
+  const serviceGroup = serviceGroups.find(
+    (group) => normalize(group.name) === requiredKey,
+  );
+
+  if (!serviceGroup) {
+    return false;
+  }
+
+  return serviceGroup.subcategories.some(
+    (subcategory) => normalize(subcategory) === workerKey,
+  );
+}
+
 function areaMatches(professionalArea?: string | null, requirementArea?: string | null) {
   if (!professionalArea || !requirementArea) {
     return false;
@@ -52,7 +81,7 @@ export function calculateRequirementMatchScore(
 ) {
   let score = 0;
 
-  if (sameText(professional.categories?.name, requirement.requiredService)) {
+  if (serviceMatches(professional.categories?.name, requirement.requiredService)) {
     score += 45;
   }
 
