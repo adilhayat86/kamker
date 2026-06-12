@@ -220,6 +220,32 @@ function buildSearchRequirementHref({
   return `/send-requirement?${params.toString()}`;
 }
 
+function buildSearchRequirementLabel({
+  count,
+  city,
+  category,
+}: {
+  count: number;
+  city: string;
+  category: string;
+}) {
+  const countLabel = count.toLocaleString("en-PK");
+
+  if (category && city) {
+    return `Send Requirement to ${countLabel} ${category} in ${city}`;
+  }
+
+  if (category) {
+    return `Send Requirement to ${countLabel} ${category}`;
+  }
+
+  if (city) {
+    return `Send Requirement to ${countLabel} professionals in ${city}`;
+  }
+
+  return `Send Requirement to ${countLabel} professionals`;
+}
+
 function parseHourlyRate(value: string | null | undefined) {
   if (!value) {
     return null;
@@ -933,7 +959,7 @@ export default async function ProfessionalsPage({
     filteredCompanyProfessionals.length +
     (hasDbProfessionals ? 0 : filteredDemoProfessionals.length);
   const inferredCity = city || cityFromSearchIntent(q, cityOptions);
-  const inferredCategory = category || (inferredCity ? "" : categoryFromSearchIntent(q));
+  const inferredCategory = category || categoryFromSearchIntent(q);
   const resultSummary = buildSearchResultSummary({
     count: totalVisibleProfessionals,
     city: inferredCity,
@@ -941,6 +967,11 @@ export default async function ProfessionalsPage({
   });
   const sendRequirementHref = buildSearchRequirementHref({
     q,
+    city: inferredCity,
+    category: inferredCategory,
+  });
+  const sendRequirementLabel = buildSearchRequirementLabel({
+    count: totalVisibleProfessionals,
     city: inferredCity,
     category: inferredCategory,
   });
@@ -1190,7 +1221,7 @@ export default async function ProfessionalsPage({
             <Button asChild className="h-11 w-full sm:w-auto">
               <Link href={sendRequirementHref}>
                 <Send aria-hidden="true" />
-                Send Requirement
+                {sendRequirementLabel}
               </Link>
             </Button>
           </div>
