@@ -14,6 +14,7 @@ type BroadcastCountInput = {
   subcategory?: string;
   city?: string;
   area?: string;
+  scope?: "category" | "serviceGroup";
 };
 
 function locationLabel(city?: string, area?: string) {
@@ -179,21 +180,27 @@ export function broadcastButtonText({
   subcategory,
   city,
   area,
+  scope = "category",
 }: BroadcastCountInput & {
   count: number;
 }) {
   const place = locationLabel(city, area);
   const countLabel = count > 0 ? `${count.toLocaleString()} ` : "";
+  const professionalLabel = count === 1 ? "professional" : "professionals";
 
   if (subcategory) {
     return `Send Requirement to ${countLabel}${subcategory}${place ? ` in ${place}` : ""}`;
   }
 
-  if (category) {
-    return `Send Requirement to ${countLabel}${category} Professionals${place ? ` in ${place}` : ""}`;
+  if (scope === "serviceGroup" && category) {
+    return `Send Requirement to ${countLabel}${professionalLabel} in ${category}${place ? `, ${place}` : ""}`;
   }
 
-  return `Send Requirement to ${countLabel}Kamker Professionals${place ? ` in ${place}` : ""}`;
+  if (category) {
+    return `Send Requirement to ${countLabel}${category} ${professionalLabel}${place ? ` in ${place}` : ""}`;
+  }
+
+  return `Send Requirement to ${countLabel}Kamker ${professionalLabel}${place ? ` in ${place}` : ""}`;
 }
 
 export function serviceFromBroadcastQuery({

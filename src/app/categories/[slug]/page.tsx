@@ -351,7 +351,10 @@ export default async function CategoryDetailPage({
       }),
       getBroadcastRecipientCount({
         category: serviceGroup?.name ?? parentGroup?.name ?? dbParentCategory?.name ?? category?.name ?? dbCategory?.name,
-        subcategory: category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined),
+        subcategory:
+          serviceGroup || dbCategory?.parent_id === null
+            ? undefined
+            : category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined),
         city,
         area,
       }),
@@ -360,6 +363,7 @@ export default async function CategoryDetailPage({
     (a, b) => Number(b.is_featured) - Number(a.is_featured),
   );
   const isParentCategoryPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
+  const isServiceGroupPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
   const distinctParentRoles = new Set(
     visibleProfessionals
       .map((professional) => normaliseMatchValue(professional.role))
@@ -408,7 +412,7 @@ export default async function CategoryDetailPage({
           {serviceGroup || dbCategory?.parent_id === null ? "Service Group" : "Subcategory"}
         </Badge>
         <h1 className="mt-3 text-3xl font-bold tracking-normal sm:text-4xl">
-          {pageName} Professionals
+          {isParentCategoryPage ? `${pageName} Services` : `${pageName} Professionals`}
         </h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
           {pageDescription}
@@ -424,9 +428,14 @@ export default async function CategoryDetailPage({
         <BroadcastRequirementCta
           count={recipientCount}
           category={serviceGroup?.name ?? parentGroup?.name ?? dbParentCategory?.name ?? category?.name ?? dbCategory?.name}
-          subcategory={category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined)}
+          subcategory={
+            isParentCategoryPage
+              ? undefined
+              : category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined)
+          }
           city={city}
           area={area}
+          scope={isServiceGroupPage ? "serviceGroup" : "category"}
         />
 
         {isParentCategoryPage ? (

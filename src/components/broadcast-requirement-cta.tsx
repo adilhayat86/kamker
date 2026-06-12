@@ -14,6 +14,7 @@ type BroadcastRequirementCtaProps = {
   subcategory?: string;
   city?: string;
   area?: string;
+  scope?: "category" | "serviceGroup";
 };
 
 export function BroadcastRequirementCta({
@@ -22,12 +23,14 @@ export function BroadcastRequirementCta({
   subcategory,
   city,
   area,
+  scope,
 }: BroadcastRequirementCtaProps) {
   const href = buildSendRequirementHref({
     category,
     subcategory,
     city,
     area,
+    scope,
   });
   const buttonText = broadcastButtonText({
     count,
@@ -35,6 +38,7 @@ export function BroadcastRequirementCta({
     subcategory,
     city,
     area,
+    scope,
   });
 
   return (
