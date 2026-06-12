@@ -23,6 +23,11 @@ import { logoutProfessional } from "@/app/logout/actions";
 import { PageNavigation } from "@/components/page-navigation";
 import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import { fallbackProfessionalImage } from "@/lib/professional-photo";
+import {
+  isWorkerApproved,
+  isWorkerBanned,
+  workerStatusLabel,
+} from "@/lib/worker-status";
 
 export const metadata = {
   title: "My Account | Kamker",
@@ -31,9 +36,9 @@ export const metadata = {
 
 const statusMessages = {
   updated: "Profile updated successfully.",
-  registered: "Welcome to Kamker. Your professional profile has been created.",
+  registered: "Your profile has been submitted for admin review.",
   "registered-photo-skipped":
-    "Welcome to Kamker. Your profile was created, but the photo could not be saved. You can add it later from Edit Profile.",
+    "Your profile has been submitted for admin review, but the photo could not be saved. You can add it later from Edit Profile.",
   "delete-confirmation": "Type DELETE exactly to delete your profile.",
   "delete-error": "Could not delete your profile. Please try again or contact Kamker support.",
 } as const;
@@ -93,7 +98,9 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
     dbProfessional?.profile_photo_url ?? demoProfessional?.image ?? fallbackProfessionalImage();
   const isCnicVerified =
     dbProfessional?.is_cnic_verified ?? demoProfessional?.is_cnic_verified ?? false;
-  const isApproved = dbProfessional?.is_active ?? demoProfessional?.is_active ?? false;
+  const isApproved = isWorkerApproved(dbProfessional ?? demoProfessional);
+  const isBanned = isWorkerBanned(dbProfessional ?? demoProfessional);
+  const approvalLabel = workerStatusLabel(dbProfessional ?? demoProfessional);
   const isFeatured = dbProfessional
     ? isAccountFeatured(dbProfessional)
     : Boolean(demoProfessional?.is_featured);
@@ -188,10 +195,14 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                     Approval
                   </div>
                   <p className="mt-2 text-lg font-bold">
-                    {isApproved ? "Approved" : "Unapproved"}
+                    {approvalLabel}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {isApproved ? "Your profile can appear in search." : "Your profile is saved and waiting for review."}
+                    {isApproved
+                      ? "Your profile can appear in search."
+                      : isBanned
+                        ? "Your profile has been banned. Contact Kamker support."
+                        : "Your worker profile is waiting for admin approval."}
                   </p>
                 </div>
                 <div className="rounded-xl border bg-white p-4 shadow-sm">

@@ -3,11 +3,13 @@ import { redirect } from "next/navigation";
 
 import {
   approveProfessional,
+  banProfessional,
   deleteProfessional,
   makeProfessionalFeatured,
   removeDisputedProfessionalNumber,
   rejectProfessional,
   removeProfessionalFeatured,
+  unbanProfessional,
   verifyCnic,
 } from "@/app/admin/actions";
 import {
@@ -28,6 +30,12 @@ import {
 import { pakistanMobileNormalizedDigits } from "@/lib/phone";
 import { fallbackProfessionalImage } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import {
+  isWorkerApproved,
+  isWorkerBanned,
+  isWorkerPending,
+  workerStatusLabel,
+} from "@/lib/worker-status";
 
 export const metadata = {
   title: "Workers | Kamker Admin",
@@ -54,6 +62,7 @@ type WorkerRow = {
   is_cnic_verified: boolean;
   is_phone_verified: boolean;
   is_active: boolean;
+  is_banned?: boolean | null;
   is_featured: boolean;
   featured_until: string | null;
   created_at: string;
@@ -64,9 +73,17 @@ type WorkerRow = {
 type WorkersPageProps = {
   searchParams?: Promise<{
     q?: string;
-    status?: "pending" | "approved" | "featured" | "cnic";
+    status?: "pending" | "approved" | "banned" | "featured" | "cnic";
+    notice?: "worker-approved" | "worker-pending" | "worker-banned" | "worker-unbanned";
   }>;
 };
+
+const workerNoticeMessages = {
+  "worker-approved": "Worker approved.",
+  "worker-pending": "Worker moved to pending review.",
+  "worker-banned": "Worker banned.",
+  "worker-unbanned": "Worker unbanned and moved to pending review.",
+} as const;
 
 async function getWorkers({
   q,
@@ -79,16 +96,21 @@ async function getWorkers({
     return [] as WorkerRow[];
   }
 
+  const selectColumns =
+    "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_banned, is_featured, featured_until, created_at, cities(name), categories(name)";
+
   let query = supabase
     .from("professionals")
-    .select("id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_featured, featured_until, created_at, cities(name), categories(name)")
+    .select(selectColumns)
     .order("created_at", { ascending: false })
     .limit(80);
 
   if (status === "pending") {
-    query = query.eq("is_active", false);
+    query = query.eq("is_active", false).eq("is_banned", false);
   } else if (status === "approved") {
-    query = query.eq("is_active", true);
+    query = query.eq("is_active", true).eq("is_banned", false);
+  } else if (status === "banned") {
+    query = query.eq("is_banned", true);
   } else if (status === "featured") {
     query = query.eq("is_featured", true);
   } else if (status === "cnic") {
@@ -101,7 +123,41 @@ async function getWorkers({
     query = query.or(`full_name.ilike.%${q}%,phone_number.ilike.%${q}%${phoneSearch}`);
   }
 
-  const { data, error } = await query;
+  let { data, error } = await query;
+
+  if (error?.code === "42703") {
+    let fallbackQuery = supabase
+      .from("professionals")
+      .select("id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_featured, featured_until, created_at, cities(name), categories(name)")
+      .order("created_at", { ascending: false })
+      .limit(80);
+
+    if (status === "banned") {
+      return [] as WorkerRow[];
+    }
+
+    if (status === "pending") {
+      fallbackQuery = fallbackQuery.eq("is_active", false);
+    } else if (status === "approved") {
+      fallbackQuery = fallbackQuery.eq("is_active", true);
+    } else if (status === "featured") {
+      fallbackQuery = fallbackQuery.eq("is_featured", true);
+    } else if (status === "cnic") {
+      fallbackQuery = fallbackQuery.eq("is_cnic_verified", true);
+    }
+
+    if (q) {
+      const normalizedQ = pakistanMobileNormalizedDigits(q);
+      const phoneSearch = normalizedQ ? `,phone_number.ilike.%${normalizedQ}%` : "";
+      fallbackQuery = fallbackQuery.or(`full_name.ilike.%${q}%,phone_number.ilike.%${q}%${phoneSearch}`);
+    }
+
+    const fallbackResult = await fallbackQuery;
+    data = fallbackResult.data
+      ? fallbackResult.data.map((worker) => ({ ...worker, is_banned: false }))
+      : null;
+    error = fallbackResult.error;
+  }
 
   if (error) {
     console.error("Failed to load admin workers", error);
@@ -138,6 +194,11 @@ function WorkerCard({
   worker: WorkerRow;
   adminAuthenticated: boolean;
 }) {
+  const statusLabel = workerStatusLabel(worker);
+  const isPending = isWorkerPending(worker);
+  const isApproved = isWorkerApproved(worker);
+  const isBanned = isWorkerBanned(worker);
+
   return (
     <div className="rounded-xl border bg-white p-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -153,7 +214,7 @@ function WorkerCard({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="font-semibold">{worker.full_name}</h2>
-              <AdminStatusBadge>{worker.is_active ? "Approved" : "Unapproved"}</AdminStatusBadge>
+              <AdminStatusBadge>{statusLabel}</AdminStatusBadge>
               {worker.is_featured ? <Badge>Featured</Badge> : null}
               {worker.is_cnic_verified ? <Badge variant="outline">CNIC verified</Badge> : null}
             </div>
@@ -190,14 +251,29 @@ function WorkerCard({
       ) : null}
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-        <form action={approveProfessional}>
-          <input type="hidden" name="professionalId" value={worker.id} />
-          <Button className="w-full" disabled={!adminAuthenticated || worker.is_active}>Approve</Button>
-        </form>
-        <form action={rejectProfessional}>
-          <input type="hidden" name="professionalId" value={worker.id} />
-          <Button className="w-full" variant="outline" disabled={!adminAuthenticated || !worker.is_active}>Move to Unapproved</Button>
-        </form>
+        {isPending ? (
+          <form action={approveProfessional}>
+            <input type="hidden" name="professionalId" value={worker.id} />
+            <Button className="w-full" disabled={!adminAuthenticated}>Approve</Button>
+          </form>
+        ) : null}
+        {isApproved ? (
+          <form action={rejectProfessional}>
+            <input type="hidden" name="professionalId" value={worker.id} />
+            <Button className="w-full" variant="outline" disabled={!adminAuthenticated}>Move to Pending</Button>
+          </form>
+        ) : null}
+        {isBanned ? (
+          <form action={unbanProfessional}>
+            <input type="hidden" name="professionalId" value={worker.id} />
+            <Button className="w-full" disabled={!adminAuthenticated}>Unban to Pending</Button>
+          </form>
+        ) : (
+          <form action={banProfessional}>
+            <input type="hidden" name="professionalId" value={worker.id} />
+            <Button className="w-full bg-amber-600 text-white hover:bg-amber-700" disabled={!adminAuthenticated}>Ban</Button>
+          </form>
+        )}
         <form action={verifyCnic}>
           <input type="hidden" name="professionalId" value={worker.id} />
           <Button className="w-full" variant="outline" disabled={!adminAuthenticated || worker.is_cnic_verified}>Mark CNIC Verified</Button>
@@ -210,7 +286,7 @@ function WorkerCard({
             defaultValue={dateInputValue(worker.featured_until)}
             className="h-10 rounded-md border border-input bg-background px-3 text-sm"
           />
-          <Button disabled={!adminAuthenticated}>Make Featured</Button>
+          <Button disabled={!adminAuthenticated || !isApproved}>Make Featured</Button>
         </form>
         <form action={removeProfessionalFeatured}>
           <input type="hidden" name="professionalId" value={worker.id} />
@@ -256,14 +332,17 @@ export default async function AdminWorkersPage({ searchParams }: WorkersPageProp
   const params = await searchParams;
   const workers = await getWorkers({ q: params?.q, status: params?.status });
   const duplicatePhones = duplicatePhoneGroups(workers);
-  const unapprovedWorkers = workers.filter((worker) => !worker.is_active);
-  const approvedWorkers = workers.filter((worker) => worker.is_active);
+  const unapprovedWorkers = workers.filter(isWorkerPending);
+  const approvedWorkers = workers.filter(isWorkerApproved);
+  const bannedWorkers = workers.filter(isWorkerBanned);
   const statusLabel =
     params?.status === "pending"
       ? "unapproved"
       : params?.status === "approved"
         ? "approved"
-        : params?.status ?? "all";
+        : params?.status === "banned"
+          ? "banned"
+          : params?.status ?? "all";
 
   return (
     <AdminShell
@@ -283,6 +362,12 @@ export default async function AdminWorkersPage({ searchParams }: WorkersPageProp
         </AdminWarning>
       ) : null}
 
+      {params?.notice ? (
+        <AdminWarning title="Worker status updated">
+          {workerNoticeMessages[params.notice]}
+        </AdminWarning>
+      ) : null}
+
       <AdminSection title="Search & Filters" description="Find profiles by name, phone, approval status, or verification status.">
         <form className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
           <input
@@ -299,6 +384,7 @@ export default async function AdminWorkersPage({ searchParams }: WorkersPageProp
             <option value="">All workers</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
+            <option value="banned">Banned</option>
             <option value="featured">Featured</option>
             <option value="cnic">CNIC verified</option>
           </select>
@@ -312,8 +398,8 @@ export default async function AdminWorkersPage({ searchParams }: WorkersPageProp
       </AdminSection>
 
       <AdminSection
-        title="Unapproved Workers"
-        description={`${unapprovedWorkers.length} unapproved profile${unapprovedWorkers.length === 1 ? "" : "s"} loaded for the current ${statusLabel} filter. Approving a worker moves them into the Approved Workers section.`}
+        title="Pending Review / Unapproved Workers"
+        description={`${unapprovedWorkers.length} pending profile${unapprovedWorkers.length === 1 ? "" : "s"} loaded for the current ${statusLabel} filter. Approving a worker moves them into the Approved Workers section.`}
       >
         <div className="grid gap-4">
           {unapprovedWorkers.length > 0 ? (
@@ -322,6 +408,21 @@ export default async function AdminWorkersPage({ searchParams }: WorkersPageProp
             ))
           ) : (
             <AdminEmptyState>No unapproved worker profiles match this filter.</AdminEmptyState>
+          )}
+        </div>
+      </AdminSection>
+
+      <AdminSection
+        title="Banned Workers"
+        description={`${bannedWorkers.length} banned profile${bannedWorkers.length === 1 ? "" : "s"} loaded for the current ${statusLabel} filter. Unban moves a worker back to pending review.`}
+      >
+        <div className="grid gap-4">
+          {bannedWorkers.length > 0 ? (
+            bannedWorkers.map((worker) => (
+              <WorkerCard key={worker.id} worker={worker} adminAuthenticated={adminAuthenticated} />
+            ))
+          ) : (
+            <AdminEmptyState>No banned worker profiles match this filter.</AdminEmptyState>
           )}
         </div>
       </AdminSection>

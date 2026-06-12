@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { manualPaymentConfig } from "@/lib/payment-config";
+import { workerPostingBlockedStatus } from "@/lib/worker-status";
 
 import { submitFeaturedProfileProof } from "./actions";
 
@@ -46,6 +47,8 @@ const statusMessages = {
   "activation-error": "Payment proof was reviewed, but featured activation failed. Kamker admin should review it.",
   auto_approved: "Payment proof approved. Your profile is now featured.",
   needs_review: "Payment proof uploaded. Kamker admin will review it before activation.",
+  "pending-profile": "Your profile is waiting for admin approval. You can edit your profile, but featured posting is disabled until approval.",
+  "banned-profile": "Your profile has been banned. Featured posting is disabled. Contact Kamker support.",
 } as const;
 
 type FeaturedProfilePageProps = {
@@ -67,6 +70,7 @@ export default async function FeaturedProfilePage({
   }
 
   const isFeatured = isAccountFeatured(professional);
+  const blockedWorkerStatus = workerPostingBlockedStatus(professional);
   const profession = professional.categories?.name ?? "Professional";
   const city = professional.cities?.name ?? "Pakistan";
 
@@ -101,6 +105,16 @@ export default async function FeaturedProfilePage({
                 <DismissibleNotice className="rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close featured status message">
                   {statusMessage}
                 </DismissibleNotice>
+              ) : null}
+
+              {blockedWorkerStatus ? (
+                <Card className="border-amber-200 bg-amber-50 text-amber-950 shadow-sm">
+                  <CardContent className="p-5 text-sm font-medium">
+                    {blockedWorkerStatus === "banned"
+                      ? "Your profile has been banned. Featured posting is disabled. Contact Kamker support."
+                      : "Your profile is waiting for admin approval. You can edit your profile, but featured posting is disabled until approval."}
+                  </CardContent>
+                </Card>
               ) : null}
 
               <div className="rounded-xl border bg-blue-50/70 p-4">
@@ -218,9 +232,9 @@ export default async function FeaturedProfilePage({
                             Upload the actual receipt screenshot after paying exactly {featuredPackage.price}. JPG, PNG, or WebP. Maximum 8MB.
                           </span>
                         </label>
-                        <Button className="h-12">
+                        <Button className="h-12" disabled={Boolean(blockedWorkerStatus)}>
                           <UploadCloud className="size-4" aria-hidden="true" />
-                          Upload Proof for {featuredPackage.price}
+                          {blockedWorkerStatus ? "Featured Disabled" : `Upload Proof for ${featuredPackage.price}`}
                         </Button>
                       </form>
                     </CardContent>

@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 
-import { getAutoApproveProfessionals } from "@/lib/admin-settings";
 import {
   isWorkerDayAvailability,
   isWorkerTimeAvailability,
@@ -204,7 +203,6 @@ export async function registerProfessional(formData: FormData) {
     findOrCreateCategoryId(categoryName),
   ]);
 
-  const autoApprove = await getAutoApproveProfessionals();
   let profilePhotoUrl: string | null = null;
   let photoSkipped = false;
   const availability = workerAvailabilitySummary(
@@ -235,36 +233,53 @@ export async function registerProfessional(formData: FormData) {
     }
   }
 
-  const { data: professional, error } = await supabase
+  const insertPayload = {
+    full_name: fullName,
+    phone_number: phoneNumber,
+    whatsapp_number: whatsappNumber || null,
+    city_id: cityId,
+    area: area || null,
+    category_id: categoryId,
+    gender,
+    age: validatedAge,
+    availability,
+    availability_time: validatedAvailabilityTime,
+    availability_days: validatedAvailabilityDays,
+    years_experience: yearsExperience,
+    experience: experience || null,
+    expected_rate: expectedRate || null,
+    tagline,
+    short_bio: shortBio || null,
+    cnic: cnic || null,
+    profile_photo_url: profilePhotoUrl,
+    password_hash: passwordHash,
+    secret_question: secretQuestion,
+    secret_answer_hash: secretAnswerHash,
+    is_phone_verified: false,
+    is_cnic_verified: false,
+    is_active: false,
+    is_banned: false,
+  };
+
+  let { data: professional, error } = await supabase
     .from("professionals")
-    .insert({
-      full_name: fullName,
-      phone_number: phoneNumber,
-      whatsapp_number: whatsappNumber || null,
-      city_id: cityId,
-      area: area || null,
-      category_id: categoryId,
-      gender,
-      age: validatedAge,
-      availability,
-      availability_time: validatedAvailabilityTime,
-      availability_days: validatedAvailabilityDays,
-      years_experience: yearsExperience,
-      experience: experience || null,
-      expected_rate: expectedRate || null,
-      tagline,
-      short_bio: shortBio || null,
-      cnic: cnic || null,
-      profile_photo_url: profilePhotoUrl,
-      password_hash: passwordHash,
-      secret_question: secretQuestion,
-      secret_answer_hash: secretAnswerHash,
-      is_phone_verified: false,
-      is_cnic_verified: false,
-      is_active: autoApprove,
-    })
+    .insert(insertPayload)
     .select("id")
     .single();
+
+  if (error?.code === "PGRST204") {
+    const legacyInsertPayload = Object.fromEntries(
+      Object.entries(insertPayload).filter(([key]) => key !== "is_banned"),
+    );
+    const fallbackInsert = await supabase
+      .from("professionals")
+      .insert(legacyInsertPayload)
+      .select("id")
+      .single();
+
+    professional = fallbackInsert.data;
+    error = fallbackInsert.error;
+  }
 
   if (error || !professional) {
     console.error("Failed to register professional", error);

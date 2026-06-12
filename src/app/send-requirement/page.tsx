@@ -4,6 +4,7 @@ import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getSessionProfessional } from "@/lib/auth";
 import {
   getBroadcastRecipientCount,
   serviceFromBroadcastQuery,
@@ -11,6 +12,7 @@ import {
 import { getCityOptions } from "@/lib/city-options";
 import { getFormDraft } from "@/lib/form-draft";
 import { categories } from "@/lib/marketplace-data";
+import { workerPostingBlockedStatus } from "@/lib/worker-status";
 
 import { submitRequirement } from "./actions";
 
@@ -26,6 +28,10 @@ const statusMessages = {
   success: "Your requirement has been submitted for review.",
   missing: "Please fill service, city, phone number, urgency, and details.",
   "not-configured": "Supabase is not configured yet.",
+  "pending-worker":
+    "Your profile is waiting for admin approval. You can edit your profile, but posting is disabled until approval.",
+  "banned-worker":
+    "Your profile has been banned. Posting is disabled. Contact Kamker support.",
   error: "Could not save requirement. Please try again.",
 } as const;
 
@@ -61,6 +67,8 @@ export default async function SendRequirementPage({
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
   const draft = await getFormDraft<RequirementDraft>("send_requirement");
+  const professional = await getSessionProfessional();
+  const blockedWorkerStatus = workerPostingBlockedStatus(professional);
   const cityOptions = await getCityOptions();
   const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
   const category = params?.category?.trim() || undefined;
@@ -152,6 +160,16 @@ export default async function SendRequirementPage({
           </DismissibleNotice>
         ) : null}
 
+        {blockedWorkerStatus ? (
+          <Card className="mt-5 border-amber-200 bg-amber-50 text-amber-950 shadow-sm">
+            <CardContent className="p-5 text-sm font-medium">
+              {blockedWorkerStatus === "banned"
+                ? "Your profile has been banned. Posting is disabled. Contact Kamker support."
+                : "Your profile is waiting for admin approval. You can edit your profile, but posting is disabled until approval."}
+            </CardContent>
+          </Card>
+        ) : null}
+
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5 sm:p-6">
             <form action={submitRequirement} className="grid gap-6">
@@ -177,7 +195,13 @@ export default async function SendRequirementPage({
                   required
                   error={requiredError("city", "Choose a city.")}
                 />
-                <FormField label="Area" name="area" defaultValue={area} />
+                <FormField
+                  label="Area"
+                  name="area"
+                  defaultValue={area}
+                  placeholder="Model Town, Gulshan, DHA"
+                  autoComplete="address-level3"
+                />
                 <SelectField
                   label="Availability"
                   name="availability"
@@ -227,8 +251,8 @@ export default async function SendRequirementPage({
                   error={requiredError("details", "Requirement details are required.")}
                 />
               </div>
-              <Button className="h-12 text-base sm:col-span-2">
-                Send Requirement
+              <Button className="h-12 text-base sm:col-span-2" disabled={Boolean(blockedWorkerStatus)}>
+                {blockedWorkerStatus ? "Posting Disabled" : "Send Requirement"}
               </Button>
             </form>
           </CardContent>

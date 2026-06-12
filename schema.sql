@@ -49,6 +49,7 @@ create table if not exists professionals (
   is_phone_verified boolean not null default false,
   rating numeric(2, 1) not null default 0,
   is_active boolean not null default false,
+  is_banned boolean not null default false,
   is_featured boolean not null default false,
   featured_until timestamptz,
   created_at timestamptz not null default now()

@@ -231,7 +231,7 @@ export async function approveProfessional(formData: FormData) {
 
   const { error } = await supabase
     .from("professionals")
-    .update({ is_active: true })
+    .update({ is_active: true, is_banned: false })
     .eq("id", id);
 
   if (error) {
@@ -247,6 +247,7 @@ export async function approveProfessional(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/workers");
   revalidatePath("/professionals");
+  redirect("/admin/workers?notice=worker-approved");
 }
 
 export async function rejectProfessional(formData: FormData) {
@@ -264,7 +265,7 @@ export async function rejectProfessional(formData: FormData) {
 
   const { error } = await supabase
     .from("professionals")
-    .update({ is_active: false })
+    .update({ is_active: false, is_banned: false })
     .eq("id", id);
 
   if (error) {
@@ -280,6 +281,7 @@ export async function rejectProfessional(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/workers");
   revalidatePath("/professionals");
+  redirect("/admin/workers?notice=worker-pending");
 }
 
 export async function verifyCnic(formData: FormData) {
@@ -331,6 +333,17 @@ export async function makeProfessionalFeatured(formData: FormData) {
 
   const fallbackDate = new Date();
   fallbackDate.setDate(fallbackDate.getDate() + 30);
+
+  const { data: professional, error: professionalError } = await supabase
+    .from("professionals")
+    .select("is_active, is_banned")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (professionalError || !professional || !professional.is_active || professional.is_banned) {
+    console.error("Cannot feature a pending or banned professional", professionalError);
+    return;
+  }
 
   const featuredUntilValue =
     typeof featuredUntil === "string" && featuredUntil
@@ -396,6 +409,90 @@ export async function removeProfessionalFeatured(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/featured");
   revalidatePath("/professionals");
+}
+
+export async function banProfessional(formData: FormData) {
+  const id = formData.get("professionalId");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("professionals")
+    .update({
+      is_active: false,
+      is_banned: true,
+      is_featured: false,
+      featured_until: null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to ban professional", error);
+  }
+
+  await recordAdminAudit({
+    action: "ban_professional",
+    targetType: "professional",
+    targetId: id,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/workers");
+  revalidatePath("/admin/featured");
+  revalidatePath("/professionals");
+  revalidatePath(`/professionals/${id}`);
+  redirect("/admin/workers?notice=worker-banned");
+}
+
+export async function unbanProfessional(formData: FormData) {
+  const id = formData.get("professionalId");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("professionals")
+    .update({
+      is_active: false,
+      is_banned: false,
+      is_featured: false,
+      featured_until: null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to unban professional", error);
+  }
+
+  await recordAdminAudit({
+    action: "unban_professional",
+    targetType: "professional",
+    targetId: id,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/workers");
+  revalidatePath("/admin/featured");
+  revalidatePath("/professionals");
+  revalidatePath(`/professionals/${id}`);
+  redirect("/admin/workers?notice=worker-unbanned");
 }
 
 function featuredDurationFromAmount(amountPkr: number) {

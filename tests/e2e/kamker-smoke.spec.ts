@@ -173,6 +173,8 @@ test.describe("Kamker public smoke tests", () => {
       await expect(page.locator(selector), selector).toBeVisible();
     }
 
+    await page.locator('input[name="area"]').fill("Model Town");
+    await expect(page.locator('input[name="area"]')).toHaveValue("Model Town");
     await expectNoJobBoardWording(page);
   });
 
@@ -189,5 +191,20 @@ test.describe("Kamker public smoke tests", () => {
 
     await expect(safeAdminState.first()).toBeVisible();
     await expectNoJobBoardWording(page);
+  });
+
+  test("guest global menu does not expose admin operations links", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Open menu" }).click();
+
+    const menu = page.locator('[data-testid="global-menu-panel"]');
+    await expect(menu.getByText("Kamker Menu")).toBeVisible();
+    await expect(menu.getByRole("link", { name: "Login" })).toBeVisible();
+    await expect(menu.getByRole("link", { name: "Register", exact: true })).toBeVisible();
+    await expect(menu.getByRole("link", { name: "Admin Dashboard" })).toHaveCount(0);
+    await expect(menu.getByRole("link", { name: "Admin Workers" })).toHaveCount(0);
+    await expect(menu.getByRole("link", { name: "Admin Companies" })).toHaveCount(0);
+    await expect(menu.getByRole("link", { name: "Admin Analytics" })).toHaveCount(0);
+    await expect(menu.getByRole("link", { name: "System Health" })).toHaveCount(0);
   });
 });

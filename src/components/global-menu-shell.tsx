@@ -69,6 +69,7 @@ export function GlobalMenuShell({ children }: GlobalMenuShellProps) {
 
       {open ? (
         <div
+          data-testid="global-menu-panel"
           className="absolute right-0 mt-2 w-[min(17.5rem,calc(100vw-1.5rem))] rounded-lg border bg-white p-2.5 shadow-2xl"
           onClick={(event) => {
             const target = event.target;

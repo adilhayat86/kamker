@@ -105,6 +105,7 @@ function localRecordToAccountProfessional(
     is_cnic_verified: professional.is_cnic_verified,
     is_phone_verified: professional.is_phone_verified,
     is_active: professional.is_active,
+    is_banned: professional.is_banned ?? false,
     is_featured: professional.is_featured,
     featured_until: professional.featured_until,
     cities: professional.cities,
@@ -309,13 +310,29 @@ export async function getSessionProfessional() {
     return null;
   }
 
-  const { data: professional, error: professionalError } = await supabase
+  const sessionProfessionalColumns =
+    "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_banned, is_featured, featured_until, cities(name), categories(name)";
+
+  let { data: professional, error: professionalError } = await supabase
     .from("professionals")
-    .select(
-      "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_featured, featured_until, cities(name), categories(name)",
-    )
+    .select(sessionProfessionalColumns)
     .eq("id", session.professional_id as string)
     .maybeSingle();
+
+  if (professionalError?.code === "42703") {
+    const fallback = await supabase
+      .from("professionals")
+      .select(
+        "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_featured, featured_until, cities(name), categories(name)",
+      )
+      .eq("id", session.professional_id as string)
+      .maybeSingle();
+
+    professional = fallback.data
+      ? { ...fallback.data, is_banned: false }
+      : fallback.data;
+    professionalError = fallback.error;
+  }
 
   if (professionalError) {
     console.error("Failed to load session professional", professionalError);

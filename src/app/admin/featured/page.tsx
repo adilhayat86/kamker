@@ -58,6 +58,7 @@ async function getFeaturedWorkers() {
     .from("professionals")
     .select("id, full_name, is_featured, featured_until, cities(name), categories(name)")
     .eq("is_active", true)
+    .eq("is_banned", false)
     .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(FEATURED_PREVIEW_LIMIT);

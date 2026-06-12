@@ -9,6 +9,7 @@ import { getSessionProfessional } from "@/lib/auth";
 import { canAutoApproveProof, reviewProofWithAi } from "@/lib/ai-proof-review";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
+import { workerPostingBlockedStatus } from "@/lib/worker-status";
 
 const featuredPackages = {
   monthly: {
@@ -72,6 +73,16 @@ export async function submitFeaturedProfileProof(formData: FormData) {
 
   if (!professional) {
     redirect("/login");
+  }
+
+  const blockedStatus = workerPostingBlockedStatus(professional);
+
+  if (blockedStatus === "pending") {
+    redirect("/account/featured?status=pending-profile");
+  }
+
+  if (blockedStatus === "banned") {
+    redirect("/account/featured?status=banned-profile");
   }
 
   const selectedPackage = featuredPackages[packageKey];

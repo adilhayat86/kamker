@@ -127,15 +127,15 @@ export async function getAdminCountSummary(): Promise<AdminCountSummary> {
     todayCallClicks,
     todayWhatsappClicks,
   ] = await Promise.all([
-    countRows("professionals", { is_active: false }),
-    countRows("professionals", { is_active: true }),
+    countRows("professionals", { is_active: false, is_banned: false }),
+    countRows("professionals", { is_active: true, is_banned: false }),
     countRows("companies", { verification_status: "pending" }),
     countRows("companies", { verification_status: "verified" }),
     countRows("company_listings", { status: "pending" }),
     countRows("company_listings", { status: "approved" }),
     countRows("proof_reviews", { audit_status: "unchecked" }),
     countRowsIn("requirements", "status", ["open", "new"]),
-    countRows("professionals", { is_featured: true }),
+    countRows("professionals", { is_featured: true, is_banned: false }),
     countRows("company_listings", { is_featured: true }),
     countRows("company_package_subscriptions", { status: "active" }),
     countAnalyticsSince("call_click", today.toISOString()),
@@ -384,6 +384,10 @@ async function getDatabaseSchemaReadiness() {
     {
       column: "professionals.phone_normalized",
       ready: await hasReadableColumn("professionals", "phone_normalized"),
+    },
+    {
+      column: "professionals.is_banned",
+      ready: await hasReadableColumn("professionals", "is_banned"),
     },
     {
       column: "company_listings.service_group",

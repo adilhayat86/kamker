@@ -12,7 +12,6 @@ import {
   LogIn,
   LogOut,
   Send,
-  Shield,
   User,
   UserCog,
   Users,
@@ -206,9 +205,8 @@ export function GlobalMenuClient() {
           ))}
         </MenuSection>
 
-        <MenuSection title="Admin">
-          {session.adminAuthenticated ? (
-            <>
+        {session.adminAuthenticated ? (
+          <MenuSection title="Admin">
               <MenuItem href="/admin" label="Admin Dashboard" icon={LayoutDashboard} />
               <MenuItem href="/admin/workers" label="Admin Workers" icon={Users} />
               <MenuItem href="/admin/companies" label="Admin Companies" icon={Building2} />
@@ -218,15 +216,8 @@ export function GlobalMenuClient() {
               <MenuItem href="/admin/analytics" label="Admin Analytics" icon={BarChart3} />
               <MenuItem href="/admin/system" label="System Health" icon={HeartPulse} />
               <LogoutLink href="/admin/logout" label="Admin Logout" />
-            </>
-          ) : (
-            <MenuItem
-              href="/admin/login"
-              label={session.adminConfigured ? "Admin Panel Access" : "Admin Setup Required"}
-              icon={Shield}
-            />
-          )}
-        </MenuSection>
+          </MenuSection>
+        ) : null}
 
         <MenuSection title="Info">
           <MenuItem href="/about" label="About Kamker" icon={Home} />

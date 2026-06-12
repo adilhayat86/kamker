@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { trackAnalyticsEvent } from "@/lib/analytics";
+import { getSessionProfessional } from "@/lib/auth";
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import {
   normalizePakistanMobilePhone,
@@ -12,6 +13,7 @@ import { createRequirementMatches } from "@/lib/requirement-matching";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { findOrCreateCityId } from "@/lib/taxonomy";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
+import { workerPostingBlockedStatus } from "@/lib/worker-status";
 
 function requiredValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -75,6 +77,19 @@ export async function submitRequirement(formData: FormData) {
       errors: errors.join(","),
     });
     redirect("/send-requirement?status=missing");
+  }
+
+  const professional = await getSessionProfessional();
+  const blockedStatus = workerPostingBlockedStatus(professional);
+
+  if (blockedStatus === "pending") {
+    await saveRequirementDraft(draft);
+    redirect("/send-requirement?status=pending-worker");
+  }
+
+  if (blockedStatus === "banned") {
+    await saveRequirementDraft(draft);
+    redirect("/send-requirement?status=banned-worker");
   }
 
   if (!isSupabaseConfigured || !supabase) {

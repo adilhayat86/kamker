@@ -31,12 +31,12 @@ type FormFieldProps = {
   type?: HTMLInputTypeAttribute;
   defaultValue?: string;
   maxLength?: number;
+  autoComplete?: string;
   error?: string;
   required?: boolean;
   min?: number;
   max?: number;
   helperText?: string;
-  autoComplete?: string;
   inputMode?: InputHTMLAttributes<HTMLInputElement>["inputMode"];
   pattern?: string;
   title?: string;
@@ -49,12 +49,12 @@ export function FormField({
   type = "text",
   defaultValue,
   maxLength,
+  autoComplete,
   error,
   required,
   min,
   max,
   helperText,
-  autoComplete,
   inputMode,
   pattern,
   title,
@@ -71,10 +71,10 @@ export function FormField({
         type={type}
         defaultValue={defaultValue}
         maxLength={maxLength}
+        autoComplete={autoComplete}
         required={required}
         min={min}
         max={max}
-        autoComplete={autoComplete}
         inputMode={inputMode}
         pattern={pattern}
         title={title}
