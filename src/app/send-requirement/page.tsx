@@ -91,6 +91,7 @@ export default async function SendRequirementPage({
     : null;
   const selectedServiceName =
     subcategory ?? selectedService?.name ?? service ?? category ?? draft.service;
+  const hasSelectedService = Boolean(selectedServiceName);
   const serviceOptions = selectedServiceName && !categories.some((item) => item.name === selectedServiceName)
     ? [
         {
@@ -217,50 +218,132 @@ export default async function SendRequirementPage({
           <CardContent className="p-5 sm:p-6">
             <form action={submitRequirement} className="grid gap-6">
               <input type="hidden" name="source" value={source} />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">Service details</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Tell Kamker what you need and where.</p>
+              {hasBroadcastContext ? (
+                <div className="grid gap-4">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                      Quick requirement
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      We already know the service from where you clicked. Add
+                      only what Kamker needs to contact you and review the request.
+                    </p>
+                  </div>
+                  {hasSelectedService ? (
+                    <input type="hidden" name="service" value={selectedServiceName} />
+                  ) : (
+                    <SelectField
+                      label="Required service"
+                      name="service"
+                      options={serviceOptions}
+                      defaultValue={selectedServiceName}
+                      required
+                      error={requiredError("service", "Choose a required service.")}
+                    />
+                  )}
+                  {selectedCity ? (
+                    <input type="hidden" name="city" value={selectedCity} />
+                  ) : (
+                    <SelectField
+                      label="City"
+                      name="city"
+                      options={cityOptionsWithSelected}
+                      defaultValue={selectedCity}
+                      required
+                      error={requiredError("city", "Choose a city.")}
+                    />
+                  )}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                      label="Area optional"
+                      name="area"
+                      defaultValue={area}
+                      placeholder="Model Town, Gulshan, DHA"
+                      autoComplete="address-level3"
+                    />
+                    <SelectField
+                      label="Urgency"
+                      name="urgency"
+                      options={urgencyOptions}
+                      defaultValue={draft.urgency}
+                      required
+                      error={requiredError("urgency", "Choose urgency.")}
+                    />
+                  </div>
+                  <TextAreaField
+                    label="What do you need?"
+                    name="details"
+                    placeholder="Example: Need a driver tomorrow morning in Saddar for pick and drop."
+                    defaultValue={defaultDetails}
+                    required
+                    error={requiredError("details", "Requirement details are required.")}
+                  />
+                  <details className="rounded-lg border bg-sky-50/50 p-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-primary">
+                      Optional: timing and budget
+                    </summary>
+                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                      <SelectField
+                        label="Availability"
+                        name="availability"
+                        options={availabilityOptions}
+                        defaultValue={draft.availability}
+                      />
+                      <FormField
+                        label="Budget optional"
+                        name="budget"
+                        placeholder="Rs. 5,000"
+                        defaultValue={draft.budget}
+                      />
+                    </div>
+                  </details>
                 </div>
-                <SelectField
-                  label="Required service"
-                  name="service"
-                  options={serviceOptions}
-                  defaultValue={selectedServiceName}
-                  required
-                  error={requiredError("service", "Choose a required service.")}
-                />
-                <SelectField
-                  label="City"
-                  name="city"
-                  options={cityOptionsWithSelected}
-                  defaultValue={selectedCity}
-                  required
-                  error={requiredError("city", "Choose a city.")}
-                />
-                <FormField
-                  label="Area"
-                  name="area"
-                  defaultValue={area}
-                  placeholder="Model Town, Gulshan, DHA"
-                  autoComplete="address-level3"
-                />
-                <SelectField
-                  label="Availability"
-                  name="availability"
-                  options={availabilityOptions}
-                  defaultValue={draft.availability}
-                />
-                <FormField label="Budget optional" name="budget" placeholder="Rs. 5,000" defaultValue={draft.budget} />
-                <SelectField
-                  label="Urgency"
-                  name="urgency"
-                  options={urgencyOptions}
-                  defaultValue={draft.urgency}
-                  required
-                  error={requiredError("urgency", "Choose urgency.")}
-                />
-              </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <p className="text-sm font-semibold uppercase tracking-normal text-primary">Service details</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Tell Kamker what you need and where.</p>
+                  </div>
+                  <SelectField
+                    label="Required service"
+                    name="service"
+                    options={serviceOptions}
+                    defaultValue={selectedServiceName}
+                    required
+                    error={requiredError("service", "Choose a required service.")}
+                  />
+                  <SelectField
+                    label="City"
+                    name="city"
+                    options={cityOptionsWithSelected}
+                    defaultValue={selectedCity}
+                    required
+                    error={requiredError("city", "Choose a city.")}
+                  />
+                  <FormField
+                    label="Area"
+                    name="area"
+                    defaultValue={area}
+                    placeholder="Model Town, Gulshan, DHA"
+                    autoComplete="address-level3"
+                  />
+                  <SelectField
+                    label="Availability"
+                    name="availability"
+                    options={availabilityOptions}
+                    defaultValue={draft.availability}
+                  />
+                  <FormField label="Budget optional" name="budget" placeholder="Rs. 5,000" defaultValue={draft.budget} />
+                  <SelectField
+                    label="Urgency"
+                    name="urgency"
+                    options={urgencyOptions}
+                    defaultValue={draft.urgency}
+                    required
+                    error={requiredError("urgency", "Choose urgency.")}
+                  />
+                </div>
+              )}
 
               <div className="grid gap-4 border-t pt-5 sm:grid-cols-2">
                 <div className="sm:col-span-2">
@@ -280,20 +363,22 @@ export default async function SendRequirementPage({
                 <CountryPhoneField label="WhatsApp number" name="whatsapp" defaultValue={draft.whatsapp} error={whatsappError} />
               </div>
 
-              <div className="grid gap-4 border-t pt-5">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">Requirement note</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Add timing, location, and any preferences.</p>
+              {!hasBroadcastContext ? (
+                <div className="grid gap-4 border-t pt-5">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-normal text-primary">Requirement note</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Add timing, location, and any preferences.</p>
+                  </div>
+                  <TextAreaField
+                    label="Details"
+                    name="details"
+                    placeholder="Explain the service, timing, location, and any preferences."
+                    defaultValue={defaultDetails}
+                    required
+                    error={requiredError("details", "Requirement details are required.")}
+                  />
                 </div>
-                <TextAreaField
-                  label="Details"
-                  name="details"
-                  placeholder="Explain the service, timing, location, and any preferences."
-                  defaultValue={defaultDetails}
-                  required
-                  error={requiredError("details", "Requirement details are required.")}
-                />
-              </div>
+              ) : null}
               <Button className="h-12 text-base sm:col-span-2" disabled={Boolean(blockedWorkerStatus)}>
                 {blockedWorkerStatus ? "Posting Disabled" : "Send Requirement"}
               </Button>
