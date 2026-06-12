@@ -816,16 +816,21 @@ export default async function ProfessionalsPage({
   const sort = params?.sort?.trim() || "featured";
   const source = params?.source?.trim() || "direct";
   const currentPage = Math.max(Number(params?.page ?? "1") || 1, 1);
+  const cityOptions = await getCityOptions();
+  const inferredCity = city || cityFromSearchIntent(q, cityOptions);
+  const searchTermIsCityOnly = Boolean(!city && q && inferredCity);
+  const effectiveSearchQuery = searchTermIsCityOnly ? "" : q;
+  const effectiveCity = inferredCity || city;
   const queryCategoryNames = category
     ? [category]
-    : q
-      ? categoryNamesForSearch(q)
+    : effectiveSearchQuery
+      ? categoryNamesForSearch(effectiveSearchQuery)
       : [];
 
-  const [dbProfessionals, companyProfessionals, cityOptions] = await Promise.all([
+  const [dbProfessionals, companyProfessionals] = await Promise.all([
     getDbProfessionals({
-      q,
-      city,
+      q: effectiveSearchQuery,
+      city: effectiveCity,
       category,
       gender,
       age,
@@ -838,15 +843,14 @@ export default async function ProfessionalsPage({
     }),
     getApprovedCompanyListingCards({
       categories: queryCategoryNames.length > 0 ? queryCategoryNames : undefined,
-      city: city || undefined,
+      city: effectiveCity || undefined,
       limit: 60,
     }),
-    getCityOptions(),
   ]);
   const filteredCompanyProfessionals = companyProfessionals.filter((professional) =>
     matchesCompanyProfessionalFilters(professional, {
-      q,
-      city,
+      q: effectiveSearchQuery,
+      city: effectiveCity,
       category,
       gender,
       age,
@@ -858,8 +862,8 @@ export default async function ProfessionalsPage({
   );
   const filteredDemoProfessionals = recentProfessionals.filter((professional) =>
     matchesCompanyProfessionalFilters(professional, {
-      q,
-      city,
+      q: effectiveSearchQuery,
+      city: effectiveCity,
       category,
       gender,
       age,
@@ -871,17 +875,17 @@ export default async function ProfessionalsPage({
   );
   const filteredDbProfessionals = dbProfessionals
     .filter((professional) => {
-      const keywordMatch = q
-        ? matches(professional.full_name, q) ||
-          matches(professional.area, q) ||
-          matches(professional.experience, q) ||
-          matches(professional.short_bio, q) ||
-          matches(professional.expected_rate, q) ||
-          matches(professional.categories?.name, q) ||
-          matchesSearchCategoryIntent(professional.categories?.name, q) ||
-          matches(professional.cities?.name, q)
+      const keywordMatch = effectiveSearchQuery
+        ? matches(professional.full_name, effectiveSearchQuery) ||
+          matches(professional.area, effectiveSearchQuery) ||
+          matches(professional.experience, effectiveSearchQuery) ||
+          matches(professional.short_bio, effectiveSearchQuery) ||
+          matches(professional.expected_rate, effectiveSearchQuery) ||
+          matches(professional.categories?.name, effectiveSearchQuery) ||
+          matchesSearchCategoryIntent(professional.categories?.name, effectiveSearchQuery) ||
+          matches(professional.cities?.name, effectiveSearchQuery)
         : true;
-      const cityMatch = city ? professional.cities?.name === city : true;
+      const cityMatch = effectiveCity ? professional.cities?.name === effectiveCity : true;
       const categoryMatch = category ? professional.categories?.name === category : true;
       const genderMatch = gender ? normalise(professional.gender) === normalise(gender) : true;
       const ageMatch = matchesAgeRange(professional.age, age);
@@ -958,8 +962,7 @@ export default async function ProfessionalsPage({
     filteredDbProfessionals.length +
     filteredCompanyProfessionals.length +
     (hasDbProfessionals ? 0 : filteredDemoProfessionals.length);
-  const inferredCity = city || cityFromSearchIntent(q, cityOptions);
-  const inferredCategory = category || categoryFromSearchIntent(q);
+  const inferredCategory = category || categoryFromSearchIntent(effectiveSearchQuery);
   const resultSummary = buildSearchResultSummary({
     count: totalVisibleProfessionals,
     city: inferredCity,
