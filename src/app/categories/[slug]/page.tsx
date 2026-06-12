@@ -335,6 +335,8 @@ export default async function CategoryDetailPage({
         : dbCategory
           ? [dbCategory.name]
       : [];
+  const isParentCategoryPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
+  const isServiceGroupPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
   const [matchingProfessionals, companyManagedProfessionals, recipientCount] =
     await Promise.all([
       getCategoryProfessionals(
@@ -352,18 +354,17 @@ export default async function CategoryDetailPage({
       getBroadcastRecipientCount({
         category: serviceGroup?.name ?? parentGroup?.name ?? dbParentCategory?.name ?? category?.name ?? dbCategory?.name,
         subcategory:
-          serviceGroup || dbCategory?.parent_id === null
+          isParentCategoryPage
             ? undefined
             : category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined),
         city,
         area,
+        scope: isServiceGroupPage ? "serviceGroup" : "category",
       }),
     ]);
   const visibleProfessionals = [...companyManagedProfessionals, ...matchingProfessionals].sort(
     (a, b) => Number(b.is_featured) - Number(a.is_featured),
   );
-  const isParentCategoryPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
-  const isServiceGroupPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
   const distinctParentRoles = new Set(
     visibleProfessionals
       .map((professional) => normaliseMatchValue(professional.role))

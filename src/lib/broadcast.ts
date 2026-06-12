@@ -18,6 +18,7 @@ type BroadcastCountInput = {
   city?: string;
   area?: string;
   scope?: "category" | "serviceGroup";
+  estimate?: number;
 };
 
 function locationLabel(city?: string, area?: string) {
@@ -177,9 +178,10 @@ export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
     (professionalsResult.count ?? 0) + (companyListingsResult.count ?? 0);
 
   if (recipientCount === 0) {
+    const shouldUseSubcategoryFallback = Boolean(input.subcategory);
     const fallbackCompanyCards = await getApprovedCompanyListingCards({
-      categories: serviceGroup ? undefined : targets,
-      serviceGroup: serviceGroup?.name,
+      categories: shouldUseSubcategoryFallback || !serviceGroup ? targets : undefined,
+      serviceGroup: shouldUseSubcategoryFallback ? undefined : serviceGroup?.name,
       city: input.city,
       area: input.area,
     });
@@ -215,6 +217,10 @@ export function buildSendRequirementHref(input: BroadcastCountInput) {
 
   if (input.area) {
     params.set("area", input.area);
+  }
+
+  if (typeof input.estimate === "number" && Number.isFinite(input.estimate)) {
+    params.set("estimate", String(Math.max(0, Math.floor(input.estimate))));
   }
 
   const query = params.toString();

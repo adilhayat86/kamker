@@ -57,6 +57,7 @@ type SendRequirementPageProps = {
     city?: string;
     area?: string;
     source?: string;
+    estimate?: string;
   }>;
 };
 
@@ -77,6 +78,8 @@ export default async function SendRequirementPage({
   const city = params?.city?.trim() || draft.city;
   const area = params?.area?.trim() || draft.area;
   const source = params?.source?.trim() ?? "";
+  const estimate = params?.estimate?.trim() ?? "";
+  const sourceEstimate = /^\d+$/.test(estimate) ? Number(estimate) : null;
   const selectedService = serviceFromBroadcastQuery({
     category,
     subcategory,
@@ -112,7 +115,8 @@ export default async function SendRequirementPage({
       ? `I need ${contextServiceLabel}${contextLocation ? ` in ${contextLocation}` : ""}. Please contact me with availability and rate.`
       : "");
   const recipientCount = hasBroadcastContext
-    ? await getBroadcastRecipientCount({
+    ? sourceEstimate ??
+      await getBroadcastRecipientCount({
         category,
         subcategory,
         city: selectedCity || undefined,

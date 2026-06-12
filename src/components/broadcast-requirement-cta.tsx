@@ -31,6 +31,7 @@ export function BroadcastRequirementCta({
     city,
     area,
     scope,
+    estimate: count,
   });
   const buttonText = broadcastButtonText({
     count,

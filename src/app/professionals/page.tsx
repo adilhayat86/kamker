@@ -198,10 +198,12 @@ function buildSearchRequirementHref({
   q,
   city,
   category,
+  estimate,
 }: {
   q: string;
   city: string;
   category: string;
+  estimate: number;
 }) {
   const params = new URLSearchParams();
 
@@ -215,6 +217,7 @@ function buildSearchRequirementHref({
     params.set("city", city);
   }
 
+  params.set("estimate", String(Math.max(0, Math.floor(estimate))));
   params.set("source", "professionals-search");
 
   return `/send-requirement?${params.toString()}`;
@@ -972,6 +975,7 @@ export default async function ProfessionalsPage({
     q,
     city: inferredCity,
     category: inferredCategory,
+    estimate: totalVisibleProfessionals,
   });
   const sendRequirementLabel = buildSearchRequirementLabel({
     count: totalVisibleProfessionals,
