@@ -1,8 +1,11 @@
 import {
   categories,
   categoryCountValue,
+  recentProfessionals,
+  searchTermsForCategory,
   serviceGroups,
 } from "@/lib/marketplace-data";
+import { getApprovedCompanyListingCards } from "@/lib/company-listing-cards";
 import {
   getCategoryIdsByNames,
   getCityIdByName,
@@ -49,6 +52,35 @@ function normalizeMatchValue(value?: string | null) {
     .replace(/&/g, "and")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+function serviceMatchesCategory(serviceName: string, categoryName: string) {
+  const service = normalizeMatchValue(serviceName);
+  const categoryTerms = searchTermsForCategory(categoryName).map(normalizeMatchValue);
+
+  return categoryTerms.some((category) => {
+    const singularCategory = category.replace(/s$/, "");
+
+    return (
+      service.includes(category) ||
+      service.includes(singularCategory) ||
+      category.includes(service)
+    );
+  });
+}
+
+function fallbackProfessionalsCount(input: BroadcastCountInput, targets: string[]) {
+  return recentProfessionals.filter((professional) => {
+    const categoryMatch = targets.length
+      ? targets.some((target) => serviceMatchesCategory(professional.role, target))
+      : true;
+    const cityMatch = input.city ? professional.city === input.city : true;
+    const areaMatch = input.area
+      ? normalizeMatchValue(professional.area).includes(normalizeMatchValue(input.area))
+      : true;
+
+    return categoryMatch && cityMatch && areaMatch;
+  }).length;
 }
 
 function targetServicesFor(input: BroadcastCountInput) {
@@ -143,6 +175,21 @@ export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
 
   const recipientCount =
     (professionalsResult.count ?? 0) + (companyListingsResult.count ?? 0);
+
+  if (recipientCount === 0) {
+    const fallbackCompanyCards = await getApprovedCompanyListingCards({
+      categories: serviceGroup ? undefined : targets,
+      serviceGroup: serviceGroup?.name,
+      city: input.city,
+      area: input.area,
+    });
+    const fallbackCount =
+      fallbackProfessionalsCount(input, targets) + fallbackCompanyCards.length;
+
+    if (fallbackCount > 0) {
+      return fallbackCount;
+    }
+  }
 
   if (recipientCount === 0 && targets.length === 0 && !input.city && !input.area) {
     return demoCountFor(input);
