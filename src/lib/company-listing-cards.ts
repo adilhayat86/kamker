@@ -308,12 +308,14 @@ export async function getApprovedCompanyListingCards(filters?: {
     .order("created_at", { ascending: false })
     .limit(filters?.limit ?? 100);
 
+  const serviceGroupCategories = filters?.serviceGroup
+    ? serviceGroups.find((group) => group.name === filters.serviceGroup)?.subcategories
+    : null;
+
   if (filters?.categories?.length) {
     query = query.in("category", filters.categories);
-  }
-
-  if (filters?.serviceGroup) {
-    query = query.eq("service_group", filters.serviceGroup);
+  } else if (serviceGroupCategories?.length) {
+    query = query.in("category", serviceGroupCategories);
   }
 
   if (filters?.city) {

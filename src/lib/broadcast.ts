@@ -155,7 +155,7 @@ export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
   if (input.subcategory) {
     companyListingsQuery = companyListingsQuery.eq("category", input.subcategory);
   } else if (serviceGroup) {
-    companyListingsQuery = companyListingsQuery.eq("service_group", serviceGroup.name);
+    companyListingsQuery = companyListingsQuery.in("category", serviceGroup.subcategories);
   } else if (input.category) {
     companyListingsQuery = companyListingsQuery.eq("category", input.category);
   }
