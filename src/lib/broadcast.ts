@@ -85,7 +85,8 @@ export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
   let professionalsQuery = supabase
     .from("professionals")
     .select("id", { count: "exact", head: true })
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .eq("is_banned", false);
 
   if (cityId !== null) {
     professionalsQuery = professionalsQuery.eq("city_id", cityId);
@@ -193,7 +194,7 @@ export function broadcastButtonText({
   }
 
   if (scope === "serviceGroup" && category) {
-    return `Send Requirement to ${countLabel}${professionalLabel} in ${category}${place ? `, ${place}` : ""}`;
+    return `Send Requirement to ${countLabel}${category} ${professionalLabel}${place ? ` in ${place}` : ""}`;
   }
 
   if (category) {
