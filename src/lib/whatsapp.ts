@@ -74,6 +74,17 @@ export function isWhatsappConfigured() {
   return Boolean(config.accessToken && config.phoneNumberId);
 }
 
+export function isRequirementWhatsappConfigured() {
+  const config = whatsappConfig();
+
+  return Boolean(
+    config.accessToken &&
+      config.phoneNumberId &&
+      config.requirementTemplateName &&
+      config.requirementTemplateLanguage,
+  );
+}
+
 export async function sendWhatsappText({
   to,
   body,
@@ -317,28 +328,36 @@ export async function sendRequirementWhatsappAlert(
 ) {
   const config = whatsappConfig();
   const templateBody = body.replace(/\s+/g, " ").trim();
+  const recipientPhone = cleanPhoneNumber(to);
 
   try {
-    if (config.requirementTemplateName) {
-      const templateResult = await sendWhatsappTemplate({
-        to,
+    if (
+      !recipientPhone ||
+      !templateBody ||
+      !config.requirementTemplateName ||
+      !config.requirementTemplateLanguage
+    ) {
+      await logWhatsappMessage({
+        recipientPhone,
         body: templateBody,
-        templateName: config.requirementTemplateName,
-        languageCode: config.requirementTemplateLanguage,
+        messageType: "template",
+        status: "skipped",
+        errorMessage: "WhatsApp requirement template is not configured.",
         relatedType: "requirement_broadcast",
         relatedId,
       });
 
-      if (templateResult.ok) {
-        return templateResult;
-      }
-
-      console.warn("WhatsApp requirement template failed; trying text fallback.");
+      return {
+        ok: false,
+        error: "WhatsApp requirement template is not configured.",
+      };
     }
 
-    return await sendWhatsappText({
+    return await sendWhatsappTemplate({
       to,
-      body: `New paid Kamker requirement:\n${body}\nReply directly if you are available.`,
+      body: templateBody,
+      templateName: config.requirementTemplateName,
+      languageCode: config.requirementTemplateLanguage,
       relatedType: "requirement_broadcast",
       relatedId,
     });

@@ -10,7 +10,11 @@ import {
   sendRequirementBroadcast,
 } from "@/lib/requirement-broadcast";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
+import {
+  isRequirementWhatsappConfigured,
+  isWhatsappConfigured,
+  sendAdminWhatsappAlert,
+} from "@/lib/whatsapp";
 
 const allowedProofTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxProofSize = 8 * 1024 * 1024;
@@ -83,6 +87,10 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
 
   if (!isSupabaseConfigured || !supabase) {
     redirectToPayment(requirementId, "not-configured");
+  }
+
+  if (!isWhatsappConfigured() || !isRequirementWhatsappConfigured()) {
+    redirectToPayment(requirementId, "whatsapp-not-configured");
   }
 
   const db = supabase;

@@ -6,6 +6,8 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendRequirementWhatsappAlert } from "@/lib/whatsapp";
 
 export const REQUIREMENT_BROADCAST_AMOUNT_PKR = 35;
+export const REQUIREMENT_DETAILS_MAX_LENGTH = 500;
+export const REQUIREMENT_TEMPLATE_BODY_MAX_LENGTH = 900;
 
 export function calculateRequirementBroadcastAmountPkr(recipientCount: number) {
   return REQUIREMENT_BROADCAST_AMOUNT_PKR * Math.max(0, Math.floor(recipientCount));
@@ -56,13 +58,25 @@ function requirementMessage(requirement: RequirementForBroadcast) {
   const city = requirement.cities?.name ?? "Not provided";
   const location = [requirement.area, city].filter(Boolean).join(", ");
   const contact = requirement.whatsapp_number || requirement.phone_number;
-
-  return [
+  const prefixLines = [
     `Service: ${requirement.required_service}`,
     `Location: ${location || city}`,
     `Contact: ${contact}`,
-    `Details: ${shortText(requirement.details)}`,
-  ].join("\n");
+  ];
+  const detailsPrefix = "Details: ";
+  const baseMessage = prefixLines.join("\n");
+  const availableDetailsLength = Math.max(
+    80,
+    REQUIREMENT_TEMPLATE_BODY_MAX_LENGTH - baseMessage.length - detailsPrefix.length - 1,
+  );
+  const detailsLimit = Math.min(
+    REQUIREMENT_DETAILS_MAX_LENGTH,
+    availableDetailsLength,
+  );
+
+  return [...prefixLines, `${detailsPrefix}${shortText(requirement.details, detailsLimit)}`]
+    .join("\n")
+    .slice(0, REQUIREMENT_TEMPLATE_BODY_MAX_LENGTH);
 }
 
 function matchRecipient(source: BroadcastRecipientSource) {

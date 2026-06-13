@@ -14,6 +14,10 @@ import {
   REQUIREMENT_BROADCAST_AMOUNT_PKR,
 } from "@/lib/requirement-broadcast";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import {
+  isRequirementWhatsappConfigured,
+  isWhatsappConfigured,
+} from "@/lib/whatsapp";
 
 import { submitRequirementBroadcastPayment } from "./actions";
 
@@ -39,7 +43,8 @@ type RequirementPaymentPageProps = {
       | "sent"
       | "partial"
       | "failed"
-      | "no_matches";
+      | "no_matches"
+      | "whatsapp-not-configured";
   }>;
 };
 
@@ -68,6 +73,7 @@ const statusMessages = {
   partial: "Payment approved. Some professionals were messaged, but a few sends failed.",
   failed: "Payment approved, but WhatsApp sending failed. Kamker admin can retry from the requirement detail.",
   no_matches: "No matching professionals are available for this requirement yet. Do not pay until matches are available.",
+  "whatsapp-not-configured": "WhatsApp broadcast setup is not ready. Do not pay until Kamker fixes this.",
 } as const;
 
 function formatPrice(value: number) {
@@ -141,7 +147,10 @@ export default async function RequirementPaymentPage({
   const isCompleted =
     requirement?.payment_status === "paid" &&
     ["sent", "partial", "no_matches"].includes(requirement.broadcast_status);
-  const canUploadProof = Boolean(requirement && payableAmount > 0 && !isCompleted);
+  const whatsappReady = isWhatsappConfigured() && isRequirementWhatsappConfigured();
+  const canUploadProof = Boolean(
+    requirement && payableAmount > 0 && !isCompleted && whatsappReady,
+  );
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -268,6 +277,12 @@ export default async function RequirementPaymentPage({
                 <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
                   This requirement is already paid. Broadcast status:{" "}
                   <span className="font-semibold">{requirement?.broadcast_status}</span>.
+                </div>
+              ) : !whatsappReady ? (
+                <div className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-950">
+                  WhatsApp broadcast is not ready right now. Do not pay yet.
+                  Kamker must have the WhatsApp token, phone number ID, template
+                  name, and template language configured before messages can be sent.
                 </div>
               ) : !canUploadProof ? (
                 <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">

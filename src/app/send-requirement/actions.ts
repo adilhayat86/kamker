@@ -10,7 +10,10 @@ import {
   validatePhoneFieldWithCountry,
 } from "@/lib/phone";
 import { createRequirementMatches } from "@/lib/requirement-matching";
-import { REQUIREMENT_BROADCAST_AMOUNT_PKR } from "@/lib/requirement-broadcast";
+import {
+  REQUIREMENT_BROADCAST_AMOUNT_PKR,
+  REQUIREMENT_DETAILS_MAX_LENGTH,
+} from "@/lib/requirement-broadcast";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { findOrCreateCityId } from "@/lib/taxonomy";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
@@ -37,12 +40,56 @@ async function clearRequirementDraft() {
   });
 }
 
+function redirectToRequirementForm(
+  status: "missing" | "not-configured" | "banned-worker" | "error",
+  values: {
+    categoryContext?: string;
+    subcategoryContext?: string;
+    service?: string;
+    city?: string;
+    area?: string;
+    estimate?: string;
+    source?: string;
+  } = {},
+): never {
+  const query = new URLSearchParams({ status });
+
+  if (values.categoryContext) {
+    query.set("category", values.categoryContext);
+  } else if (values.service) {
+    query.set("service", values.service);
+  }
+
+  if (values.subcategoryContext) {
+    query.set("subcategory", values.subcategoryContext);
+  }
+
+  if (values.city) {
+    query.set("city", values.city);
+  }
+
+  if (values.area) {
+    query.set("area", values.area);
+  }
+
+  if (values.estimate) {
+    query.set("estimate", values.estimate);
+  }
+
+  if (values.source) {
+    query.set("source", values.source);
+  }
+
+  redirect(`/send-requirement?${query.toString()}`);
+}
+
 export async function submitRequirement(formData: FormData) {
   const requiredService = requiredValue(formData, "service");
   const cityName = requiredValue(formData, "city");
   const area = requiredValue(formData, "area");
-  const availability = requiredValue(formData, "availability");
-  const budget = requiredValue(formData, "budget");
+  const categoryContext = requiredValue(formData, "categoryContext");
+  const subcategoryContext = requiredValue(formData, "subcategoryContext");
+  const estimate = requiredValue(formData, "estimate");
   const phoneInput = requiredValue(formData, "phone");
   const phoneValidation = normalizePakistanMobilePhone(phoneInput);
   const phoneNumber = phoneValidation.normalized || phoneInput;
@@ -54,8 +101,6 @@ export async function submitRequirement(formData: FormData) {
     service: requiredService,
     city: cityName,
     area,
-    availability,
-    budget,
     phone: phoneInput,
     whatsapp: whatsappNumber,
     details,
@@ -67,6 +112,7 @@ export async function submitRequirement(formData: FormData) {
     phoneInput && !phoneValidation.ok ? "phoneInvalid" : null,
     !whatsappValidation.ok ? "whatsappInvalid" : null,
     !details ? "details" : null,
+    details.length > REQUIREMENT_DETAILS_MAX_LENGTH ? "detailsTooLong" : null,
   ].filter((error): error is string => Boolean(error));
 
   if (errors.length > 0) {
@@ -74,7 +120,15 @@ export async function submitRequirement(formData: FormData) {
       ...draft,
       errors: errors.join(","),
     });
-    redirect("/send-requirement?status=missing");
+    redirectToRequirementForm("missing", {
+      categoryContext,
+      subcategoryContext,
+      service: requiredService,
+      city: cityName,
+      area,
+      estimate,
+      source,
+    });
   }
 
   const [professional, customer] = await Promise.all([
@@ -91,12 +145,28 @@ export async function submitRequirement(formData: FormData) {
 
   if (blockedStatus === "banned") {
     await saveRequirementDraft(draft);
-    redirect("/send-requirement?status=banned-worker");
+    redirectToRequirementForm("banned-worker", {
+      categoryContext,
+      subcategoryContext,
+      service: requiredService,
+      city: cityName,
+      area,
+      estimate,
+      source,
+    });
   }
 
   if (!isSupabaseConfigured || !supabase) {
     await saveRequirementDraft(draft);
-    redirect("/send-requirement?status=not-configured");
+    redirectToRequirementForm("not-configured", {
+      categoryContext,
+      subcategoryContext,
+      service: requiredService,
+      city: cityName,
+      area,
+      estimate,
+      source,
+    });
   }
 
   const cityId = await findOrCreateCityId(cityName);
@@ -108,9 +178,9 @@ export async function submitRequirement(formData: FormData) {
       required_service: requiredService,
       city_id: cityId,
       area: area || null,
-      availability: availability || null,
+      availability: null,
       details,
-      budget: budget || null,
+      budget: null,
       phone_number: phoneNumber,
       whatsapp_number: whatsappNumber || null,
       urgency: "Immediate",
@@ -124,7 +194,15 @@ export async function submitRequirement(formData: FormData) {
   if (error || !requirement) {
     console.error("Failed to submit requirement", error);
     await saveRequirementDraft(draft);
-    redirect("/send-requirement?status=error");
+    redirectToRequirementForm("error", {
+      categoryContext,
+      subcategoryContext,
+      service: requiredService,
+      city: cityName,
+      area,
+      estimate,
+      source,
+    });
   }
 
   await createRequirementMatches({
@@ -132,7 +210,7 @@ export async function submitRequirement(formData: FormData) {
     requiredService,
     cityName,
     area: area || null,
-    availability: availability || null,
+    availability: null,
   });
 
   await trackAnalyticsEvent({

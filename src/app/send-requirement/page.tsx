@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 
 import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
-import { FormField, SelectField, TextAreaField } from "@/components/form-field";
+import { FormField, SelectField } from "@/components/form-field";
+import { LimitedTextAreaField } from "@/components/limited-textarea-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +19,7 @@ import { categories, serviceGroups } from "@/lib/marketplace-data";
 import {
   calculateRequirementBroadcastAmountPkr,
   REQUIREMENT_BROADCAST_AMOUNT_PKR,
+  REQUIREMENT_DETAILS_MAX_LENGTH,
 } from "@/lib/requirement-broadcast";
 import { workerPostingBlockedStatus } from "@/lib/worker-status";
 
@@ -28,11 +30,9 @@ export const metadata = {
   description: "Submit a paid Kamker requirement broadcast to matching professionals.",
 };
 
-const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evening"];
-
 const statusMessages = {
   success: "Your requirement has been saved.",
-  missing: "Please fill service, city, phone number, and details.",
+  missing: "Please fill service, city, phone number, and a short requirement message.",
   "not-configured": "Supabase is not configured yet.",
   "customer-registered": "Customer account created. You can now send your requirement.",
   "banned-worker":
@@ -44,8 +44,6 @@ type RequirementDraft = {
   service: string;
   city: string;
   area: string;
-  availability: string;
-  budget: string;
   phone: string;
   whatsapp: string;
   details: string;
@@ -109,11 +107,9 @@ export default async function SendRequirementPage({
   const accountPhone = professional?.phone_number ?? customer?.phone_number ?? "";
   const accountWhatsapp = professional?.whatsapp_number ?? "";
   const accountCity = professional?.cities?.name ?? customer?.cities?.name ?? "";
-  const accountArea = professional?.area ?? customer?.area ?? "";
   const queryCity = params?.city?.trim() || "";
   const queryArea = params?.area?.trim() || "";
   const city = queryCity || draft.city || accountCity;
-  const area = queryArea || draft.area || accountArea;
   const source = params?.source?.trim() ?? "";
   const estimate = params?.estimate?.trim() ?? "";
   const sourceEstimate = /^\d+$/.test(estimate) ? Number(estimate) : null;
@@ -155,7 +151,7 @@ export default async function SendRequirementPage({
   const defaultDetails =
     draft.details ||
     (hasBroadcastContext
-      ? `I need ${contextServiceLabel || "a professional"}${contextLocation ? ` in ${contextLocation}` : ""}. Please contact me with availability and rate.`
+      ? `I need ${contextServiceLabel || "a professional"}${contextLocation ? ` in ${contextLocation}` : ""}.`
       : "");
   const recipientCount = hasBroadcastContext
     ? sourceEstimate ??
@@ -183,6 +179,10 @@ export default async function SendRequirementPage({
     missingRequired && failedFields.has("whatsappInvalid")
       ? "Enter a valid WhatsApp number or leave it blank."
       : undefined;
+  const detailsError =
+    missingRequired && failedFields.has("detailsTooLong")
+      ? `Keep this under ${REQUIREMENT_DETAILS_MAX_LENGTH.toLocaleString("en-PK")} characters so it can be sent on WhatsApp.`
+      : requiredError("details", "Tell Kamker what you need.");
 
   if (status === "success") {
     return (
@@ -236,7 +236,7 @@ export default async function SendRequirementPage({
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
             Describe your need once. Kamker matches it with relevant
-            professionals by service, city, area, and availability.
+            professionals by service and city.
           </p>
         </div>
 
@@ -249,7 +249,7 @@ export default async function SendRequirementPage({
               <h2 className="mt-1 text-xl font-bold">{contextTitle}</h2>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 This form was opened from the matching category page. The service,
-                city, and area have been filled from that page where available.
+                city, and any hidden area context have been filled from that page where available.
               </p>
               <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
                 {contextServiceLabel ? (
@@ -321,103 +321,47 @@ export default async function SendRequirementPage({
           <CardContent className="p-5 sm:p-6">
             <form action={submitRequirement} className="grid gap-6">
               <input type="hidden" name="source" value={source} />
-              {hasBroadcastContext ? (
-                <div className="grid gap-4">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-                      Quick requirement
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      We already know the service from where you clicked. Add
-                      only what Kamker needs to contact you and review the request.
-                    </p>
-                  </div>
-                  <SelectField
-                    label="Required service"
-                    name="service"
-                    options={serviceOptions}
-                    defaultValue={selectedServiceName}
-                    required
-                    error={requiredError("service", "Choose a required service.")}
-                  />
-                  <SelectField
-                    label="City"
-                    name="city"
-                    options={cityOptionsWithSelected}
-                    defaultValue={selectedCity}
-                    required
-                    error={requiredError("city", "Choose a city.")}
-                  />
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
-                      label="Area optional"
-                      name="area"
-                      defaultValue={area}
-                      placeholder="Model Town, Gulshan, DHA"
-                      autoComplete="address-level3"
-                    />
-                    <FormField label="Budget optional" name="budget" placeholder="Rs. 5,000" defaultValue={draft.budget} />
-                  </div>
-                  <TextAreaField
-                    label="What do you need?"
-                    name="details"
-                    placeholder="Example: Need a driver tomorrow morning in Saddar for pick and drop."
-                    defaultValue={defaultDetails}
-                    required
-                    error={requiredError("details", "Requirement details are required.")}
-                  />
-                  <details className="rounded-lg border bg-sky-50/50 p-3">
-                    <summary className="cursor-pointer text-sm font-semibold text-primary">
-                      Optional: timing and budget
-                    </summary>
-                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                      <SelectField
-                        label="Availability"
-                        name="availability"
-                        options={availabilityOptions}
-                        defaultValue={draft.availability}
-                      />
-                    </div>
-                  </details>
+              <input type="hidden" name="categoryContext" value={category ?? ""} />
+              <input type="hidden" name="subcategoryContext" value={subcategory ?? ""} />
+              <input type="hidden" name="estimate" value={estimate} />
+              {queryArea ? <input type="hidden" name="area" value={queryArea} /> : null}
+
+              <div className="grid gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                    Paid broadcast details
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Keep it short. Kamker will send this to the matched professionals after payment approval.
+                  </p>
                 </div>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <p className="text-sm font-semibold uppercase tracking-normal text-primary">Service details</p>
-                    <p className="mt-1 text-sm text-muted-foreground">Tell Kamker what you need and where.</p>
-                  </div>
-                  <SelectField
-                    label="Required service"
-                    name="service"
-                    options={serviceOptions}
-                    defaultValue={selectedServiceName}
-                    required
-                    error={requiredError("service", "Choose a required service.")}
-                  />
-                  <SelectField
-                    label="City"
-                    name="city"
-                    options={cityOptionsWithSelected}
-                    defaultValue={selectedCity}
-                    required
-                    error={requiredError("city", "Choose a city.")}
-                  />
-                  <FormField
-                    label="Area"
-                    name="area"
-                    defaultValue={area}
-                    placeholder="Model Town, Gulshan, DHA"
-                    autoComplete="address-level3"
-                  />
-                  <SelectField
-                    label="Availability"
-                    name="availability"
-                    options={availabilityOptions}
-                    defaultValue={draft.availability}
-                  />
-                  <FormField label="Budget optional" name="budget" placeholder="Rs. 5,000" defaultValue={draft.budget} />
-                </div>
-              )}
+                <SelectField
+                  label="Required service"
+                  name="service"
+                  options={serviceOptions}
+                  defaultValue={selectedServiceName}
+                  required
+                  error={requiredError("service", "Choose a required service.")}
+                />
+                <SelectField
+                  label="City"
+                  name="city"
+                  options={cityOptionsWithSelected}
+                  defaultValue={selectedCity}
+                  required
+                  error={requiredError("city", "Choose a city.")}
+                />
+                <LimitedTextAreaField
+                  label="What do you need?"
+                  name="details"
+                  placeholder="Example: Need a maid today for house cleaning."
+                  defaultValue={defaultDetails}
+                  maxLength={REQUIREMENT_DETAILS_MAX_LENGTH}
+                  required
+                  helperText="This message is sent through WhatsApp, so keep it clear and direct."
+                  error={detailsError}
+                />
+              </div>
 
               <div className="grid gap-4 border-t pt-5 sm:grid-cols-2">
                 <div className="sm:col-span-2">
@@ -437,22 +381,6 @@ export default async function SendRequirementPage({
                 <CountryPhoneField label="WhatsApp number" name="whatsapp" defaultValue={draft.whatsapp || accountWhatsapp} error={whatsappError} />
               </div>
 
-              {!hasBroadcastContext ? (
-                <div className="grid gap-4 border-t pt-5">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-normal text-primary">Requirement note</p>
-                    <p className="mt-1 text-sm text-muted-foreground">Add timing, location, and any preferences.</p>
-                  </div>
-                  <TextAreaField
-                    label="Details"
-                    name="details"
-                    placeholder="Explain the service, timing, location, and any preferences."
-                    defaultValue={defaultDetails}
-                    required
-                    error={requiredError("details", "Requirement details are required.")}
-                  />
-                </div>
-              ) : null}
               <Button className="h-12 text-base sm:col-span-2" disabled={blockedWorkerStatus === "banned"}>
                 {blockedWorkerStatus === "banned" ? "Requirement Disabled" : "Continue to Payment"}
               </Button>
