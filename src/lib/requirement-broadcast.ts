@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 
 import { recordAdminAudit } from "@/lib/admin-audit";
 import { whatsappDigits } from "@/lib/phone";
+import { createRequirementMatches } from "@/lib/requirement-matching";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import {
   sendRequirementReportWhatsappAlert,
@@ -213,6 +214,28 @@ async function loadBroadcastMatches(requirementId: string) {
   };
 }
 
+async function loadOrRebuildBroadcastMatches(
+  requirement: RequirementForBroadcast,
+) {
+  let { matches, error } = await loadBroadcastMatches(requirement.id);
+
+  if (!error && matches.length === 0) {
+    const rebuiltCount = await createRequirementMatches({
+      id: requirement.id,
+      requiredService: requirement.required_service,
+      cityName: requirement.cities?.name ?? null,
+      area: requirement.area,
+      availability: null,
+    });
+
+    if (rebuiltCount > 0) {
+      ({ matches, error } = await loadBroadcastMatches(requirement.id));
+    }
+  }
+
+  return { matches, error };
+}
+
 export async function notifyRequirementSender(
   requirementId: string,
   result: RequirementBroadcastResult,
@@ -290,7 +313,9 @@ export async function sendRequirementBroadcast(
   }
 
   const { matches, error: matchesError } =
-    await loadBroadcastMatches(requirementId);
+    await loadOrRebuildBroadcastMatches(
+      requirement as unknown as RequirementForBroadcast,
+    );
 
   if (matchesError) {
     console.error("Failed to load requirement matches before broadcast", matchesError);

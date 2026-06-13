@@ -10,6 +10,7 @@ import {
   notifyRequirementSender,
   sendRequirementBroadcast,
 } from "@/lib/requirement-broadcast";
+import { createRequirementMatches } from "@/lib/requirement-matching";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import {
   isRequirementWhatsappConfigured,
@@ -23,9 +24,11 @@ const maxProofSize = 8 * 1024 * 1024;
 type RequirementPaymentContext = {
   id: string;
   required_service: string;
+  area: string | null;
   phone_number: string;
   payment_status: string;
   broadcast_status: string;
+  cities: { name: string } | null;
 };
 
 type RequirementBroadcastPayment = {
@@ -78,6 +81,24 @@ async function getRecipientCount(requirementId: string) {
   return count ?? 0;
 }
 
+async function getOrCreateRecipientCount(requirement: RequirementPaymentContext) {
+  const currentCount = await getRecipientCount(requirement.id);
+
+  if (currentCount > 0) {
+    return currentCount;
+  }
+
+  await createRequirementMatches({
+    id: requirement.id,
+    requiredService: requirement.required_service,
+    cityName: requirement.cities?.name ?? null,
+    area: requirement.area,
+    availability: null,
+  });
+
+  return getRecipientCount(requirement.id);
+}
+
 async function loadRequirement(requirementId: string) {
   if (!supabase) {
     return null;
@@ -85,7 +106,7 @@ async function loadRequirement(requirementId: string) {
 
   const { data, error } = await supabase
     .from("requirements")
-    .select("id, required_service, phone_number, payment_status, broadcast_status")
+    .select("id, required_service, area, phone_number, payment_status, broadcast_status, cities(name)")
     .eq("id", requirementId)
     .maybeSingle();
 
@@ -164,15 +185,16 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
   }
 
   const db = supabase;
-  const [requirement, existingPayment, recipientCount] = await Promise.all([
+  const [requirement, existingPayment] = await Promise.all([
     loadRequirement(requirementId),
     loadLatestPayment(requirementId),
-    getRecipientCount(requirementId),
   ]);
 
   if (!requirement) {
     redirectToPayment(requirementId, "not-found");
   }
+
+  const recipientCount = await getOrCreateRecipientCount(requirement);
 
   if (requirement.payment_status === "paid") {
     redirectToPayment(requirementId, "verified");
@@ -274,10 +296,9 @@ export async function verifyRequirementReceipt(formData: FormData) {
   }
 
   const db = supabase;
-  const [requirement, payment, recipientCount] = await Promise.all([
+  const [requirement, payment] = await Promise.all([
     loadRequirement(requirementId),
     loadLatestPayment(requirementId),
-    getRecipientCount(requirementId),
   ]);
 
   if (!requirement) {
@@ -291,6 +312,8 @@ export async function verifyRequirementReceipt(formData: FormData) {
   if (!payment?.proof_image_url) {
     redirectToPayment(requirementId, "missing-proof");
   }
+
+  const recipientCount = await getOrCreateRecipientCount(requirement);
 
   const expectedAmountPkr =
     payment.amount_pkr || calculateRequirementBroadcastAmountPkr(recipientCount);
