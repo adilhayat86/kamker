@@ -31,6 +31,8 @@ import {
 } from "@/lib/public-directory-lookups";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
+export const revalidate = 120;
+
 type CategoryDetailPageProps = {
   params: Promise<{
     slug: string;
