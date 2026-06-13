@@ -12,7 +12,10 @@ import {
 } from "@/lib/company-packages";
 import { categorySlug } from "@/lib/marketplace-data";
 import { pakistanMobileNormalizedDigits } from "@/lib/phone";
-import { sendRequirementBroadcast } from "@/lib/requirement-broadcast";
+import {
+  notifyRequirementSender,
+  sendRequirementBroadcast,
+} from "@/lib/requirement-broadcast";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
@@ -676,6 +679,7 @@ export async function approveRequirementBroadcastPayment(formData: FormData) {
     .from("requirement_broadcast_payments")
     .update({
       status: "approved",
+      broadcast_status: "ready_to_send",
       reviewed_at: new Date().toISOString(),
       admin_notes: "Approved by admin payment review.",
     })
@@ -689,10 +693,11 @@ export async function approveRequirementBroadcastPayment(formData: FormData) {
 
   await supabase
     .from("requirements")
-    .update({ payment_status: "paid", broadcast_status: "paid" })
+    .update({ payment_status: "paid", broadcast_status: "ready_to_send" })
     .eq("id", payment.requirement_id);
 
   const broadcastResult = await sendRequirementBroadcast(String(payment.requirement_id));
+  await notifyRequirementSender(String(payment.requirement_id), broadcastResult);
 
   await supabase
     .from("requirement_broadcast_payments")
@@ -715,6 +720,7 @@ export async function approveRequirementBroadcastPayment(formData: FormData) {
   revalidatePath("/admin/payments");
   revalidatePath("/admin/requirements");
   revalidatePath(`/admin/requirements/${payment.requirement_id}`);
+  revalidatePath(`/send-requirement/${payment.requirement_id}/payment`);
 }
 
 export async function rejectRequirementBroadcastPayment(formData: FormData) {

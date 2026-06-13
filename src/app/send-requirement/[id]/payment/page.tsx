@@ -4,8 +4,11 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
+  Download,
   MessageCircle,
   ReceiptText,
+  Send,
+  ShieldCheck,
   UploadCloud,
 } from "lucide-react";
 
@@ -26,7 +29,11 @@ import {
   isWhatsappConfigured,
 } from "@/lib/whatsapp";
 
-import { submitRequirementBroadcastPayment } from "./actions";
+import {
+  sendVerifiedRequirementBroadcast,
+  submitRequirementBroadcastPayment,
+  verifyRequirementReceipt,
+} from "./actions";
 
 export const metadata = {
   title: "Requirement Payment | Kamker",
@@ -46,6 +53,11 @@ type RequirementPaymentPageProps = {
       | "save-error"
       | "upload-error"
       | "proof-save-error"
+      | "receipt-uploaded"
+      | "verified"
+      | "verification-needs-review"
+      | "missing-proof"
+      | "not-ready"
       | "needs_review"
       | "sent"
       | "partial"
@@ -67,6 +79,29 @@ type Requirement = {
   cities: { name: string } | null;
 };
 
+type RequirementBroadcastPayment = {
+  id: string;
+  amount_pkr: number;
+  status: string;
+  broadcast_status: string;
+  proof_image_url: string | null;
+  ai_decision: string | null;
+  ai_detected_amount_pkr: number | null;
+  ai_confidence: number | null;
+  reviewed_at: string | null;
+  created_at: string;
+};
+
+type WhatsappLog = {
+  id: string;
+  recipient_phone: string;
+  status: string;
+  provider_message_id: string | null;
+  error_message: string | null;
+  sent_at: string | null;
+  created_at: string;
+};
+
 const statusMessages = {
   missing: "Add payment details and upload a receipt screenshot before submitting.",
   "invalid-proof": "Upload a jpg, png, or webp receipt screenshot under 8MB.",
@@ -75,6 +110,11 @@ const statusMessages = {
   "save-error": "Could not save the requirement payment record. Please try again.",
   "upload-error": "Could not upload the receipt image. Please try again.",
   "proof-save-error": "Receipt uploaded, but AI proof review could not be saved. Kamker admin should review manually.",
+  "receipt-uploaded": "Receipt uploaded. Click Verify Receipt to check it before sending messages.",
+  verified: "Receipt verified. You can now send the broadcast.",
+  "verification-needs-review": "Receipt needs admin review. Your requirement will be sent within 3 hours after admin approval.",
+  "missing-proof": "Upload a receipt before verifying payment.",
+  "not-ready": "Broadcast is not ready yet. Verify payment first.",
   needs_review: "Receipt uploaded. Broadcast will start after payment proof review.",
   sent: "Payment approved. Matching professionals have been messaged.",
   partial: "Payment approved. Some professionals were messaged, but a few sends failed.",
@@ -124,17 +164,70 @@ async function getRecipientCount(requirementId: string) {
   return count ?? 0;
 }
 
+async function getLatestPayment(requirementId: string) {
+  if (!isSupabaseConfigured || !supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("requirement_broadcast_payments")
+    .select(
+      "id, amount_pkr, status, broadcast_status, proof_image_url, ai_decision, ai_detected_amount_pkr, ai_confidence, reviewed_at, created_at",
+    )
+    .eq("requirement_id", requirementId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to load requirement broadcast payment", error);
+    return null;
+  }
+
+  return data as RequirementBroadcastPayment | null;
+}
+
+async function getWhatsappLogs(requirementId: string) {
+  if (!isSupabaseConfigured || !supabase) {
+    return [] as WhatsappLog[];
+  }
+
+  const { data, error } = await supabase
+    .from("whatsapp_messages")
+    .select("id, recipient_phone, status, provider_message_id, error_message, sent_at, created_at")
+    .eq("related_type", "requirement_broadcast")
+    .eq("related_id", requirementId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.error("Failed to load requirement WhatsApp logs", error);
+    return [] as WhatsappLog[];
+  }
+
+  return (data ?? []) as WhatsappLog[];
+}
+
 export default async function RequirementPaymentPage({
   params,
   searchParams,
 }: RequirementPaymentPageProps) {
   const { id } = await params;
   const query = await searchParams;
-  const [professional, customer, requirement, recipientCount] = await Promise.all([
+  const [
+    professional,
+    customer,
+    requirement,
+    recipientCount,
+    latestPayment,
+    whatsappLogs,
+  ] = await Promise.all([
     getSessionProfessional(),
     getSessionCustomer(),
     getRequirement(id),
     getRecipientCount(id),
+    getLatestPayment(id),
+    getWhatsappLogs(id),
   ]);
 
   if (!professional && !customer) {
@@ -153,27 +246,69 @@ export default async function RequirementPaymentPage({
     : `Hello Kamker, I want to pay for requirement broadcast.`;
   const isCompleted =
     requirement?.payment_status === "paid" &&
-    ["sent", "partial", "no_matches"].includes(requirement.broadcast_status);
-  const isProofUnderReview =
-    requirement?.payment_status === "pending_review" ||
-    query?.status === "needs_review" ||
-    query?.status === "proof-save-error";
+    ["sent", "partial", "failed", "no_matches"].includes(requirement.broadcast_status);
   const isPaymentApproved = requirement?.payment_status === "paid";
-  const isPaymentLocked = isProofUnderReview || isPaymentApproved;
+  const hasReceipt = Boolean(latestPayment?.proof_image_url);
+  const needsAdminReview = Boolean(
+    latestPayment?.ai_decision === "needs_review" ||
+      query?.status === "needs_review" ||
+      query?.status === "verification-needs-review" ||
+      query?.status === "proof-save-error",
+  );
+  const isReceiptUploaded = Boolean(hasReceipt && !needsAdminReview && !isPaymentApproved);
+  const isProofUnderReview = needsAdminReview;
+  const canVerifyReceipt = Boolean(hasReceipt && !isPaymentApproved && !needsAdminReview);
+  const isReadyToSend = Boolean(
+    requirement?.payment_status === "paid" &&
+      ["ready_to_send", "paid"].includes(requirement.broadcast_status),
+  );
+  const isPaymentLocked = hasReceipt || isPaymentApproved;
   const whatsappReady = isWhatsappConfigured() && isRequirementWhatsappConfigured();
   const canUploadProof = Boolean(
     requirement && payableAmount > 0 && !isPaymentLocked && !isCompleted && whatsappReady,
   );
-  const heading = isProofUnderReview
+  const sentLogs = whatsappLogs.filter((log) => log.status === "sent");
+  const failedLogs = whatsappLogs.filter((log) => log.status === "failed");
+  const skippedLogs = whatsappLogs.filter((log) => log.status === "skipped");
+  const reportHref = `/send-requirement/${id}/broadcast-report`;
+  const heading = isCompleted
+    ? "Broadcast report"
+    : isProofUnderReview
     ? "Receipt received"
-    : isPaymentApproved
-      ? "Payment processed"
+    : isReadyToSend
+      ? "Ready to send"
+      : isReceiptUploaded
+        ? "Verify receipt"
+      : isPaymentApproved
+        ? "Payment processed"
       : "Upload payment proof";
-  const intro = isProofUnderReview
-    ? "Your receipt is saved. Broadcast will start after payment proof review."
-    : isPaymentApproved
-      ? "Payment has been approved. Kamker is handling the WhatsApp broadcast status below."
+  const intro = isCompleted
+    ? "Review the delivery result and download a CSV report for your records."
+    : isProofUnderReview
+    ? "Your receipt is saved. If automatic verification cannot confirm it, Kamker will send the requirement within 3 hours after admin review."
+    : isReadyToSend
+      ? "Payment is verified. Click Send Broadcast to message all matched professionals now."
+      : isReceiptUploaded
+        ? "Your receipt is uploaded. Verify it now so the broadcast can be unlocked."
+      : isPaymentApproved
+        ? "Payment has been approved. Kamker is handling the WhatsApp broadcast status below."
       : `Pay ${payableAmountLabel} and upload the receipt. Clear matching receipts can approve automatically and send WhatsApp messages to matching professionals.`;
+  const completionTitle =
+    requirement?.broadcast_status === "sent"
+      ? "Messages sent successfully"
+      : requirement?.broadcast_status === "partial"
+        ? "Messages partly sent"
+        : requirement?.broadcast_status === "no_matches"
+          ? "No matching recipients"
+          : "Broadcast needs admin retry";
+  const completionDescription =
+    requirement?.broadcast_status === "sent"
+      ? "All matched professionals were contacted."
+      : requirement?.broadcast_status === "partial"
+        ? "Some professionals were contacted. Failed rows are included in the CSV report."
+        : requirement?.broadcast_status === "no_matches"
+          ? "No valid WhatsApp recipients were available for this requirement."
+          : "No messages were sent successfully. Kamker admin can inspect the failed rows and retry.";
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -196,6 +331,61 @@ export default async function RequirementPaymentPage({
             {statusMessage}
           </DismissibleNotice>
         ) : null}
+
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          <div className="rounded-xl border bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <Badge variant={hasReceipt ? "default" : "secondary"}>Step 1</Badge>
+              {hasReceipt ? <CheckCircle2 className="size-5 text-emerald-600" aria-hidden="true" /> : null}
+            </div>
+            <h2 className="mt-3 text-sm font-bold">Upload Receipt</h2>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {hasReceipt
+                ? "Receipt saved. No need to upload again."
+                : "Upload EasyPaisa receipt screenshot after payment."}
+            </p>
+          </div>
+
+          <div className="rounded-xl border bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <Badge variant={isReadyToSend || isCompleted ? "default" : "secondary"}>Step 2</Badge>
+              {isReadyToSend || isCompleted ? (
+                <ShieldCheck className="size-5 text-emerald-600" aria-hidden="true" />
+              ) : isProofUnderReview ? (
+                <Clock3 className="size-5 text-sky-700" aria-hidden="true" />
+              ) : null}
+            </div>
+            <h2 className="mt-3 text-sm font-bold">Verify Receipt</h2>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {isReadyToSend || isCompleted
+                ? "Payment is verified."
+                : isProofUnderReview
+                  ? "Admin review is needed before sending."
+                  : hasReceipt
+                    ? "Click Verify Receipt to unlock broadcast."
+                    : "Available after receipt upload."}
+            </p>
+          </div>
+
+          <div className="rounded-xl border bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <Badge variant={isCompleted ? "default" : "secondary"}>Step 3</Badge>
+              {isCompleted ? (
+                <CheckCircle2 className="size-5 text-emerald-600" aria-hidden="true" />
+              ) : isReadyToSend ? (
+                <Send className="size-5 text-primary" aria-hidden="true" />
+              ) : null}
+            </div>
+            <h2 className="mt-3 text-sm font-bold">Send Broadcast</h2>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {isCompleted
+                ? "Delivery report is ready."
+                : isReadyToSend
+                  ? "Click Send Broadcast to message recipients."
+                  : "Broadcast stays locked until payment approval."}
+            </p>
+          </div>
+        </div>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_0.9fr]">
           <Card className="bg-white shadow-sm">
@@ -292,41 +482,131 @@ export default async function RequirementPaymentPage({
                 </dl>
               </div>
 
-              {isProofUnderReview ? (
+              {isCompleted ? (
+                <div
+                  className={`mt-5 rounded-lg border p-4 text-sm ${
+                    requirement?.broadcast_status === "failed"
+                      ? "border-red-200 bg-red-50 text-red-950"
+                      : requirement?.broadcast_status === "partial"
+                        ? "border-amber-200 bg-amber-50 text-amber-950"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-950"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    {requirement?.broadcast_status === "failed" ? (
+                      <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-700" aria-hidden="true" />
+                    ) : (
+                      <CheckCircle2 className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold">{completionTitle}</p>
+                      <p className="mt-1">{completionDescription}</p>
+                      <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+                        <div className="rounded-lg bg-white px-2 py-3">
+                          <p className="text-muted-foreground">Sent</p>
+                          <p className="mt-1 text-lg font-bold text-emerald-700">
+                            {sentLogs.length}
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-white px-2 py-3">
+                          <p className="text-muted-foreground">Failed</p>
+                          <p className="mt-1 text-lg font-bold text-red-700">
+                            {failedLogs.length}
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-white px-2 py-3">
+                          <p className="text-muted-foreground">Skipped</p>
+                          <p className="mt-1 text-lg font-bold text-slate-700">
+                            {skippedLogs.length}
+                          </p>
+                        </div>
+                      </div>
+                      <Button asChild className="mt-4 h-11 w-full">
+                        <a href={reportHref}>
+                          <Download className="size-4" aria-hidden="true" />
+                          Download CSV Report
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : isReadyToSend ? (
+                <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold">Receipt verified</p>
+                      <p className="mt-1">
+                        Your payment is approved. Click the button below to send
+                        WhatsApp messages to all matched professionals.
+                      </p>
+                      <form action={sendVerifiedRequirementBroadcast} className="mt-4">
+                        <input type="hidden" name="requirementId" value={id} />
+                        <Button className="h-12 w-full">
+                          <Send className="size-4" aria-hidden="true" />
+                          Send Broadcast
+                        </Button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              ) : canVerifyReceipt ? (
+                <div className="mt-5 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+                  <div className="flex items-start gap-3">
+                    <ReceiptText className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold">Receipt uploaded</p>
+                      <p className="mt-1">
+                        Verify this receipt now. If it passes, the Send Broadcast
+                        button will unlock immediately.
+                      </p>
+                      {latestPayment?.proof_image_url ? (
+                        <Button asChild variant="outline" className="mt-3 h-10 w-full bg-white">
+                          <a href={latestPayment.proof_image_url} target="_blank" rel="noreferrer">
+                            View uploaded receipt
+                          </a>
+                        </Button>
+                      ) : null}
+                      <form action={verifyRequirementReceipt} className="mt-3">
+                        <input type="hidden" name="requirementId" value={id} />
+                        <Button className="h-12 w-full">
+                          <ShieldCheck className="size-4" aria-hidden="true" />
+                          Verify Receipt
+                        </Button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              ) : isProofUnderReview ? (
                 <div className="mt-5 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
                   <div className="flex items-start gap-3">
                     <Clock3 className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-                    <div>
-                      <p className="font-semibold">Receipt uploaded successfully</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold">Receipt needs admin review</p>
                       <p className="mt-1">
-                        No need to upload again. Kamker will review this proof
-                        and start the broadcast after approval.
+                        Your requirement is saved. It will be sent within 3
+                        hours after admin approval. No broadcast has been sent yet.
                       </p>
+                      {latestPayment?.proof_image_url ? (
+                        <Button asChild variant="outline" className="mt-3 h-10 w-full bg-white">
+                          <a href={latestPayment.proof_image_url} target="_blank" rel="noreferrer">
+                            View uploaded receipt
+                          </a>
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
                 </div>
-              ) : isCompleted ? (
-                <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+              ) : isPaymentApproved ? (
+                <div className="mt-5 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
                   <div className="flex items-start gap-3">
-                    <CheckCircle2 className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                    <Clock3 className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
                     <div>
                       <p className="font-semibold">Payment approved</p>
                       <p className="mt-1">
-                        Broadcast status:{" "}
+                        Broadcast status is{" "}
                         <span className="font-semibold">{requirement?.broadcast_status}</span>.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : isPaymentApproved && requirement?.broadcast_status === "failed" ? (
-                <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-                    <div>
-                      <p className="font-semibold">Payment approved, broadcast needs retry</p>
-                      <p className="mt-1">
-                        Kamker admin can retry the WhatsApp broadcast from the
-                        requirement detail page. Do not upload another receipt.
+                        Refresh this page if the result has not appeared yet.
                       </p>
                     </div>
                   </div>

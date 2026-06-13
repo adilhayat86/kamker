@@ -11,6 +11,7 @@ type SendWhatsappTextInput = {
 type SendWhatsappTemplateInput = SendWhatsappTextInput & {
   templateName: string;
   languageCode: string;
+  parameters?: string[];
 };
 
 function cleanPhoneNumber(value: string) {
@@ -30,6 +31,10 @@ function whatsappConfig() {
       process.env.WHATSAPP_REQUIREMENT_TEMPLATE_NAME || "kamker_requirement_broadcast",
     requirementTemplateLanguage:
       process.env.WHATSAPP_REQUIREMENT_TEMPLATE_LANGUAGE || "en",
+    requirementReportTemplateName:
+      process.env.WHATSAPP_REQUIREMENT_REPORT_TEMPLATE_NAME || "kamker_requirement_report",
+    requirementReportTemplateLanguage:
+      process.env.WHATSAPP_REQUIREMENT_REPORT_TEMPLATE_LANGUAGE || "en",
   };
 }
 
@@ -38,6 +43,7 @@ async function logWhatsappMessage(input: {
   body: string;
   messageType?: "text" | "template";
   status: "pending" | "sent" | "failed" | "skipped";
+  templateName?: string | null;
   providerMessageId?: string | null;
   errorMessage?: string | null;
   relatedType?: string | null;
@@ -52,6 +58,7 @@ async function logWhatsappMessage(input: {
   const { error } = await supabase.from("whatsapp_messages").insert({
     recipient_phone: input.recipientPhone,
     message_type: input.messageType ?? "text",
+    template_name: input.templateName ?? null,
     body: input.body,
     status: input.status,
     provider_message_id: input.providerMessageId ?? null,
@@ -82,6 +89,17 @@ export function isRequirementWhatsappConfigured() {
       config.phoneNumberId &&
       config.requirementTemplateName &&
       config.requirementTemplateLanguage,
+  );
+}
+
+export function isRequirementReportWhatsappConfigured() {
+  const config = whatsappConfig();
+
+  return Boolean(
+    config.accessToken &&
+      config.phoneNumberId &&
+      config.requirementReportTemplateName &&
+      config.requirementReportTemplateLanguage,
   );
 }
 
@@ -177,14 +195,25 @@ export async function sendWhatsappTemplate({
   body,
   templateName,
   languageCode,
+  parameters,
   relatedType,
   relatedId,
 }: SendWhatsappTemplateInput) {
   const config = whatsappConfig();
   const recipientPhone = cleanPhoneNumber(to);
   const cleanBody = body.trim();
+  const templateParameters =
+    parameters?.map((parameter) => parameter.trim()).filter(Boolean) ?? [
+      cleanBody,
+    ];
 
-  if (!recipientPhone || !cleanBody || !templateName || !languageCode) {
+  if (
+    !recipientPhone ||
+    !cleanBody ||
+    !templateName ||
+    !languageCode ||
+    templateParameters.length === 0
+  ) {
     return { ok: false, error: "Missing recipient, template, language, or message body." };
   }
 
@@ -193,6 +222,7 @@ export async function sendWhatsappTemplate({
       recipientPhone,
       body: cleanBody,
       messageType: "template",
+      templateName,
       status: "skipped",
       errorMessage: "WhatsApp API is not configured.",
       relatedType,
@@ -214,12 +244,10 @@ export async function sendWhatsappTemplate({
       components: [
         {
           type: "body",
-          parameters: [
-            {
-              type: "text",
-              text: cleanBody,
-            },
-          ],
+          parameters: templateParameters.map((text) => ({
+            type: "text",
+            text,
+          })),
         },
       ],
     },
@@ -251,6 +279,7 @@ export async function sendWhatsappTemplate({
       recipientPhone,
       body: cleanBody,
       messageType: "template",
+      templateName,
       status: "failed",
       errorMessage,
       relatedType,
@@ -266,6 +295,7 @@ export async function sendWhatsappTemplate({
     recipientPhone,
     body: cleanBody,
     messageType: "template",
+    templateName,
     status: "sent",
     providerMessageId,
     relatedType,
@@ -341,6 +371,7 @@ export async function sendRequirementWhatsappAlert(
         recipientPhone,
         body: templateBody,
         messageType: "template",
+        templateName: config.requirementTemplateName,
         status: "skipped",
         errorMessage: "WhatsApp requirement template is not configured.",
         relatedType: "requirement_broadcast",
@@ -366,6 +397,58 @@ export async function sendRequirementWhatsappAlert(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Unknown WhatsApp requirement error.",
+    };
+  }
+}
+
+export async function sendRequirementReportWhatsappAlert(
+  to: string,
+  body: string,
+  relatedId?: string,
+  parameters?: string[],
+) {
+  const config = whatsappConfig();
+  const templateBody = body.replace(/\s+/g, " ").trim();
+  const recipientPhone = cleanPhoneNumber(to);
+
+  try {
+    if (
+      !recipientPhone ||
+      !templateBody ||
+      !config.requirementReportTemplateName ||
+      !config.requirementReportTemplateLanguage
+    ) {
+      await logWhatsappMessage({
+        recipientPhone,
+        body: templateBody,
+        messageType: "template",
+        templateName: config.requirementReportTemplateName,
+        status: "skipped",
+        errorMessage: "WhatsApp requirement report template is not configured.",
+        relatedType: "requirement_sender_update",
+        relatedId,
+      });
+
+      return {
+        ok: false,
+        error: "WhatsApp requirement report template is not configured.",
+      };
+    }
+
+    return await sendWhatsappTemplate({
+      to,
+      body: templateBody,
+      templateName: config.requirementReportTemplateName,
+      languageCode: config.requirementReportTemplateLanguage,
+      parameters,
+      relatedType: "requirement_sender_update",
+      relatedId,
+    });
+  } catch (error) {
+    console.error("Failed to send WhatsApp requirement report alert", error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Unknown WhatsApp report error.",
     };
   }
 }

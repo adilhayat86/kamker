@@ -3,7 +3,10 @@ import { revalidatePath } from "next/cache";
 import { recordAdminAudit } from "@/lib/admin-audit";
 import { whatsappDigits } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-import { sendRequirementWhatsappAlert } from "@/lib/whatsapp";
+import {
+  sendRequirementReportWhatsappAlert,
+  sendRequirementWhatsappAlert,
+} from "@/lib/whatsapp";
 
 export const REQUIREMENT_BROADCAST_AMOUNT_PKR = 35;
 export const REQUIREMENT_DETAILS_MAX_LENGTH = 500;
@@ -21,6 +24,15 @@ type RequirementForBroadcast = {
   phone_number: string;
   whatsapp_number: string | null;
   cities: { name: string } | null;
+};
+
+export type RequirementBroadcastResult = {
+  status: "sent" | "partial" | "failed" | "no_matches";
+  sent: number;
+  failed: number;
+  skipped: number;
+  totalRecipients: number;
+  error: string | null;
 };
 
 type BroadcastMatch = {
@@ -77,6 +89,14 @@ function requirementMessage(requirement: RequirementForBroadcast) {
   return [...prefixLines, `${detailsPrefix}${shortText(requirement.details, detailsLimit)}`]
     .join("\n")
     .slice(0, REQUIREMENT_TEMPLATE_BODY_MAX_LENGTH);
+}
+
+function siteBaseUrl() {
+  return (process.env.NEXT_PUBLIC_SITE_URL || "https://kamker.com").replace(/\/+$/, "");
+}
+
+function reportUrl(requirementId: string) {
+  return `${siteBaseUrl()}/send-requirement/${requirementId}/broadcast-report`;
 }
 
 function matchRecipient(source: BroadcastRecipientSource) {
@@ -193,7 +213,52 @@ async function loadBroadcastMatches(requirementId: string) {
   };
 }
 
-export async function sendRequirementBroadcast(requirementId: string) {
+export async function notifyRequirementSender(
+  requirementId: string,
+  result: RequirementBroadcastResult,
+) {
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, error: "Supabase is not configured." };
+  }
+
+  const { data: requirement, error } = await supabase
+    .from("requirements")
+    .select("id, required_service, phone_number, whatsapp_number")
+    .eq("id", requirementId)
+    .maybeSingle();
+
+  if (error || !requirement) {
+    console.error("Failed to load requirement before sender report", error);
+    return { ok: false, error: "Requirement not found." };
+  }
+
+  const recipientPhone = requirement.whatsapp_number || requirement.phone_number;
+
+  if (!recipientPhone) {
+    return { ok: false, error: "Requirement sender phone is missing." };
+  }
+
+  const sentLabel =
+    result.status === "no_matches"
+      ? "0"
+      : `${result.sent}/${result.totalRecipients}`;
+  const deliveryReportUrl = reportUrl(requirementId);
+  const body = [
+    `Kamker update: your ${requirement.required_service} requirement was sent to ${sentLabel} professionals.`,
+    `Delivery report: ${deliveryReportUrl}`,
+  ].join(" ");
+
+  return sendRequirementReportWhatsappAlert(
+    recipientPhone,
+    body,
+    requirementId,
+    [sentLabel, deliveryReportUrl],
+  );
+}
+
+export async function sendRequirementBroadcast(
+  requirementId: string,
+): Promise<RequirementBroadcastResult> {
   if (!isSupabaseConfigured || !supabase) {
     return {
       status: "failed" as const,
@@ -257,6 +322,10 @@ export async function sendRequirementBroadcast(requirementId: string) {
       .update({ broadcast_status: "no_matches" })
       .eq("id", requirementId);
 
+    revalidatePath("/admin/requirements");
+    revalidatePath(`/admin/requirements/${requirementId}`);
+    revalidatePath(`/send-requirement/${requirementId}/payment`);
+
     return {
       status: "no_matches" as const,
       sent: 0,
@@ -319,6 +388,7 @@ export async function sendRequirementBroadcast(requirementId: string) {
 
   revalidatePath("/admin/requirements");
   revalidatePath(`/admin/requirements/${requirementId}`);
+  revalidatePath(`/send-requirement/${requirementId}/payment`);
 
   return {
     status,

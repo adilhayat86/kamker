@@ -7,6 +7,7 @@ import { canAutoApproveProof, reviewProofWithAi } from "@/lib/ai-proof-review";
 import { getSessionCustomer, getSessionProfessional } from "@/lib/auth";
 import {
   calculateRequirementBroadcastAmountPkr,
+  notifyRequirementSender,
   sendRequirementBroadcast,
 } from "@/lib/requirement-broadcast";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -19,6 +20,24 @@ import {
 const allowedProofTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxProofSize = 8 * 1024 * 1024;
 
+type RequirementPaymentContext = {
+  id: string;
+  required_service: string;
+  phone_number: string;
+  payment_status: string;
+  broadcast_status: string;
+};
+
+type RequirementBroadcastPayment = {
+  id: string;
+  requirement_id: string;
+  amount_pkr: number;
+  status: string;
+  broadcast_status: string;
+  proof_image_url: string | null;
+  proof_review_id: string | null;
+};
+
 function field(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
@@ -26,6 +45,19 @@ function field(formData: FormData, key: string) {
 
 function redirectToPayment(requirementId: string, status: string): never {
   redirect(`/send-requirement/${requirementId}/payment?status=${status}`);
+}
+
+async function requireLoggedIn(requirementId: string) {
+  const [professional, customer] = await Promise.all([
+    getSessionProfessional(),
+    getSessionCustomer(),
+  ]);
+
+  if (!professional && !customer) {
+    redirect(
+      `/login?status=login-required&next=${encodeURIComponent(`/send-requirement/${requirementId}/payment`)}`,
+    );
+  }
 }
 
 async function getRecipientCount(requirementId: string) {
@@ -46,6 +78,53 @@ async function getRecipientCount(requirementId: string) {
   return count ?? 0;
 }
 
+async function loadRequirement(requirementId: string) {
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("requirements")
+    .select("id, required_service, phone_number, payment_status, broadcast_status")
+    .eq("id", requirementId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to load requirement payment context", error);
+    return null;
+  }
+
+  return data as RequirementPaymentContext | null;
+}
+
+async function loadLatestPayment(requirementId: string) {
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("requirement_broadcast_payments")
+    .select("id, requirement_id, amount_pkr, status, broadcast_status, proof_image_url, proof_review_id")
+    .eq("requirement_id", requirementId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to load requirement broadcast payment", error);
+    return null;
+  }
+
+  return data as RequirementBroadcastPayment | null;
+}
+
+function revalidateRequirementPayment(requirementId: string) {
+  revalidatePath(`/send-requirement/${requirementId}/payment`);
+  revalidatePath("/admin/payments");
+  revalidatePath("/admin/requirements");
+  revalidatePath(`/admin/requirements/${requirementId}`);
+}
+
 export async function submitRequirementBroadcastPayment(formData: FormData) {
   const requirementId = field(formData, "requirementId");
   const paymentMethod = field(formData, "paymentMethod");
@@ -58,16 +137,7 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
     redirect("/send-requirement?status=error");
   }
 
-  const [professional, customer] = await Promise.all([
-    getSessionProfessional(),
-    getSessionCustomer(),
-  ]);
-
-  if (!professional && !customer) {
-    redirect(
-      `/login?status=login-required&next=${encodeURIComponent(`/send-requirement/${requirementId}/payment`)}`,
-    );
-  }
+  await requireLoggedIn(requirementId);
 
   if (
     !paymentMethod ||
@@ -94,18 +164,24 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
   }
 
   const db = supabase;
-  const { data: requirement, error: requirementError } = await db
-    .from("requirements")
-    .select("id, required_service, phone_number, payment_status, broadcast_status")
-    .eq("id", requirementId)
-    .maybeSingle();
+  const [requirement, existingPayment, recipientCount] = await Promise.all([
+    loadRequirement(requirementId),
+    loadLatestPayment(requirementId),
+    getRecipientCount(requirementId),
+  ]);
 
-  if (requirementError || !requirement) {
-    console.error("Failed to load requirement payment context", requirementError);
+  if (!requirement) {
     redirectToPayment(requirementId, "not-found");
   }
 
-  const recipientCount = await getRecipientCount(requirementId);
+  if (requirement.payment_status === "paid") {
+    redirectToPayment(requirementId, "verified");
+  }
+
+  if (existingPayment?.proof_image_url) {
+    redirectToPayment(requirementId, "receipt-uploaded");
+  }
+
   const expectedAmountPkr = calculateRequirementBroadcastAmountPkr(recipientCount);
 
   if (expectedAmountPkr <= 0) {
@@ -152,9 +228,79 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
     .from("proof-images")
     .getPublicUrl(filePath);
 
-  const imageUrl = publicUrlData.publicUrl;
+  await db
+    .from("requirement_broadcast_payments")
+    .update({
+      proof_image_url: publicUrlData.publicUrl,
+      broadcast_status: "pending_payment",
+    })
+    .eq("id", payment.id);
+
+  await db
+    .from("requirements")
+    .update({
+      payment_status: "pending_review",
+      broadcast_status: "pending_payment",
+    })
+    .eq("id", requirementId);
+
+  await sendAdminWhatsappAlert(
+    [
+      "Requirement receipt uploaded:",
+      `Service: ${requirement.required_service}`,
+      `Recipients: ${recipientCount}`,
+      `Expected amount: Rs ${expectedAmountPkr}`,
+      "Customer can verify receipt on payment page.",
+    ].join("\n"),
+    "requirement_payment",
+    payment.id as string,
+  );
+
+  revalidateRequirementPayment(requirementId);
+  redirectToPayment(requirementId, "receipt-uploaded");
+}
+
+export async function verifyRequirementReceipt(formData: FormData) {
+  const requirementId = field(formData, "requirementId");
+
+  if (!requirementId) {
+    redirect("/send-requirement?status=error");
+  }
+
+  await requireLoggedIn(requirementId);
+
+  if (!isSupabaseConfigured || !supabase) {
+    redirectToPayment(requirementId, "not-configured");
+  }
+
+  const db = supabase;
+  const [requirement, payment, recipientCount] = await Promise.all([
+    loadRequirement(requirementId),
+    loadLatestPayment(requirementId),
+    getRecipientCount(requirementId),
+  ]);
+
+  if (!requirement) {
+    redirectToPayment(requirementId, "not-found");
+  }
+
+  if (requirement.payment_status === "paid") {
+    redirectToPayment(requirementId, "verified");
+  }
+
+  if (!payment?.proof_image_url) {
+    redirectToPayment(requirementId, "missing-proof");
+  }
+
+  const expectedAmountPkr =
+    payment.amount_pkr || calculateRequirementBroadcastAmountPkr(recipientCount);
+
+  if (expectedAmountPkr <= 0) {
+    redirectToPayment(requirementId, "no_matches");
+  }
+
   const review = await reviewProofWithAi({
-    imageUrl,
+    imageUrl: payment.proof_image_url,
     expectedAmountPkr,
   });
   const autoApproved = canAutoApproveProof(review, expectedAmountPkr);
@@ -165,7 +311,7 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
       review_type: "requirement_broadcast",
       related_id: payment.id,
       expected_amount_pkr: expectedAmountPkr,
-      image_url: imageUrl,
+      image_url: payment.proof_image_url,
       ai_readable: review.readable,
       ai_detected_amount_pkr: review.detectedAmountPkr,
       ai_detected_reference: review.detectedReference,
@@ -188,10 +334,15 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
     .from("requirement_broadcast_payments")
     .update({
       proof_review_id: proofReview.id,
-      proof_image_url: imageUrl,
       ai_decision: autoApproved ? "auto_approved" : "needs_review",
       ai_detected_amount_pkr: review.detectedAmountPkr,
       ai_confidence: review.confidence,
+      status: autoApproved ? "approved" : "pending_review",
+      broadcast_status: autoApproved ? "ready_to_send" : "pending_payment",
+      reviewed_at: autoApproved ? new Date().toISOString() : null,
+      admin_notes: autoApproved
+        ? "Auto-approved by AI proof review."
+        : "AI could not verify receipt. Admin review required.",
     })
     .eq("id", payment.id);
 
@@ -206,54 +357,105 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
 
     await sendAdminWhatsappAlert(
       [
-        "Requirement payment proof uploaded:",
+        "Requirement payment proof needs review:",
         `Service: ${requirement.required_service}`,
         `Recipients: ${recipientCount}`,
         `Expected amount: Rs ${expectedAmountPkr}`,
-        "AI decision: needs_review",
         "Admin: /admin/payments",
       ].join("\n"),
       "requirement_payment",
-      payment.id as string,
+      payment.id,
     );
 
-    revalidatePath(`/send-requirement/${requirementId}/payment`);
-    revalidatePath("/admin/payments");
-    redirectToPayment(requirementId, "needs_review");
+    revalidateRequirementPayment(requirementId);
+    redirectToPayment(requirementId, "verification-needs-review");
   }
 
   await db
     .from("requirements")
-    .update({ payment_status: "paid", broadcast_status: "paid" })
-    .eq("id", requirementId);
-
-  const broadcastResult = await sendRequirementBroadcast(requirementId);
-  await db
-    .from("requirement_broadcast_payments")
     .update({
-      status: "approved",
-      broadcast_status: broadcastResult.status,
-      reviewed_at: new Date().toISOString(),
-      admin_notes: "Auto-approved by AI proof review.",
+      payment_status: "paid",
+      broadcast_status: "ready_to_send",
     })
-    .eq("id", payment.id);
+    .eq("id", requirementId);
 
   await sendAdminWhatsappAlert(
     [
-      "Requirement payment auto-approved:",
+      "Requirement payment verified:",
       `Service: ${requirement.required_service}`,
       `Recipients: ${recipientCount}`,
       `Expected amount: Rs ${expectedAmountPkr}`,
+      "Customer can now send broadcast.",
+    ].join("\n"),
+    "requirement_payment",
+    payment.id,
+  );
+
+  revalidateRequirementPayment(requirementId);
+  redirectToPayment(requirementId, "verified");
+}
+
+export async function sendVerifiedRequirementBroadcast(formData: FormData) {
+  const requirementId = field(formData, "requirementId");
+
+  if (!requirementId) {
+    redirect("/send-requirement?status=error");
+  }
+
+  await requireLoggedIn(requirementId);
+
+  if (!isSupabaseConfigured || !supabase) {
+    redirectToPayment(requirementId, "not-configured");
+  }
+
+  if (!isWhatsappConfigured() || !isRequirementWhatsappConfigured()) {
+    redirectToPayment(requirementId, "whatsapp-not-configured");
+  }
+
+  const [requirement, latestPayment] = await Promise.all([
+    loadRequirement(requirementId),
+    loadLatestPayment(requirementId),
+  ]);
+
+  if (!requirement) {
+    redirectToPayment(requirementId, "not-found");
+  }
+
+  if (
+    requirement.payment_status !== "paid" ||
+    !["ready_to_send", "paid"].includes(requirement.broadcast_status)
+  ) {
+    redirectToPayment(requirementId, "not-ready");
+  }
+
+  const broadcastResult = await sendRequirementBroadcast(requirementId);
+
+  if (latestPayment) {
+    await supabase
+      .from("requirement_broadcast_payments")
+      .update({
+        status: "approved",
+        broadcast_status: broadcastResult.status,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", latestPayment.id);
+  }
+
+  await notifyRequirementSender(requirementId, broadcastResult);
+
+  await sendAdminWhatsappAlert(
+    [
+      "Requirement broadcast completed:",
+      `Service: ${requirement.required_service}`,
       `Broadcast status: ${broadcastResult.status}`,
       `Sent: ${broadcastResult.sent}`,
       `Failed: ${broadcastResult.failed}`,
+      `Skipped: ${broadcastResult.skipped}`,
     ].join("\n"),
     "requirement_payment",
-    payment.id as string,
+    latestPayment?.id,
   );
 
-  revalidatePath(`/send-requirement/${requirementId}/payment`);
-  revalidatePath("/admin/payments");
-  revalidatePath("/admin/requirements");
+  revalidateRequirementPayment(requirementId);
   redirectToPayment(requirementId, broadcastResult.status);
 }
