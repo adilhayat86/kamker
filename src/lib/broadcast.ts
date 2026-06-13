@@ -11,6 +11,7 @@ import {
   getCityIdByName,
 } from "@/lib/public-directory-lookups";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { getRequirementContextRecipientCount } from "@/lib/category-counts";
 
 type BroadcastCountInput = {
   category?: string;
@@ -101,6 +102,12 @@ function targetServicesFor(input: BroadcastCountInput) {
 }
 
 export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
+  const sharedCategoryCount = await getRequirementContextRecipientCount(input);
+
+  if (typeof sharedCategoryCount === "number") {
+    return sharedCategoryCount;
+  }
+
   if (!isSupabaseConfigured || !supabase) {
     return demoCountFor(input);
   }

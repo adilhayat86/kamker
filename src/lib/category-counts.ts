@@ -2,7 +2,9 @@ import { unstable_cache } from "next/cache";
 
 import { getMockCompanyListingCount } from "@/lib/company-listing-cards";
 import {
+  categories,
   categoryCountValue,
+  parentCategories,
   recentProfessionals,
   searchTermsForCategory,
   serviceGroups,
@@ -32,6 +34,11 @@ type CompanyListingCategoryRow = {
 type CountFilters = {
   city?: string;
   area?: string;
+};
+
+type RequirementCountInput = CountFilters & {
+  category?: string;
+  subcategory?: string;
 };
 
 function normalize(value: string | null | undefined) {
@@ -308,6 +315,46 @@ const getCachedLiveCategoryCountEntries = unstable_cache(
   { revalidate: 120 },
 );
 
+const getCachedDbCountCategories = unstable_cache(
+  async function getDbCountCategories() {
+    if (!isSupabaseConfigured || !supabase) {
+      return [] as CountCategory[];
+    }
+
+    const { data, error } = await supabase
+      .from("categories")
+      .select("id, name, parent_id")
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Failed to load count categories", error);
+      return [] as CountCategory[];
+    }
+
+    return (data ?? []) as CountCategory[];
+  },
+  ["db-count-categories-v1"],
+  { revalidate: 120 },
+);
+
+async function getAllCountCategories() {
+  const dbCategories = await getCachedDbCountCategories();
+  const combined = [...dbCategories, ...categories, ...parentCategories];
+  const seen = new Set<string>();
+
+  return combined.filter((category) => {
+    const key = normalize(category.name);
+
+    if (!key || seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
 export async function getLiveCategoryCountMap(
   categories: CountCategory[],
   filters?: CountFilters,
@@ -336,4 +383,26 @@ export function countNumberForCategory(
   }
 
   return fallbackCategoryCountValue(category);
+}
+
+export async function getRequirementContextRecipientCount(
+  input: RequirementCountInput,
+) {
+  const targetName = input.subcategory || input.category;
+
+  if (!targetName) {
+    return null;
+  }
+
+  const countCategories = await getAllCountCategories();
+  const countMap = await getLiveCategoryCountMap(countCategories, {
+    city: input.city,
+    area: input.area,
+  });
+
+  if (!countMap) {
+    return null;
+  }
+
+  return countNumberForCategory({ name: targetName, count: "0" }, countMap);
 }
