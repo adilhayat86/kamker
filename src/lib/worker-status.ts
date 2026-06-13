@@ -52,6 +52,10 @@ export function workerStatusLabel(worker: WorkerStatusShape | null | undefined) 
 }
 
 export function workerPostingBlockedStatus(worker: WorkerStatusShape | null | undefined) {
+  if (!worker) {
+    return null;
+  }
+
   const status = getWorkerStatus(worker);
 
   if (status === "banned") {
