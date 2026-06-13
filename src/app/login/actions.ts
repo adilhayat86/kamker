@@ -24,6 +24,16 @@ function safeNextPath(value: string) {
   return value.startsWith("/") && !value.startsWith("//") ? value : "/account";
 }
 
+function redirectToLoginStatus(status: string, next: string): never {
+  const query = new URLSearchParams({ status });
+
+  if (next && next !== "/account") {
+    query.set("next", next);
+  }
+
+  redirect(`/login?${query.toString()}`);
+}
+
 export async function loginProfessional(formData: FormData) {
   const phoneNumber = field(formData, "phone");
   const password = field(formData, "password");
@@ -31,17 +41,17 @@ export async function loginProfessional(formData: FormData) {
   const rememberPassword = formData.get("rememberPassword") === "on";
 
   if (!phoneNumber || !password) {
-    redirect("/login?status=missing");
+    redirectToLoginStatus("missing", next);
   }
 
   if (!isSupabaseConfigured && !isLocalDemoStoreEnabled) {
-    redirect("/login?status=not-configured");
+    redirectToLoginStatus("not-configured", next);
   }
 
   const matches = await findProfessionalsByPhone(phoneNumber);
 
   if (matches.length > 1) {
-    redirect("/login?status=phone-review");
+    redirectToLoginStatus("phone-review", next);
   }
 
   const professional = matches.length === 1
@@ -56,7 +66,7 @@ export async function loginProfessional(formData: FormData) {
     const customerMatches = await findCustomersByPhone(phoneNumber);
 
     if (customerMatches.length > 1) {
-      redirect("/login?status=phone-review");
+      redirectToLoginStatus("phone-review", next);
     }
 
     const customer = customerMatches.length === 1
@@ -68,7 +78,7 @@ export async function loginProfessional(formData: FormData) {
     );
 
     if (!customer || !isCustomerPasswordValid) {
-      redirect("/login?status=invalid");
+      redirectToLoginStatus("invalid", next);
     }
 
     await createCustomerSession(customer.id, rememberPassword);

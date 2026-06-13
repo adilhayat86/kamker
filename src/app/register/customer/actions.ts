@@ -17,6 +17,28 @@ function field(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function customerRegisterPath(status: string, next: string) {
+  const query = new URLSearchParams({ status });
+
+  if (next) {
+    query.set("next", next);
+  }
+
+  return `/register/customer?${query.toString()}`;
+}
+
+function appendStatusToNext(next: string, status: string) {
+  if (!next) {
+    return `/send-requirement?status=${status}`;
+  }
+
+  const [pathname, search = ""] = next.split("?");
+  const query = new URLSearchParams(search);
+  query.set("status", status);
+
+  return `${pathname}?${query.toString()}`;
+}
+
 export async function registerCustomer(formData: FormData) {
   const fullName = field(formData, "fullName");
   const phoneInput = field(formData, "phone");
@@ -47,19 +69,19 @@ export async function registerCustomer(formData: FormData) {
       ...draft,
       errors: errors.join(","),
     });
-    redirect("/register/customer?status=missing");
+    redirect(customerRegisterPath("missing", safeNext));
   }
 
   if (!isSupabaseConfigured || !supabase) {
     await saveFormDraft("customer", draft);
-    redirect("/register/customer?status=not-configured");
+    redirect(customerRegisterPath("not-configured", safeNext));
   }
 
   const existingCustomers = await findCustomersByPhone(phoneNumber);
 
   if (existingCustomers.length > 0) {
     await saveFormDraft("customer", draft);
-    redirect("/register/customer?status=duplicate");
+    redirect(customerRegisterPath("duplicate", safeNext));
   }
 
   const [cityId, passwordHash] = await Promise.all([
@@ -79,10 +101,10 @@ export async function registerCustomer(formData: FormData) {
   if (error || !customer) {
     console.error("Failed to register customer", error);
     await saveFormDraft("customer", draft);
-    redirect("/register/customer?status=error");
+    redirect(customerRegisterPath("error", safeNext));
   }
 
   await createCustomerSession(customer.id as string);
   await clearFormDraft("customer");
-  redirect(safeNext || "/send-requirement?status=customer-registered");
+  redirect(appendStatusToNext(safeNext, "customer-registered"));
 }

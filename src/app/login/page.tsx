@@ -49,11 +49,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const next = params?.next?.startsWith("/") && !params.next.startsWith("//")
     ? params.next
     : "";
+  const registerHref = next
+    ? `/register?next=${encodeURIComponent(next)}`
+    : "/register";
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-md">
-        <PageNavigation backHref="/register" backLabel="Register" />
+        <PageNavigation backHref={registerHref} backLabel="Register" />
         <div className="mt-6 flex items-center gap-3">
           <div className="flex size-12 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <LockKeyhole className="size-6" aria-hidden="true" />
@@ -138,7 +141,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </Link>
           <p className="text-muted-foreground">
             New user?{" "}
-            <Link href="/register/professional" className="font-medium text-primary">
+            <Link
+              href={`/register/professional${next ? `?next=${encodeURIComponent(next)}` : ""}`}
+              className="font-medium text-primary"
+            >
               Register as worker
             </Link>
             {" "}or{" "}

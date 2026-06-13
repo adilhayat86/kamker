@@ -10,7 +10,22 @@ export const metadata = {
   description: "Register as a professional, company, or customer on Kamker.",
 };
 
-export default function RegisterPage() {
+type RegisterPageProps = {
+  searchParams?: Promise<{
+    next?: string;
+  }>;
+};
+
+function withNext(path: string, next: string) {
+  return next ? `${path}?next=${encodeURIComponent(next)}` : path;
+}
+
+export default async function RegisterPage({ searchParams }: RegisterPageProps) {
+  const params = await searchParams;
+  const next = params?.next?.startsWith("/") && !params.next.startsWith("//")
+    ? params.next
+    : "";
+
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-5xl">
@@ -32,7 +47,7 @@ export default function RegisterPage() {
                 Create a professional profile so customers can contact you.
               </p>
               <Button asChild className="mt-5 h-12 w-full">
-                <Link href="/register/professional">Continue</Link>
+                <Link href={withNext("/register/professional", next)}>Continue</Link>
               </Button>
             </CardContent>
           </Card>
@@ -48,7 +63,7 @@ export default function RegisterPage() {
                 Agencies can prepare for paid packages with multiple listings.
               </p>
               <Button asChild className="mt-5 h-12 w-full" variant="outline">
-                <Link href="/register/company">Continue</Link>
+                <Link href={withNext("/register/company", next)}>Continue</Link>
               </Button>
             </CardContent>
           </Card>
@@ -64,7 +79,7 @@ export default function RegisterPage() {
                 Save your details and send requirements faster.
               </p>
               <Button asChild className="mt-5 h-12 w-full" variant="outline">
-                <Link href="/register/customer">Continue</Link>
+                <Link href={withNext("/register/customer", next)}>Continue</Link>
               </Button>
             </CardContent>
           </Card>
