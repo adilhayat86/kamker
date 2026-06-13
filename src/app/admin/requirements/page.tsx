@@ -38,6 +38,10 @@ type Requirement = {
   created_at: string;
   cities: { name: string } | null;
   matched_count?: number;
+  whatsapp_alert_status?: string | null;
+  whatsapp_alert_type?: string | null;
+  whatsapp_alert_at?: string | null;
+  whatsapp_alert_has_error?: boolean;
 };
 
 type RequirementsPageProps = {
@@ -73,6 +77,46 @@ async function countMatches(requirements: Requirement[]) {
     counts.set(requirementId, (counts.get(requirementId) ?? 0) + 1);
     return counts;
   }, new Map<string, number>());
+}
+
+async function getLatestWhatsappAlerts(requirements: Requirement[]) {
+  const requirementIds = requirements.map((requirement) => requirement.id);
+
+  if (!isSupabaseConfigured || !supabase || requirementIds.length === 0) {
+    return new Map<string, Pick<Requirement, "whatsapp_alert_at" | "whatsapp_alert_has_error" | "whatsapp_alert_status" | "whatsapp_alert_type">>();
+  }
+
+  const { data, error } = await supabase
+    .from("whatsapp_messages")
+    .select("related_id, status, message_type, error_message, created_at")
+    .eq("related_type", "requirement")
+    .in("related_id", requirementIds)
+    .order("created_at", { ascending: false })
+    .limit(requirementIds.length * 3);
+
+  if (error) {
+    console.error("Failed to load requirement WhatsApp alert status", error);
+    return new Map<string, Pick<Requirement, "whatsapp_alert_at" | "whatsapp_alert_has_error" | "whatsapp_alert_status" | "whatsapp_alert_type">>();
+  }
+
+  const alerts = new Map<string, Pick<Requirement, "whatsapp_alert_at" | "whatsapp_alert_has_error" | "whatsapp_alert_status" | "whatsapp_alert_type">>();
+
+  for (const row of data ?? []) {
+    const relatedId = String(row.related_id ?? "");
+
+    if (!relatedId || alerts.has(relatedId)) {
+      continue;
+    }
+
+    alerts.set(relatedId, {
+      whatsapp_alert_status: typeof row.status === "string" ? row.status : null,
+      whatsapp_alert_type: typeof row.message_type === "string" ? row.message_type : null,
+      whatsapp_alert_at: typeof row.created_at === "string" ? row.created_at : null,
+      whatsapp_alert_has_error: Boolean(row.error_message),
+    });
+  }
+
+  return alerts;
 }
 
 async function getRequirements({
@@ -132,11 +176,15 @@ async function getRequirements({
       requirement.payment_status,
     ].some((value) => value?.toLowerCase().includes(search));
   });
-  const matchCounts = await countMatches(requirements);
+  const [matchCounts, whatsappAlerts] = await Promise.all([
+    countMatches(requirements),
+    getLatestWhatsappAlerts(requirements),
+  ]);
 
   return requirements.map((requirement) => ({
     ...requirement,
     matched_count: matchCounts.get(requirement.id) ?? 0,
+    ...whatsappAlerts.get(requirement.id),
   }));
 }
 
@@ -169,8 +217,8 @@ export default async function AdminRequirementsPage({
   const matchedRequirements = requirements.filter(
     (requirement) => (requirement.matched_count ?? 0) > 0,
   ).length;
-  const paidBroadcasts = requirements.filter(
-    (requirement) => requirement.payment_status === "paid",
+  const failedWhatsappAlerts = requirements.filter(
+    (requirement) => requirement.whatsapp_alert_status === "failed",
   ).length;
 
   return (
@@ -204,7 +252,11 @@ export default async function AdminRequirementsPage({
           tone={openRequirements ? "urgent" : "good"}
         />
         <AdminStatCard label="With Matches" value={matchedRequirements} />
-        <AdminStatCard label="Paid Broadcasts" value={paidBroadcasts} />
+        <AdminStatCard
+          label="WhatsApp Failed"
+          value={failedWhatsappAlerts}
+          tone={failedWhatsappAlerts ? "urgent" : "good"}
+        />
       </div>
 
       <AdminSection
@@ -289,6 +341,15 @@ export default async function AdminRequirementsPage({
                       </h2>
                       <Badge variant="outline">{requirement.status}</Badge>
                       <Badge>{requirement.matched_count ?? 0} matches</Badge>
+                      <Badge
+                        variant={
+                          requirement.whatsapp_alert_status === "sent"
+                            ? "default"
+                            : "outline"
+                        }
+                      >
+                        WhatsApp alert: {requirement.whatsapp_alert_status ?? "not sent"}
+                      </Badge>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {requirement.cities?.name ?? "Unknown city"}
@@ -317,6 +378,12 @@ export default async function AdminRequirementsPage({
                       { label: "Budget", value: requirement.budget ?? "Not provided" },
                       { label: "Broadcast", value: requirement.broadcast_status },
                       { label: "Payment", value: requirement.payment_status },
+                      {
+                        label: "Admin WhatsApp",
+                        value: requirement.whatsapp_alert_status
+                          ? `${requirement.whatsapp_alert_status}${requirement.whatsapp_alert_type ? ` (${requirement.whatsapp_alert_type})` : ""}`
+                          : "Not sent",
+                      },
                       {
                         label: "Created",
                         value: new Date(requirement.created_at).toLocaleDateString("en-PK"),

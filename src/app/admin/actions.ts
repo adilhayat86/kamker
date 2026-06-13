@@ -13,6 +13,7 @@ import {
 import { categorySlug } from "@/lib/marketplace-data";
 import { pakistanMobileNormalizedDigits } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
 async function canMutateAdmin() {
   return requireAdmin();
@@ -1250,6 +1251,67 @@ export async function updateRequirementStatus(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath(`/admin/requirements/${id}`);
+}
+
+export async function retryRequirementAdminAlert(formData: FormData) {
+  const id = formData.get("requirementId");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data: requirement, error } = await supabase
+    .from("requirements")
+    .select("id, required_service, phone_number, urgency, cities(name)")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !requirement) {
+    console.error("Failed to load requirement before WhatsApp retry", error);
+    redirect(`/admin/requirements/${id}?notice=whatsapp-failed`);
+  }
+
+  const cityRelation = requirement.cities as
+    | { name?: string | null }
+    | { name?: string | null }[]
+    | null;
+  const cityName = Array.isArray(cityRelation)
+    ? cityRelation[0]?.name
+    : cityRelation?.name;
+
+  const result = await sendAdminWhatsappAlert(
+    [
+      "New requirement submitted:",
+      `Service: ${requirement.required_service}`,
+      `City: ${cityName ?? "Not provided"}`,
+      `Urgency: ${requirement.urgency ?? "Not provided"}`,
+      `Phone: ${requirement.phone_number ?? "Not provided"}`,
+      "Admin review needed.",
+    ].join("\n"),
+    "requirement",
+    id,
+  );
+
+  await recordAdminAudit({
+    action: "retry_requirement_whatsapp_alert",
+    targetType: "requirement",
+    targetId: id,
+    metadata: {
+      ok: result.ok,
+      providerMessageId: result.ok ? result.providerMessageId ?? null : null,
+      error: result.ok ? null : result.error ?? "Unknown WhatsApp alert error.",
+    },
+  });
+
+  revalidatePath("/admin/requirements");
+  revalidatePath(`/admin/requirements/${id}`);
+  redirect(`/admin/requirements/${id}?notice=${result.ok ? "whatsapp-sent" : "whatsapp-failed"}`);
 }
 
 export async function updateAutoApprovalMode(formData: FormData) {

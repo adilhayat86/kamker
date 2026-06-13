@@ -2,7 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShieldAlert, Sparkles } from "lucide-react";
 
-import { updateRequirementStatus } from "@/app/admin/actions";
+import {
+  retryRequirementAdminAlert,
+  updateRequirementStatus,
+} from "@/app/admin/actions";
+import { ContactActionButton } from "@/components/contact-action-button";
 import { DismissibleCard } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +16,7 @@ import {
   isAdminAuthenticated,
   isAdminPasswordConfigured,
 } from "@/lib/admin-auth";
+import { whatsappHref } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
@@ -63,9 +68,21 @@ type RequirementMatch = {
   } | null;
 };
 
+type RequirementWhatsappAlert = {
+  id: string;
+  status: string;
+  message_type: string | null;
+  provider_message_id: string | null;
+  error_message: string | null;
+  created_at: string;
+};
+
 type RequirementDetailPageProps = {
   params: Promise<{
     id: string;
+  }>;
+  searchParams?: Promise<{
+    notice?: "whatsapp-sent" | "whatsapp-failed";
   }>;
 };
 
@@ -109,8 +126,30 @@ async function getRequirementMatches(id: string) {
   return (data ?? []) as unknown as RequirementMatch[];
 }
 
+async function getRequirementWhatsappAlerts(id: string) {
+  if (!isSupabaseConfigured || !supabase) {
+    return [] as RequirementWhatsappAlert[];
+  }
+
+  const { data, error } = await supabase
+    .from("whatsapp_messages")
+    .select("id, status, message_type, provider_message_id, error_message, created_at")
+    .eq("related_type", "requirement")
+    .eq("related_id", id)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  if (error) {
+    console.error("Failed to load requirement WhatsApp alerts", error);
+    return [] as RequirementWhatsappAlert[];
+  }
+
+  return (data ?? []) as unknown as RequirementWhatsappAlert[];
+}
+
 export default async function RequirementDetailPage({
   params,
+  searchParams,
 }: RequirementDetailPageProps) {
   const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
@@ -120,9 +159,11 @@ export default async function RequirementDetailPage({
   }
 
   const { id } = await params;
-  const [requirement, matches] = await Promise.all([
+  const query = await searchParams;
+  const [requirement, matches, whatsappAlerts] = await Promise.all([
     getRequirement(id),
     getRequirementMatches(id),
+    getRequirementWhatsappAlerts(id),
   ]);
   const statusActions = [
     { label: "Mark Open", status: "open" },
@@ -151,6 +192,24 @@ export default async function RequirementDetailPage({
           </DismissibleCard>
         ) : null}
 
+        {query?.notice ? (
+          <DismissibleCard
+            className={`mt-6 shadow-sm ${
+              query.notice === "whatsapp-sent"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+                : "border-amber-200 bg-amber-50 text-amber-950"
+            }`}
+            cardContentClassName="p-4"
+            closeLabel="Close WhatsApp notice"
+          >
+            <p className="text-sm font-medium">
+              {query.notice === "whatsapp-sent"
+                ? "Admin WhatsApp alert was sent."
+                : "Admin WhatsApp alert could not be sent. Check the alert history below for the provider status."}
+            </p>
+          </DismissibleCard>
+        ) : null}
+
         <div className="mt-6">
           <p className="text-sm font-semibold uppercase tracking-normal text-primary">
             Requirement detail
@@ -175,6 +234,17 @@ export default async function RequirementDetailPage({
               <Badge variant="outline">Status: {requirement.status}</Badge>
               <Badge variant="outline">Payment: {requirement.payment_status}</Badge>
               <Badge variant="outline">Broadcast: {requirement.broadcast_status}</Badge>
+              <form action={retryRequirementAdminAlert}>
+                <input type="hidden" name="requirementId" value={requirement.id} />
+                <Button
+                  type="submit"
+                  size="sm"
+                  variant="secondary"
+                  disabled={!adminAuthenticated}
+                >
+                  Retry Admin Alert
+                </Button>
+              </form>
               {statusActions.map((action) => (
                 <form key={action.status} action={updateRequirementStatus}>
                   <input type="hidden" name="requirementId" value={requirement.id} />
@@ -221,11 +291,81 @@ export default async function RequirementDetailPage({
                       {requirement.budget ?? "Not provided"}
                     </p>
                   </div>
+                  <div className="mt-4 grid gap-2">
+                    <ContactActionButton
+                      href={requirement.phone_number ? `tel:${requirement.phone_number}` : null}
+                      displayValue={requirement.phone_number}
+                      type="call"
+                      className="h-10"
+                    />
+                    <ContactActionButton
+                      href={whatsappHref(requirement.whatsapp_number ?? requirement.phone_number)}
+                      displayValue={requirement.whatsapp_number ?? requirement.phone_number}
+                      type="whatsapp"
+                      className="h-10"
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         ) : null}
+
+        <Card className="mt-6 bg-white shadow-sm">
+          <CardContent className="p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                  Admin WhatsApp Alert
+                </p>
+                <h2 className="mt-1 text-2xl font-bold tracking-normal">
+                  {whatsappAlerts[0]?.status ?? "Not sent"}
+                </h2>
+              </div>
+              {whatsappAlerts[0]?.status ? (
+                <Badge
+                  variant={whatsappAlerts[0].status === "sent" ? "default" : "outline"}
+                >
+                  {whatsappAlerts[0].message_type ?? "message"}
+                </Badge>
+              ) : null}
+            </div>
+            {whatsappAlerts.length > 0 ? (
+              <div className="mt-5 grid gap-3">
+                {whatsappAlerts.map((alert) => (
+                  <div key={alert.id} className="rounded-lg border p-4 text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={alert.status === "sent" ? "default" : "outline"}>
+                        {alert.status}
+                      </Badge>
+                      <span className="font-medium">
+                        {alert.message_type ?? "message"}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {new Date(alert.created_at).toLocaleString("en-PK")}
+                      </span>
+                    </div>
+                    {alert.provider_message_id ? (
+                      <p className="mt-2 text-muted-foreground">
+                        Provider ID: {alert.provider_message_id}
+                      </p>
+                    ) : null}
+                    {alert.error_message ? (
+                      <p className="mt-2 break-words text-xs leading-5 text-amber-700">
+                        Provider error recorded. Meta setup may still require
+                        display-name approval or payment activation.
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-5 rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
+                No admin alert has been logged for this requirement yet.
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">

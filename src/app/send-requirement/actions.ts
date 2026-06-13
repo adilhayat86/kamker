@@ -157,5 +157,5 @@ export async function submitRequirement(formData: FormData) {
   );
 
   await clearRequirementDraft();
-  redirect("/send-requirement?status=success");
+  redirect(`/send-requirement?status=success&ref=${requirement.id as string}`);
 }

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
@@ -58,6 +60,7 @@ type SendRequirementPageProps = {
     area?: string;
     source?: string;
     estimate?: string;
+    ref?: string;
   }>;
 };
 
@@ -136,6 +139,46 @@ export default async function SendRequirementPage({
     missingRequired && failedFields.has("whatsappInvalid")
       ? "Enter a valid WhatsApp number or leave it blank."
       : undefined;
+
+  if (status === "success") {
+    return (
+      <main className="min-h-screen bg-background px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <section className="mx-auto max-w-3xl">
+          <PageNavigation backHref="/categories" backLabel="Categories" />
+          <Card className="mt-6 border-sky-200 bg-white shadow-sm">
+            <CardContent className="p-6 sm:p-8">
+              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                Requirement received
+              </p>
+              <h1 className="mt-2 text-3xl font-bold tracking-normal">
+                Your requirement has been submitted
+              </h1>
+              <p className="mt-3 leading-7 text-muted-foreground">
+                Kamker has saved your requirement for review. Professionals are
+                not messaged for free automatically. If you want broadcast
+                outreach, Kamker will confirm the paid option before sending it
+                to matching professionals.
+              </p>
+              {params?.ref ? (
+                <div className="mt-5 rounded-lg border bg-sky-50 px-4 py-3 text-sm">
+                  <span className="font-semibold">Reference:</span>{" "}
+                  {params.ref.slice(0, 8).toUpperCase()}
+                </div>
+              ) : null}
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <Button asChild className="h-12">
+                  <Link href="/categories">Browse Services</Link>
+                </Button>
+                <Button asChild variant="outline" className="h-12">
+                  <Link href="/send-requirement">Send Another Requirement</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
