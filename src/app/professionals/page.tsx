@@ -400,7 +400,6 @@ async function getDbProfessionals({
   rate,
   verified,
   sort,
-  page,
 }: {
   q: string;
   city: string;
@@ -412,7 +411,6 @@ async function getDbProfessionals({
   rate: string;
   verified: boolean;
   sort: string;
-  page: number;
 }) {
   if (!isSupabaseConfigured || !supabase) {
     return getLocalProfessionalRecords();
@@ -429,8 +427,6 @@ async function getDbProfessionals({
   ]);
   const selectedAgeRange = ageRangeOptions.find((option) => option.value === age);
   const selectedRateRange = hourlyRateOptions.find((option) => option.value === rate);
-  const pageWindow = pageSize + 12;
-  const from = Math.max(page - 1, 0) * pageSize;
 
   let query = supabase
     .from("professionals")
@@ -495,8 +491,7 @@ async function getDbProfessionals({
       .order("created_at", { ascending: false });
   }
 
-  const limitForPostFilter = selectedRateRange ? Math.min(pageWindow * 4, 120) : pageWindow;
-  const { data, error } = await query.range(from, from + limitForPostFilter - 1);
+  const { data, error } = await query.limit(5000);
 
   if (error) {
     console.error("Failed to load professionals", error);
@@ -508,7 +503,6 @@ async function getDbProfessionals({
   return selectedRateRange
     ? professionals
         .filter((professional) => matchesHourlyRate(professional.expected_rate, rate))
-        .slice(0, pageWindow)
     : professionals;
 }
 
@@ -842,7 +836,6 @@ export default async function ProfessionalsPage({
       rate,
       verified,
       sort,
-      page: currentPage,
     }),
     getApprovedCompanyListingCards({
       categories: queryCategoryNames.length > 0 ? queryCategoryNames : undefined,

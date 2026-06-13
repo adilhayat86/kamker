@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 
+import { getMockCompanyListingCount } from "@/lib/company-listing-cards";
 import { categoryCountValue, serviceGroups } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -12,11 +13,20 @@ type CountCategory = {
 
 type ProfessionalCategoryRow = {
   categories: { name: string } | null;
+  cities: { name: string } | null;
+  area: string | null;
 };
 
 type CompanyListingCategoryRow = {
   category: string | null;
   service_group: string | null;
+  city: string | null;
+  area: string | null;
+};
+
+type CountFilters = {
+  city?: string;
+  area?: string;
 };
 
 function normalize(value: string | null | undefined) {
@@ -37,6 +47,24 @@ function increment(map: Map<string, number>, name: string | null | undefined) {
   map.set(key, (map.get(key) ?? 0) + 1);
 }
 
+function countFor(map: Map<string, number>, name: string | null | undefined) {
+  return map.get(normalize(name)) ?? 0;
+}
+
+function matchesLocation(
+  row: { city?: string | null; area?: string | null },
+  filters?: CountFilters,
+) {
+  const cityMatch = filters?.city
+    ? normalize(row.city) === normalize(filters.city)
+    : true;
+  const areaMatch = filters?.area
+    ? normalize(row.area).includes(normalize(filters.area))
+    : true;
+
+  return cityMatch && areaMatch;
+}
+
 function knownSubcategoriesFor(name: string) {
   const group = serviceGroups.find((item) => normalize(item.name) === normalize(name));
 
@@ -53,7 +81,42 @@ export function fallbackCategoryCount(category: CountCategory) {
   return value > 0 ? value.toLocaleString("en-PK") : "";
 }
 
-async function loadLiveCategoryCountEntries(categories: CountCategory[]) {
+function fallbackCompanyCountForCategory(
+  categoryName: string,
+  companyCount: number,
+  filters?: CountFilters,
+) {
+  if (companyCount > 0) {
+    return 0;
+  }
+
+  return getMockCompanyListingCount({
+    categories: [categoryName],
+    city: filters?.city,
+    area: filters?.area,
+  });
+}
+
+function fallbackCompanyCountForServiceGroup(
+  serviceGroupName: string,
+  companyCount: number,
+  filters?: CountFilters,
+) {
+  if (companyCount > 0) {
+    return 0;
+  }
+
+  return getMockCompanyListingCount({
+    serviceGroup: serviceGroupName,
+    city: filters?.city,
+    area: filters?.area,
+  });
+}
+
+async function loadLiveCategoryCountEntries(
+  categories: CountCategory[],
+  filters?: CountFilters,
+) {
   if (!isSupabaseConfigured || !supabase) {
     return null;
   }
@@ -61,12 +124,13 @@ async function loadLiveCategoryCountEntries(categories: CountCategory[]) {
   const [professionalsResult, staffResult] = await Promise.all([
     supabase
       .from("professionals")
-      .select("categories(name)")
+      .select("area, cities(name), categories(name)")
       .eq("is_active", true)
+      .eq("is_banned", false)
       .limit(5000),
     supabase
       .from("company_listings")
-      .select("category, service_group")
+      .select("category, service_group, city, area")
       .eq("status", "approved")
       .limit(5000),
   ]);
@@ -79,14 +143,24 @@ async function loadLiveCategoryCountEntries(categories: CountCategory[]) {
     return null;
   }
 
-  const directCounts = new Map<string, number>();
+  const professionalCounts = new Map<string, number>();
+  const companyCounts = new Map<string, number>();
+  const companyGroupCounts = new Map<string, number>();
 
   ((professionalsResult.data ?? []) as unknown as ProfessionalCategoryRow[]).forEach(
-    (row) => increment(directCounts, row.categories?.name),
+    (row) => {
+      const cityName = row.cities?.name ?? null;
+
+      if (matchesLocation({ city: cityName, area: row.area }, filters)) {
+        increment(professionalCounts, row.categories?.name);
+      }
+    },
   );
   ((staffResult.data ?? []) as unknown as CompanyListingCategoryRow[]).forEach((row) => {
-    increment(directCounts, row.category);
-    increment(directCounts, row.service_group);
+    if (matchesLocation({ city: row.city, area: row.area }, filters)) {
+      increment(companyCounts, row.category);
+      increment(companyGroupCounts, row.service_group);
+    }
   });
 
   const childrenByParentId = new Map<number, string[]>();
@@ -105,13 +179,44 @@ async function loadLiveCategoryCountEntries(categories: CountCategory[]) {
     const childNames = category.id
       ? childrenByParentId.get(category.id) ?? []
       : knownSubcategoriesFor(category.name);
-    const childTotal = childNames.reduce(
-      (total, childName) => total + (directCounts.get(normalize(childName)) ?? 0),
-      0,
-    );
-    const ownTotal = directCounts.get(key) ?? 0;
+    const ownProfessionalTotal = countFor(professionalCounts, category.name);
+    const ownCompanyTotal = countFor(companyCounts, category.name);
 
-    result.set(key, ownTotal + childTotal);
+    if (childNames.length > 0) {
+      const childProfessionalTotal = childNames.reduce(
+        (total, childName) => total + countFor(professionalCounts, childName),
+        0,
+      );
+      const groupCompanyTotal =
+        countFor(companyGroupCounts, category.name) +
+        childNames.reduce(
+          (total, childName) => total + countFor(companyCounts, childName),
+          0,
+        );
+      const fallbackGroupCompanyTotal = fallbackCompanyCountForServiceGroup(
+        category.name,
+        groupCompanyTotal,
+        filters,
+      );
+
+      result.set(
+        key,
+        ownProfessionalTotal +
+          ownCompanyTotal +
+          childProfessionalTotal +
+          groupCompanyTotal +
+          fallbackGroupCompanyTotal,
+      );
+      return;
+    }
+
+    const fallbackCompanyTotal = fallbackCompanyCountForCategory(
+      category.name,
+      ownCompanyTotal,
+      filters,
+    );
+
+    result.set(key, ownProfessionalTotal + ownCompanyTotal + fallbackCompanyTotal);
   });
 
   return Array.from(result.entries());
@@ -123,8 +228,11 @@ const getCachedLiveCategoryCountEntries = unstable_cache(
   { revalidate: 120 },
 );
 
-export async function getLiveCategoryCountMap(categories: CountCategory[]) {
-  const entries = await getCachedLiveCategoryCountEntries(categories);
+export async function getLiveCategoryCountMap(
+  categories: CountCategory[],
+  filters?: CountFilters,
+) {
+  const entries = await getCachedLiveCategoryCountEntries(categories, filters);
   return entries ? new Map(entries) : null;
 }
 

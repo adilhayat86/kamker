@@ -109,18 +109,18 @@ export default async function CategoriesPage({
   const city = params?.city?.trim() || undefined;
   const area = params?.area?.trim() || undefined;
   const q = params?.q?.trim() || "";
-  const hasFilter = Boolean(q || city || area);
   const [dbCategories, cityOptions] = await Promise.all([
     getSupabaseCategoryCards(),
     getCityOptions(),
   ]);
-  const liveCountMap = hasFilter
-    ? await getLiveCategoryCountMap([
-        ...dbCategories,
-        ...categories,
-        ...parentCategories,
-      ])
-    : null;
+  const liveCountMap = await getLiveCategoryCountMap(
+    [
+      ...dbCategories,
+      ...categories,
+      ...parentCategories,
+    ],
+    { city, area },
+  );
   const countedDbCategories = dbCategories.map((category) => ({
     ...category,
     count: countForCategory(category, liveCountMap),

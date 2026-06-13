@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getBroadcastRecipientCount } from "@/lib/broadcast";
-import { countForCategory } from "@/lib/category-counts";
+import { countForCategory, getLiveCategoryCountMap } from "@/lib/category-counts";
 import { getApprovedCompanyListingCards } from "@/lib/company-listing-cards";
 import {
   categories,
@@ -314,15 +314,25 @@ export default async function CategoryDetailPage({
     : parentGroup
       ? `${category?.name} are part of ${parentGroup.name}. Browse matching professionals and prepare a reviewed requirement when needed.`
       : "Browse approved professionals and prepare a reviewed requirement for this service category.";
+  const liveCountMap = await getLiveCategoryCountMap(
+    [
+      ...dbSubcategories,
+      ...categories,
+      ...parentCategories,
+      ...(dbCategory ? [dbCategory] : []),
+      ...(dbParentCategory ? [dbParentCategory] : []),
+    ],
+    { city, area },
+  );
   const subcategoryCards = serviceGroup
     ? getGroupSubcategoryCards(serviceGroup).map((subcategory) => ({
         ...subcategory,
-        count: countForCategory(subcategory, null),
+        count: countForCategory(subcategory, liveCountMap),
       }))
     : dbSubcategories.map((subcategory) => ({
         name: subcategory.name,
         icon: subcategory.icon ?? "wrench",
-        count: countForCategory(subcategory, null),
+        count: countForCategory(subcategory, liveCountMap),
       }));
   const targetCategories = serviceGroup
     ? serviceGroup.subcategories

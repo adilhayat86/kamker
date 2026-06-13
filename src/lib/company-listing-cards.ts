@@ -152,6 +152,15 @@ function getMockCompanyListingCards(filters?: {
   return typeof filters?.limit === "number" ? cards.slice(0, filters.limit) : cards;
 }
 
+export function getMockCompanyListingCount(filters?: {
+  categories?: string[];
+  serviceGroup?: string;
+  city?: string;
+  area?: string;
+}) {
+  return getMockCompanyListingCards(filters).length;
+}
+
 async function getLocalCompanyListingCards(filters?: {
   categories?: string[];
   serviceGroup?: string;
