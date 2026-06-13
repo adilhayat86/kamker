@@ -82,13 +82,19 @@ function knownSubcategoriesFor(name: string) {
 }
 
 export function fallbackCategoryCount(category: CountCategory) {
+  const value = fallbackCategoryCountValue(category);
+
+  return value > 0 ? value.toLocaleString("en-PK") : "";
+}
+
+export function fallbackCategoryCountValue(category: CountCategory) {
   if (!category.count) {
-    return "";
+    return 0;
   }
 
   const value = categoryCountValue(category.count);
 
-  return value > 0 ? value.toLocaleString("en-PK") : "";
+  return value > 0 ? value : 0;
 }
 
 function fallbackCompanyCountForCategory(
@@ -250,11 +256,20 @@ export function countForCategory(
   category: CountCategory,
   countMap: Map<string, number> | null,
 ) {
+  const value = countNumberForCategory(category, countMap);
+
+  return value > 0 ? value.toLocaleString("en-PK") : "";
+}
+
+export function countNumberForCategory(
+  category: CountCategory,
+  countMap: Map<string, number> | null,
+) {
   const liveCount = countMap?.get(normalize(category.name));
 
   if (typeof liveCount === "number") {
-    return liveCount > 0 ? liveCount.toLocaleString("en-PK") : "";
+    return liveCount > 0 ? liveCount : 0;
   }
 
-  return fallbackCategoryCount(category);
+  return fallbackCategoryCountValue(category);
 }

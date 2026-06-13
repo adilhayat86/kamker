@@ -840,7 +840,7 @@ export default async function ProfessionalsPage({
     getApprovedCompanyListingCards({
       categories: queryCategoryNames.length > 0 ? queryCategoryNames : undefined,
       city: effectiveCity || undefined,
-      limit: 60,
+      limit: 5000,
     }),
   ]);
   const filteredCompanyProfessionals = companyProfessionals.filter((professional) =>

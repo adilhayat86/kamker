@@ -9,8 +9,11 @@ import { ProfessionalCard } from "@/components/professional-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getBroadcastRecipientCount } from "@/lib/broadcast";
-import { countForCategory, getLiveCategoryCountMap } from "@/lib/category-counts";
+import {
+  countForCategory,
+  countNumberForCategory,
+  getLiveCategoryCountMap,
+} from "@/lib/category-counts";
 import { getApprovedCompanyListingCards } from "@/lib/company-listing-cards";
 import {
   categories,
@@ -349,31 +352,23 @@ export default async function CategoryDetailPage({
       : [];
   const isParentCategoryPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
   const isServiceGroupPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
-  const [matchingProfessionals, companyManagedProfessionals, recipientCount] =
-    await Promise.all([
-      getCategoryProfessionals(
-        targetCategories,
-        city,
-        area,
-      ),
-      getApprovedCompanyListingCards({
-        categories: serviceGroup ? undefined : targetCategories,
-        serviceGroup: serviceGroup?.name,
-        city,
-        area,
-        limit: 12,
-      }),
-      getBroadcastRecipientCount({
-        category: serviceGroup?.name ?? parentGroup?.name ?? dbParentCategory?.name ?? category?.name ?? dbCategory?.name,
-        subcategory:
-          isParentCategoryPage
-            ? undefined
-            : category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined),
-        city,
-        area,
-        scope: isServiceGroupPage ? "serviceGroup" : "category",
-      }),
-    ]);
+  const [matchingProfessionals, companyManagedProfessionals] = await Promise.all([
+    getCategoryProfessionals(targetCategories, city, area),
+    getApprovedCompanyListingCards({
+      categories: serviceGroup ? undefined : targetCategories,
+      serviceGroup: serviceGroup?.name,
+      city,
+      area,
+      limit: 12,
+    }),
+  ]);
+  const parentCategoryCountTarget = serviceGroup
+    ? parentCategories.find((item) => item.name === serviceGroup.name)
+    : null;
+  const recipientCount = countNumberForCategory(
+    dbCategory ?? category ?? parentCategoryCountTarget ?? { name: pageName, count: "0" },
+    liveCountMap,
+  );
   const visibleProfessionals = [...companyManagedProfessionals, ...matchingProfessionals].sort(
     (a, b) => Number(b.is_featured) - Number(a.is_featured),
   );
