@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MessageCircle, ReceiptText, UploadCloud } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  MessageCircle,
+  ReceiptText,
+  UploadCloud,
+} from "lucide-react";
 
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
@@ -147,10 +154,26 @@ export default async function RequirementPaymentPage({
   const isCompleted =
     requirement?.payment_status === "paid" &&
     ["sent", "partial", "no_matches"].includes(requirement.broadcast_status);
+  const isProofUnderReview =
+    requirement?.payment_status === "pending_review" ||
+    query?.status === "needs_review" ||
+    query?.status === "proof-save-error";
+  const isPaymentApproved = requirement?.payment_status === "paid";
+  const isPaymentLocked = isProofUnderReview || isPaymentApproved;
   const whatsappReady = isWhatsappConfigured() && isRequirementWhatsappConfigured();
   const canUploadProof = Boolean(
-    requirement && payableAmount > 0 && !isCompleted && whatsappReady,
+    requirement && payableAmount > 0 && !isPaymentLocked && !isCompleted && whatsappReady,
   );
+  const heading = isProofUnderReview
+    ? "Receipt received"
+    : isPaymentApproved
+      ? "Payment processed"
+      : "Upload payment proof";
+  const intro = isProofUnderReview
+    ? "Your receipt is saved. Broadcast will start after payment proof review."
+    : isPaymentApproved
+      ? "Payment has been approved. Kamker is handling the WhatsApp broadcast status below."
+      : `Pay ${payableAmountLabel} and upload the receipt. Clear matching receipts can approve automatically and send WhatsApp messages to matching professionals.`;
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -162,13 +185,9 @@ export default async function RequirementPaymentPage({
             <ReceiptText className="size-3.5" aria-hidden="true" />
             Paid requirement broadcast
           </Badge>
-          <h1 className="mt-3 text-3xl font-bold tracking-normal">
-            Upload payment proof
-          </h1>
+          <h1 className="mt-3 text-3xl font-bold tracking-normal">{heading}</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Pay {payableAmountLabel} and upload the receipt. Clear matching
-            receipts can approve automatically and send WhatsApp messages to
-            matching professionals.
+            {intro}
           </p>
         </div>
 
@@ -273,10 +292,44 @@ export default async function RequirementPaymentPage({
                 </dl>
               </div>
 
-              {isCompleted ? (
+              {isProofUnderReview ? (
+                <div className="mt-5 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
+                  <div className="flex items-start gap-3">
+                    <Clock3 className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                    <div>
+                      <p className="font-semibold">Receipt uploaded successfully</p>
+                      <p className="mt-1">
+                        No need to upload again. Kamker will review this proof
+                        and start the broadcast after approval.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : isCompleted ? (
                 <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
-                  This requirement is already paid. Broadcast status:{" "}
-                  <span className="font-semibold">{requirement?.broadcast_status}</span>.
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                    <div>
+                      <p className="font-semibold">Payment approved</p>
+                      <p className="mt-1">
+                        Broadcast status:{" "}
+                        <span className="font-semibold">{requirement?.broadcast_status}</span>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : isPaymentApproved && requirement?.broadcast_status === "failed" ? (
+                <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                    <div>
+                      <p className="font-semibold">Payment approved, broadcast needs retry</p>
+                      <p className="mt-1">
+                        Kamker admin can retry the WhatsApp broadcast from the
+                        requirement detail page. Do not upload another receipt.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ) : !whatsappReady ? (
                 <div className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-950">
