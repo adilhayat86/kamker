@@ -273,7 +273,7 @@ export async function sendAdminWhatsappAlert(body: string, relatedType?: string,
 
   try {
     if (config.adminAlertTemplateName) {
-      return await sendWhatsappTemplate({
+      const templateResult = await sendWhatsappTemplate({
         to: adminPhone,
         body,
         templateName: config.adminAlertTemplateName,
@@ -281,6 +281,14 @@ export async function sendAdminWhatsappAlert(body: string, relatedType?: string,
         relatedType,
         relatedId,
       });
+
+      if (templateResult.ok) {
+        return templateResult;
+      }
+
+      console.warn(
+        "WhatsApp admin template alert failed; trying text fallback.",
+      );
     }
 
     return await sendWhatsappText({
