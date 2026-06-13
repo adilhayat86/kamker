@@ -20,23 +20,27 @@ type RequirementForBroadcast = {
 type BroadcastMatch = {
   id: string;
   match_score: number;
-  professionals: {
-    id: string;
-    full_name: string;
-    phone_number: string | null;
-    whatsapp_number: string | null;
-    categories: { name: string } | null;
-    cities: { name: string } | null;
-  } | null;
-  company_listings: {
-    id: string;
-    title: string;
-    phone: string | null;
-    whatsapp: string | null;
-    category: string | null;
-    city: string | null;
-    companies: { company_name: string } | null;
-  } | null;
+  professional_id: string | null;
+  company_listing_id: string | null;
+};
+
+type BroadcastProfessional = {
+  id: string;
+  full_name: string;
+  phone_number: string | null;
+  whatsapp_number: string | null;
+};
+
+type BroadcastCompanyListing = {
+  id: string;
+  title: string;
+  phone: string | null;
+  whatsapp: string | null;
+};
+
+type BroadcastRecipientSource = {
+  professional: BroadcastProfessional | null;
+  companyListing: BroadcastCompanyListing | null;
 };
 
 function shortText(value: string, maxLength = 220) {
@@ -57,9 +61,9 @@ function requirementMessage(requirement: RequirementForBroadcast) {
   ].join("\n");
 }
 
-function matchRecipient(match: BroadcastMatch) {
-  const professional = match.professionals;
-  const companyListing = match.company_listings;
+function matchRecipient(source: BroadcastRecipientSource) {
+  const professional = source.professional;
+  const companyListing = source.companyListing;
   const rawPhone =
     professional?.whatsapp_number ||
     professional?.phone_number ||
@@ -78,8 +82,81 @@ function matchRecipient(match: BroadcastMatch) {
     label:
       professional?.full_name ||
       companyListing?.title ||
-      companyListing?.companies?.company_name ||
       "Matched professional",
+  };
+}
+
+async function loadBroadcastMatches(requirementId: string) {
+  if (!supabase) {
+    return { matches: [], error: "Supabase is not configured." };
+  }
+
+  const db = supabase;
+  const { data: matchRows, error: matchesError } = await db
+    .from("requirement_matches")
+    .select("id, match_score, professional_id, company_listing_id")
+    .eq("requirement_id", requirementId)
+    .order("match_score", { ascending: false });
+
+  if (matchesError) {
+    return { matches: [], error: matchesError.message };
+  }
+
+  const matches = (matchRows ?? []) as BroadcastMatch[];
+  const professionalIds = [
+    ...new Set(matches.map((match) => match.professional_id).filter(Boolean)),
+  ] as string[];
+  const companyListingIds = [
+    ...new Set(matches.map((match) => match.company_listing_id).filter(Boolean)),
+  ] as string[];
+
+  const [professionalsResult, companyListingsResult] = await Promise.all([
+    professionalIds.length
+      ? db
+          .from("professionals")
+          .select("id, full_name, phone_number, whatsapp_number")
+          .in("id", professionalIds)
+      : Promise.resolve({ data: [], error: null }),
+    companyListingIds.length
+      ? db
+          .from("company_listings")
+          .select("id, title, phone, whatsapp")
+          .in("id", companyListingIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (professionalsResult.error) {
+    return { matches: [], error: professionalsResult.error.message };
+  }
+
+  if (companyListingsResult.error) {
+    return { matches: [], error: companyListingsResult.error.message };
+  }
+
+  const professionals = new Map(
+    ((professionalsResult.data ?? []) as BroadcastProfessional[]).map((item) => [
+      item.id,
+      item,
+    ]),
+  );
+  const companyListings = new Map(
+    ((companyListingsResult.data ?? []) as BroadcastCompanyListing[]).map(
+      (item) => [item.id, item],
+    ),
+  );
+
+  return {
+    matches: matches.map((match) => ({
+      id: match.id,
+      match_score: match.match_score,
+      professional: match.professional_id
+        ? professionals.get(match.professional_id) ?? null
+        : null,
+      companyListing: match.company_listing_id
+        ? companyListings.get(match.company_listing_id) ?? null
+        : null,
+    })),
+    error: null,
   };
 }
 
@@ -114,13 +191,8 @@ export async function sendRequirementBroadcast(requirementId: string) {
     };
   }
 
-  const { data: matches, error: matchesError } = await db
-    .from("requirement_matches")
-    .select(
-      "id, match_score, professionals(id, full_name, phone_number, whatsapp_number, categories(name), cities(name)), company_listings(id, title, phone, whatsapp, category, city, companies(company_name))",
-    )
-    .eq("requirement_id", requirementId)
-    .order("match_score", { ascending: false });
+  const { matches, error: matchesError } =
+    await loadBroadcastMatches(requirementId);
 
   if (matchesError) {
     console.error("Failed to load requirement matches before broadcast", matchesError);
@@ -135,7 +207,7 @@ export async function sendRequirementBroadcast(requirementId: string) {
   }
 
   const seen = new Set<string>();
-  const recipients = ((matches ?? []) as unknown as BroadcastMatch[])
+  const recipients = matches
     .map(matchRecipient)
     .filter((recipient): recipient is NonNullable<ReturnType<typeof matchRecipient>> => {
       if (!recipient || seen.has(recipient.digits)) {
