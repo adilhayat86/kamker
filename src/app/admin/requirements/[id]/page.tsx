@@ -166,6 +166,15 @@ export default async function RequirementDetailPage({
     getRequirementMatches(id),
     getRequirementWhatsappAlerts(id),
   ]);
+  const broadcastAlerts = whatsappAlerts.filter(
+    (alert) => alert.related_type === "requirement_broadcast",
+  );
+  const sentBroadcastCount = broadcastAlerts.filter(
+    (alert) => alert.status === "sent",
+  ).length;
+  const failedBroadcastCount = broadcastAlerts.filter(
+    (alert) => alert.status !== "sent",
+  ).length;
   const statusActions = [
     { label: "Mark Open", status: "open" },
     { label: "Mark Contacted", status: "contacted" },
@@ -385,12 +394,24 @@ export default async function RequirementDetailPage({
                   Matched Professionals
                 </p>
                 <h2 className="mt-1 text-2xl font-bold tracking-normal">
-                  {matches.length} stored match{matches.length === 1 ? "" : "es"}
+                  {matches.length > 0
+                    ? `${matches.length} stored match${matches.length === 1 ? "" : "es"}`
+                    : broadcastAlerts.length > 0
+                      ? `${broadcastAlerts.length} broadcast recipient${broadcastAlerts.length === 1 ? "" : "s"}`
+                      : "0 stored matches"}
                 </h2>
+                {matches.length === 0 && broadcastAlerts.length > 0 ? (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Stored match rows are not visible, but WhatsApp logs confirm
+                    who received the broadcast.
+                  </p>
+                ) : null}
               </div>
               <Badge className="gap-1">
                 <Sparkles className="size-3" aria-hidden="true" />
-                Future notifications ready
+                {broadcastAlerts.length > 0
+                  ? `${sentBroadcastCount} sent / ${failedBroadcastCount} failed`
+                  : "Future notifications ready"}
               </Badge>
             </div>
 
@@ -492,6 +513,39 @@ export default async function RequirementDetailPage({
                     </div>
                   );
                 })}
+              </div>
+            ) : broadcastAlerts.length > 0 ? (
+              <div className="mt-5 grid gap-3">
+                {broadcastAlerts.map((alert) => (
+                  <div
+                    key={alert.id}
+                    className="rounded-lg border border-blue-100 bg-blue-50/50 p-4 text-sm"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={alert.status === "sent" ? "default" : "outline"}>
+                        {alert.status}
+                      </Badge>
+                      <span className="font-medium">Broadcast recipient</span>
+                      <span className="text-muted-foreground">
+                        {new Date(alert.created_at).toLocaleString("en-PK")}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-muted-foreground">
+                      Recipient: {alert.recipient_phone ?? "Not recorded"}
+                    </p>
+                    {alert.provider_message_id ? (
+                      <p className="mt-2 break-words text-muted-foreground">
+                        Provider ID: {alert.provider_message_id}
+                      </p>
+                    ) : null}
+                    {alert.error_message ? (
+                      <p className="mt-2 break-words text-xs leading-5 text-amber-700">
+                        Failed safely. Check Meta setup, template status, or recipient
+                        WhatsApp validity.
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="mt-5 rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
