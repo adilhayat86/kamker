@@ -8,6 +8,11 @@ type SendWhatsappTextInput = {
   relatedId?: string;
 };
 
+type SendWhatsappTemplateInput = SendWhatsappTextInput & {
+  templateName: string;
+  languageCode: string;
+};
+
 function cleanPhoneNumber(value: string) {
   return whatsappDigits(value);
 }
@@ -17,12 +22,17 @@ function whatsappConfig() {
     accessToken: process.env.WHATSAPP_ACCESS_TOKEN || "",
     phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || "",
     apiVersion: process.env.WHATSAPP_API_VERSION || "v20.0",
+    adminAlertTemplateName:
+      process.env.WHATSAPP_ADMIN_ALERT_TEMPLATE_NAME || "kamker_admin_alerts",
+    adminAlertTemplateLanguage:
+      process.env.WHATSAPP_ADMIN_ALERT_TEMPLATE_LANGUAGE || "en",
   };
 }
 
 async function logWhatsappMessage(input: {
   recipientPhone: string;
   body: string;
+  messageType?: "text" | "template";
   status: "pending" | "sent" | "failed" | "skipped";
   providerMessageId?: string | null;
   errorMessage?: string | null;
@@ -37,7 +47,7 @@ async function logWhatsappMessage(input: {
 
   const { error } = await supabase.from("whatsapp_messages").insert({
     recipient_phone: input.recipientPhone,
-    message_type: "text",
+    message_type: input.messageType ?? "text",
     body: input.body,
     status: input.status,
     provider_message_id: input.providerMessageId ?? null,
@@ -147,8 +157,114 @@ export async function sendWhatsappText({
   return { ok: true, providerMessageId };
 }
 
+export async function sendWhatsappTemplate({
+  to,
+  body,
+  templateName,
+  languageCode,
+  relatedType,
+  relatedId,
+}: SendWhatsappTemplateInput) {
+  const config = whatsappConfig();
+  const recipientPhone = cleanPhoneNumber(to);
+  const cleanBody = body.trim();
+
+  if (!recipientPhone || !cleanBody || !templateName || !languageCode) {
+    return { ok: false, error: "Missing recipient, template, language, or message body." };
+  }
+
+  if (!config.accessToken || !config.phoneNumberId) {
+    await logWhatsappMessage({
+      recipientPhone,
+      body: cleanBody,
+      messageType: "template",
+      status: "skipped",
+      errorMessage: "WhatsApp API is not configured.",
+      relatedType,
+      relatedId,
+    });
+
+    return { ok: false, error: "WhatsApp API is not configured." };
+  }
+
+  const payload = {
+    messaging_product: "whatsapp",
+    to: recipientPhone,
+    type: "template",
+    template: {
+      name: templateName,
+      language: {
+        code: languageCode,
+      },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            {
+              type: "text",
+              text: cleanBody,
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  const response = await fetch(
+    `https://graph.facebook.com/${config.apiVersion}/${config.phoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  const responsePayload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+  const providerMessageId =
+    Array.isArray(responsePayload?.messages) &&
+    typeof responsePayload.messages[0]?.id === "string"
+      ? responsePayload.messages[0].id
+      : null;
+
+  if (!response.ok) {
+    const errorMessage = JSON.stringify(responsePayload ?? { status: response.status });
+
+    await logWhatsappMessage({
+      recipientPhone,
+      body: cleanBody,
+      messageType: "template",
+      status: "failed",
+      errorMessage,
+      relatedType,
+      relatedId,
+      requestPayload: payload,
+      responsePayload,
+    });
+
+    return { ok: false, error: errorMessage };
+  }
+
+  await logWhatsappMessage({
+    recipientPhone,
+    body: cleanBody,
+    messageType: "template",
+    status: "sent",
+    providerMessageId,
+    relatedType,
+    relatedId,
+    requestPayload: payload,
+    responsePayload,
+  });
+
+  return { ok: true, providerMessageId };
+}
+
 export async function sendAdminWhatsappAlert(body: string, relatedType?: string, relatedId?: string) {
   const adminPhone = process.env.KAMKER_ADMIN_WHATSAPP;
+  const config = whatsappConfig();
 
   if (!adminPhone) {
     console.info("Skipping WhatsApp admin alert because KAMKER_ADMIN_WHATSAPP is not configured.");
@@ -156,6 +272,17 @@ export async function sendAdminWhatsappAlert(body: string, relatedType?: string,
   }
 
   try {
+    if (config.adminAlertTemplateName) {
+      return await sendWhatsappTemplate({
+        to: adminPhone,
+        body,
+        templateName: config.adminAlertTemplateName,
+        languageCode: config.adminAlertTemplateLanguage,
+        relatedType,
+        relatedId,
+      });
+    }
+
     return await sendWhatsappText({
       to: adminPhone,
       body,
