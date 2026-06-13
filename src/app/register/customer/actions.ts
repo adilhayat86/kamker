@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
+import { normalizePakistanMobilePhone } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 function field(formData: FormData, key: string) {
@@ -12,19 +13,22 @@ function field(formData: FormData, key: string) {
 
 export async function registerCustomer(formData: FormData) {
   const fullName = field(formData, "fullName");
-  const phoneNumber = field(formData, "phone");
+  const phoneInput = field(formData, "phone");
+  const phoneValidation = normalizePakistanMobilePhone(phoneInput);
+  const phoneNumber = phoneValidation.normalized || phoneInput;
   const cityName = field(formData, "city");
   const area = field(formData, "area");
   const draft = {
     fullName,
-    phone: phoneNumber,
+    phone: phoneInput,
     city: cityName,
     area,
   };
 
   const errors = [
     !fullName ? "fullName" : null,
-    !phoneNumber ? "phone" : null,
+    !phoneInput ? "phone" : null,
+    phoneInput && !phoneValidation.ok ? "phoneInvalid" : null,
     !cityName ? "city" : null,
   ].filter((error): error is string => Boolean(error));
 

@@ -114,7 +114,7 @@ const mockCompanyListingRows: CompanyListingCardRow[] = categories.map((category
     years_experience: 3 + (index % 8),
     phone: `03${String(200000000 + index * 24681).slice(0, 9)}`,
     whatsapp: `923${String(200000000 + index * 24681).slice(0, 9)}`,
-    is_featured: true,
+    is_featured: index % 5 === 0,
     created_at: "2030-01-01T00:00:00.000Z",
     companies: {
       id: `mock-company-${companyIndex + 1}`,
@@ -308,12 +308,14 @@ export async function getApprovedCompanyListingCards(filters?: {
     .order("created_at", { ascending: false })
     .limit(filters?.limit ?? 100);
 
+  const serviceGroupCategories = filters?.serviceGroup
+    ? serviceGroups.find((group) => group.name === filters.serviceGroup)?.subcategories
+    : null;
+
   if (filters?.categories?.length) {
     query = query.in("category", filters.categories);
-  }
-
-  if (filters?.serviceGroup) {
-    query = query.eq("service_group", filters.serviceGroup);
+  } else if (serviceGroupCategories?.length) {
+    query = query.in("category", serviceGroupCategories);
   }
 
   if (filters?.city) {

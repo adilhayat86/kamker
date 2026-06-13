@@ -9,6 +9,7 @@ import { getSessionProfessional } from "@/lib/auth";
 import { canAutoApproveProof, reviewProofWithAi } from "@/lib/ai-proof-review";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
+import { workerPostingBlockedStatus } from "@/lib/worker-status";
 
 const featuredPackages = {
   monthly: {
@@ -22,6 +23,9 @@ const featuredPackages = {
     durationDays: 365,
   },
 } as const;
+
+const allowedProofTypes = ["image/jpeg", "image/png", "image/webp"];
+const maxProofSize = 8 * 1024 * 1024;
 
 type FeaturedPackageKey = keyof typeof featuredPackages;
 
@@ -55,8 +59,8 @@ export async function submitFeaturedProfileProof(formData: FormData) {
   if (
     !(proofImage instanceof File) ||
     proofImage.size === 0 ||
-    !["image/jpeg", "image/png", "image/webp"].includes(proofImage.type) ||
-    proofImage.size > 3 * 1024 * 1024
+    !allowedProofTypes.includes(proofImage.type) ||
+    proofImage.size > maxProofSize
   ) {
     redirect("/account/featured?status=missing");
   }
@@ -69,6 +73,16 @@ export async function submitFeaturedProfileProof(formData: FormData) {
 
   if (!professional) {
     redirect("/login");
+  }
+
+  const blockedStatus = workerPostingBlockedStatus(professional);
+
+  if (blockedStatus === "pending") {
+    redirect("/account/featured?status=pending-profile");
+  }
+
+  if (blockedStatus === "banned") {
+    redirect("/account/featured?status=banned-profile");
   }
 
   const selectedPackage = featuredPackages[packageKey];

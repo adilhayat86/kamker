@@ -14,6 +14,7 @@ import {
   getLocalProfessionalRecordById,
   getLocalProfessionalRecords,
 } from "@/lib/local-demo-store";
+import { pakistanMobileNormalizedDigits } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 const scrypt = promisify(scryptCallback);
@@ -26,14 +27,32 @@ const RECOVERY_MAX_AGE_SECONDS = 60 * 10;
 
 type AuthProfessional = {
   id: string;
-  phone_number: string;
+  phone_number: string | null;
   password_hash: string | null;
   secret_question: string | null;
   secret_answer_hash: string | null;
 };
 
 export function normalizePhoneNumber(phoneNumber: string) {
-  return phoneNumber.replace(/[^\d+]/g, "").replace(/(?!^)\+/g, "");
+  return pakistanMobileNormalizedDigits(phoneNumber);
+}
+
+function phoneLookupVariants(normalizedPhone: string, originalPhone: string) {
+  const digits = normalizedPhone.replace(/\D/g, "");
+  const national = digits.startsWith("92") ? digits.slice(2) : digits;
+  const variants = new Set([
+    originalPhone.trim(),
+    digits,
+    `+${digits}`,
+    `00${digits}`,
+    national,
+    `0${national}`,
+    `92${national}`,
+    `+92${national}`,
+    `0092${national}`,
+  ]);
+
+  return [...variants].filter(Boolean);
 }
 
 function hashToken(token: string) {
@@ -86,6 +105,7 @@ function localRecordToAccountProfessional(
     is_cnic_verified: professional.is_cnic_verified,
     is_phone_verified: professional.is_phone_verified,
     is_active: professional.is_active,
+    is_banned: professional.is_banned ?? false,
     is_featured: professional.is_featured,
     featured_until: professional.featured_until,
     cities: professional.cities,
@@ -121,36 +141,59 @@ export async function verifySecret(value: string, storedHash: string | null) {
 }
 
 export async function findProfessionalByPhone(phoneNumber: string) {
+  const matches = await findProfessionalsByPhone(phoneNumber);
+
+  return matches.length === 1 ? matches[0] : null;
+}
+
+export async function findProfessionalsByPhone(phoneNumber: string) {
   const normalizedPhone = normalizePhoneNumber(phoneNumber);
+
+  if (!normalizedPhone) {
+    return [] as AuthProfessional[];
+  }
 
   if (!isSupabaseConfigured || !supabase) {
     const professionals = await getLocalProfessionalRecords();
 
-    return (
-      professionals.find(
+    return professionals.filter(
         (professional) =>
-          normalizePhoneNumber(professional.phone_number) === normalizedPhone,
-      ) ?? null
+          normalizePhoneNumber(professional.phone_number ?? "") === normalizedPhone,
     );
   }
 
+  const selectColumns =
+    "id, phone_number, password_hash, secret_question, secret_answer_hash";
+  const normalizedE164 = `+${normalizedPhone}`;
+  const normalizedLookup = await supabase
+    .from("professionals")
+    .select(selectColumns)
+    .eq("phone_normalized", normalizedE164)
+    .limit(10);
+
+  if (!normalizedLookup.error) {
+    return (normalizedLookup.data ?? []) as AuthProfessional[];
+  }
+
+  if (normalizedLookup.error.code !== "42703") {
+    console.error("Failed to find professional by normalized phone", normalizedLookup.error);
+  }
+
+  const variants = phoneLookupVariants(normalizedPhone, phoneNumber);
   const { data, error } = await supabase
     .from("professionals")
-    .select(
-      "id, phone_number, password_hash, secret_question, secret_answer_hash",
-    )
-    .limit(500);
+    .select(selectColumns)
+    .in("phone_number", variants)
+    .limit(20);
 
   if (error) {
     console.error("Failed to find professional by phone", error);
-    return null;
+    return [] as AuthProfessional[];
   }
 
-  return (
-    ((data ?? []) as AuthProfessional[]).find(
+  return ((data ?? []) as AuthProfessional[]).filter(
       (professional) =>
-        normalizePhoneNumber(professional.phone_number) === normalizedPhone,
-    ) ?? null
+        normalizePhoneNumber(professional.phone_number ?? "") === normalizedPhone,
   );
 }
 
@@ -267,13 +310,29 @@ export async function getSessionProfessional() {
     return null;
   }
 
-  const { data: professional, error: professionalError } = await supabase
+  const sessionProfessionalColumns =
+    "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_banned, is_featured, featured_until, cities(name), categories(name)";
+
+  let { data: professional, error: professionalError } = await supabase
     .from("professionals")
-    .select(
-      "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_featured, featured_until, cities(name), categories(name)",
-    )
+    .select(sessionProfessionalColumns)
     .eq("id", session.professional_id as string)
     .maybeSingle();
+
+  if (professionalError?.code === "42703") {
+    const fallback = await supabase
+      .from("professionals")
+      .select(
+        "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_featured, featured_until, cities(name), categories(name)",
+      )
+      .eq("id", session.professional_id as string)
+      .maybeSingle();
+
+    professional = fallback.data
+      ? { ...fallback.data, is_banned: false }
+      : fallback.data;
+    professionalError = fallback.error;
+  }
 
   if (professionalError) {
     console.error("Failed to load session professional", professionalError);

@@ -2,14 +2,38 @@
 
 import { redirect } from "next/navigation";
 
+import { trackAnalyticsEvent } from "@/lib/analytics";
+import { getSessionProfessional } from "@/lib/auth";
+import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
+import {
+  normalizePakistanMobilePhone,
+  validatePhoneFieldWithCountry,
+} from "@/lib/phone";
 import { createRequirementMatches } from "@/lib/requirement-matching";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { findOrCreateCityId } from "@/lib/taxonomy";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
+import { workerPostingBlockedStatus } from "@/lib/worker-status";
 
 function requiredValue(formData: FormData, key: string) {
   const value = formData.get(key);
 
   return typeof value === "string" ? value.trim() : "";
+}
+
+const requirementDraftKey = "send_requirement";
+const requirementDraftPath = "/send-requirement";
+
+async function saveRequirementDraft(values: Record<string, string | number>) {
+  await saveFormDraft(requirementDraftKey, values, {
+    path: requirementDraftPath,
+  });
+}
+
+async function clearRequirementDraft() {
+  await clearFormDraft(requirementDraftKey, {
+    path: requirementDraftPath,
+  });
 }
 
 export async function submitRequirement(formData: FormData) {
@@ -18,30 +42,68 @@ export async function submitRequirement(formData: FormData) {
   const area = requiredValue(formData, "area");
   const availability = requiredValue(formData, "availability");
   const budget = requiredValue(formData, "budget");
-  const phoneNumber = requiredValue(formData, "phone");
-  const whatsappNumber = requiredValue(formData, "whatsapp");
+  const phoneInput = requiredValue(formData, "phone");
+  const phoneValidation = normalizePakistanMobilePhone(phoneInput);
+  const phoneNumber = phoneValidation.normalized || phoneInput;
+  const whatsappValidation = validatePhoneFieldWithCountry(formData, "whatsapp");
+  const whatsappNumber = whatsappValidation.normalized;
   const urgency = requiredValue(formData, "urgency");
   const details = requiredValue(formData, "details");
+  const source = requiredValue(formData, "source") || "unknown";
+  const draft = {
+    service: requiredService,
+    city: cityName,
+    area,
+    availability,
+    budget,
+    phone: phoneInput,
+    whatsapp: whatsappNumber,
+    urgency,
+    details,
+  };
+  const errors = [
+    !requiredService ? "service" : null,
+    !cityName ? "city" : null,
+    !phoneInput ? "phone" : null,
+    phoneInput && !phoneValidation.ok ? "phoneInvalid" : null,
+    !whatsappValidation.ok ? "whatsappInvalid" : null,
+    !urgency ? "urgency" : null,
+    !details ? "details" : null,
+  ].filter((error): error is string => Boolean(error));
 
-  if (!requiredService || !cityName || !phoneNumber || !urgency || !details) {
+  if (errors.length > 0) {
+    await saveRequirementDraft({
+      ...draft,
+      errors: errors.join(","),
+    });
     redirect("/send-requirement?status=missing");
   }
 
+  const professional = await getSessionProfessional();
+  const blockedStatus = workerPostingBlockedStatus(professional);
+
+  if (blockedStatus === "pending") {
+    await saveRequirementDraft(draft);
+    redirect("/send-requirement?status=pending-worker");
+  }
+
+  if (blockedStatus === "banned") {
+    await saveRequirementDraft(draft);
+    redirect("/send-requirement?status=banned-worker");
+  }
+
   if (!isSupabaseConfigured || !supabase) {
+    await saveRequirementDraft(draft);
     redirect("/send-requirement?status=not-configured");
   }
 
-  const { data: city } = await supabase
-    .from("cities")
-    .select("id")
-    .eq("name", cityName)
-    .maybeSingle();
+  const cityId = await findOrCreateCityId(cityName);
 
   const { data: requirement, error } = await supabase
     .from("requirements")
     .insert({
       required_service: requiredService,
-      city_id: city?.id ?? null,
+      city_id: cityId,
       area: area || null,
       availability: availability || null,
       details,
@@ -57,6 +119,7 @@ export async function submitRequirement(formData: FormData) {
 
   if (error || !requirement) {
     console.error("Failed to submit requirement", error);
+    await saveRequirementDraft(draft);
     redirect("/send-requirement?status=error");
   }
 
@@ -66,6 +129,18 @@ export async function submitRequirement(formData: FormData) {
     cityName,
     area: area || null,
     availability: availability || null,
+  });
+
+  await trackAnalyticsEvent({
+    eventType: "requirement_submission",
+    targetType: "requirement",
+    targetId: requirement.id as string,
+    metadata: {
+      category: requiredService,
+      city: cityName,
+      source,
+      path: "/send-requirement",
+    },
   });
 
   await sendAdminWhatsappAlert(
@@ -81,5 +156,6 @@ export async function submitRequirement(formData: FormData) {
     requirement.id as string,
   );
 
+  await clearRequirementDraft();
   redirect("/send-requirement?status=success");
 }

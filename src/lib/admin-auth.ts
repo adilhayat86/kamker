@@ -5,8 +5,8 @@ import { cookies } from "next/headers";
 import { hashSecret, verifySecret } from "@/lib/auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
-const LEGACY_ADMIN_SESSION_COOKIE = "kamker_admin_session";
-const ADMIN_SESSION_COOKIE = "kamker_admin_session_v2";
+export const LEGACY_ADMIN_SESSION_COOKIE = "kamker_admin_session";
+export const ADMIN_SESSION_COOKIE = "kamker_admin_session_v2";
 const ADMIN_SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
 const ADMIN_RESET_MAX_AGE_SECONDS = 60 * 15;
 const OWNER_EMAIL = "adilhayat@yahoo.com";

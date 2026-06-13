@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { getSessionProfessional } from "@/lib/auth";
+import { findProfessionalsByPhone, getSessionProfessional } from "@/lib/auth";
+import {
+  normalizePakistanMobilePhone,
+  validatePhoneFieldWithCountry,
+} from "@/lib/phone";
 import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -27,8 +31,11 @@ function ageField(formData: FormData) {
 
 export async function updateProfessionalProfile(formData: FormData) {
   const fullName = field(formData, "fullName");
-  const phoneNumber = field(formData, "phone");
-  const whatsappNumber = field(formData, "whatsapp");
+  const phoneInput = field(formData, "phone");
+  const phoneValidation = normalizePakistanMobilePhone(phoneInput);
+  const phoneNumber = phoneValidation.normalized || phoneInput;
+  const whatsappValidation = validatePhoneFieldWithCountry(formData, "whatsapp");
+  const whatsappNumber = whatsappValidation.normalized;
   const cityName = field(formData, "city");
   const area = field(formData, "area");
   const categoryName = field(formData, "category");
@@ -41,9 +48,17 @@ export async function updateProfessionalProfile(formData: FormData) {
   const tagline = field(formData, "tagline");
   const shortBio = field(formData, "bio");
 
+  if (phoneInput && !phoneValidation.ok) {
+    redirect("/account/edit?status=phone-invalid");
+  }
+
+  if (!whatsappValidation.ok) {
+    redirect("/account/edit?status=whatsapp-invalid");
+  }
+
   if (
     !fullName ||
-    !phoneNumber ||
+    !phoneInput ||
     !cityName ||
     !categoryName ||
     !gender ||
@@ -66,6 +81,15 @@ export async function updateProfessionalProfile(formData: FormData) {
     redirect("/login");
   }
 
+  const duplicateProfessionals = await findProfessionalsByPhone(phoneNumber);
+  const duplicateProfessional = duplicateProfessionals.find(
+    (professional) => professional.id !== sessionProfessional.id,
+  );
+
+  if (duplicateProfessional) {
+    redirect("/account/edit?status=duplicate-phone");
+  }
+
   const { data: city } = await supabase
     .from("cities")
     .select("id")
@@ -77,16 +101,18 @@ export async function updateProfessionalProfile(formData: FormData) {
     .select("id")
     .eq("name", categoryName)
     .maybeSingle();
-  let profilePhotoUrl: string | null = null;
+  let profilePhotoUrl: string | null = field(formData, "profilePhotoUrl") || null;
 
-  try {
-    profilePhotoUrl = await uploadProfessionalPhoto(formData);
-  } catch (error) {
-    redirect(
-      error instanceof Error && error.message === "invalid-photo"
-        ? "/account/edit?status=invalid-photo"
-        : "/account/edit?status=photo-error",
-    );
+  if (!profilePhotoUrl) {
+    try {
+      profilePhotoUrl = await uploadProfessionalPhoto(formData);
+    } catch (error) {
+      redirect(
+        error instanceof Error && error.message === "invalid-photo"
+          ? "/account/edit?status=invalid-photo"
+          : "/account/edit?status=photo-error",
+      );
+    }
   }
 
   const updates: Record<string, string | number | null> = {

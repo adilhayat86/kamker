@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bot, Crown, ReceiptText, ShieldCheck, Sparkles, UploadCloud } from "lucide-react";
+import { AlertCircle, Bot, Crown, ReceiptText, ShieldCheck, Sparkles, UploadCloud } from "lucide-react";
 
 import { getAccountProfessional, isAccountFeatured } from "@/lib/account";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
+import { manualPaymentConfig } from "@/lib/payment-config";
+import { workerPostingBlockedStatus } from "@/lib/worker-status";
 
 import { submitFeaturedProfileProof } from "./actions";
 
@@ -38,13 +40,15 @@ const featuredPackages = [
 ] as const;
 
 const statusMessages = {
-  missing: "Choose a package and upload a jpg, png, or webp payment screenshot under 3MB.",
+  missing: "Choose a package and upload a jpg, png, or webp payment screenshot under 8MB.",
   "not-configured": "Supabase is not configured yet.",
   "upload-error": "Could not upload payment proof. Please try again.",
   "save-error": "Could not save AI proof review. Please try again.",
   "activation-error": "Payment proof was reviewed, but featured activation failed. Kamker admin should review it.",
   auto_approved: "Payment proof approved. Your profile is now featured.",
   needs_review: "Payment proof uploaded. Kamker admin will review it before activation.",
+  "pending-profile": "Your profile is waiting for admin approval. You can edit your profile, but featured posting is disabled until approval.",
+  "banned-profile": "Your profile has been banned. Featured posting is disabled. Contact Kamker support.",
 } as const;
 
 type FeaturedProfilePageProps = {
@@ -66,6 +70,7 @@ export default async function FeaturedProfilePage({
   }
 
   const isFeatured = isAccountFeatured(professional);
+  const blockedWorkerStatus = workerPostingBlockedStatus(professional);
   const profession = professional.categories?.name ?? "Professional";
   const city = professional.cities?.name ?? "Pakistan";
 
@@ -89,9 +94,7 @@ export default async function FeaturedProfilePage({
                     Get more visibility on Kamker
                   </h1>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-white/85">
-                    Choose a featured package, upload payment proof, and Kamker
-                    AI will review the screenshot. Clear matching payments can
-                    activate automatically.
+                    Choose a featured package, pay the exact amount, then upload a clear receipt screenshot. Clear matching payments may activate automatically; unclear proofs go to admin review.
                   </p>
                 </div>
               </div>
@@ -102,6 +105,16 @@ export default async function FeaturedProfilePage({
                 <DismissibleNotice className="rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close featured status message">
                   {statusMessage}
                 </DismissibleNotice>
+              ) : null}
+
+              {blockedWorkerStatus ? (
+                <Card className="border-amber-200 bg-amber-50 text-amber-950 shadow-sm">
+                  <CardContent className="p-5 text-sm font-medium">
+                    {blockedWorkerStatus === "banned"
+                      ? "Your profile has been banned. Featured posting is disabled. Contact Kamker support."
+                      : "Your profile is waiting for admin approval. You can edit your profile, but featured posting is disabled until approval."}
+                  </CardContent>
+                </Card>
               ) : null}
 
               <div className="rounded-xl border bg-blue-50/70 p-4">
@@ -118,6 +131,46 @@ export default async function FeaturedProfilePage({
                 <Badge className="mt-3" variant={isFeatured ? "default" : "outline"}>
                   {isFeatured ? "Featured active" : "Get Featured"}
                 </Badge>
+              </div>
+
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                <div className="flex gap-3">
+                  <AlertCircle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                  <div>
+                    <p className="font-semibold">Important before payment</p>
+                    <p>
+                      Pay only after you choose the package below. Use the exact amount shown for that package and keep the receipt screenshot ready. Most clear proofs are reviewed quickly, but admin review can take up to 24 hours.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-primary/20 bg-blue-50 p-4">
+                <div className="flex items-start gap-3">
+                  <ReceiptText className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Payment account</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      Pay the selected featured amount, then upload the receipt screenshot below.
+                    </p>
+                  </div>
+                </div>
+                <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
+                  <div className="rounded-lg bg-white p-3">
+                    <dt className="text-muted-foreground">Method</dt>
+                    <dd className="mt-1 font-semibold">{manualPaymentConfig.bankName}</dd>
+                  </div>
+                  <div className="rounded-lg bg-white p-3">
+                    <dt className="text-muted-foreground">Account title</dt>
+                    <dd className="mt-1 font-semibold">{manualPaymentConfig.accountTitle}</dd>
+                  </div>
+                  <div className="rounded-lg bg-white p-3">
+                    <dt className="text-muted-foreground">Account number</dt>
+                    <dd className="mt-1 font-semibold tracking-wide">
+                      {manualPaymentConfig.accountNumber}
+                    </dd>
+                  </div>
+                </dl>
               </div>
 
               <div className="grid gap-4 lg:grid-cols-2">
@@ -151,7 +204,7 @@ export default async function FeaturedProfilePage({
                       </div>
 
                       <div className="rounded-xl border bg-background p-4">
-                        <p className="text-sm text-muted-foreground">Amount</p>
+                        <p className="text-sm text-muted-foreground">Amount to pay</p>
                         <p className="mt-1 text-3xl font-bold text-primary">
                           {featuredPackage.price}
                         </p>
@@ -167,17 +220,21 @@ export default async function FeaturedProfilePage({
                           value={featuredPackage.key}
                         />
                         <label className="grid gap-2 text-sm font-medium">
-                          Payment screenshot
+                          Payment screenshot <span className="text-red-600">*</span>
                           <input
                             name="proofImage"
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
+                            required
                             className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
                           />
+                          <span className="text-xs font-normal text-muted-foreground">
+                            Upload the actual receipt screenshot after paying exactly {featuredPackage.price}. JPG, PNG, or WebP. Maximum 8MB.
+                          </span>
                         </label>
-                        <Button className="h-12">
+                        <Button className="h-12" disabled={Boolean(blockedWorkerStatus)}>
                           <UploadCloud className="size-4" aria-hidden="true" />
-                          Upload Proof for {featuredPackage.price}
+                          {blockedWorkerStatus ? "Featured Disabled" : `Upload Proof for ${featuredPackage.price}`}
                         </Button>
                       </form>
                     </CardContent>
@@ -204,7 +261,7 @@ export default async function FeaturedProfilePage({
                   <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
                   <p className="mt-3 text-sm font-semibold">Admin audit</p>
                   <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                    Unclear proofs stay pending for Kamker admin review.
+                    Unclear proofs stay pending for Kamker admin review, usually within 24 hours.
                   </p>
                 </div>
               </div>

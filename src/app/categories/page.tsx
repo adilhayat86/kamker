@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { ArrowLeft, Search } from "lucide-react";
 
 import { BroadcastRequirementCta } from "@/components/broadcast-requirement-cta";
@@ -6,13 +7,21 @@ import { CategoryGrid } from "@/components/category-grid";
 import { KamkerLogo } from "@/components/kamker-logo";
 import { Button } from "@/components/ui/button";
 import { getBroadcastRecipientCount } from "@/lib/broadcast";
-import { categories, cities, parentCategories } from "@/lib/marketplace-data";
+import { countForCategory, getLiveCategoryCountMap } from "@/lib/category-counts";
+import { getCityOptions } from "@/lib/city-options";
+import {
+  categories,
+  parentCategories,
+  searchTermsForCategory,
+} from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
   title: "All Categories | Kamker",
   description: "Browse all Kamker service categories across Pakistan.",
 };
+
+export const revalidate = 120;
 
 type CategoriesPageProps = {
   searchParams?: Promise<{
@@ -23,20 +32,21 @@ type CategoriesPageProps = {
 };
 
 type DbCategoryCard = {
+  id: number;
   name: string;
   count: string;
   icon: string;
   parent_id: number | null;
 };
 
-async function getSupabaseCategoryCards() {
+const getSupabaseCategoryCards = unstable_cache(async function getSupabaseCategoryCards() {
   if (!isSupabaseConfigured || !supabase) {
     return [] as DbCategoryCard[];
   }
 
   const { data, error } = await supabase
     .from("categories")
-    .select("name, icon, parent_id")
+    .select("id, name, icon, parent_id")
     .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
 
@@ -45,13 +55,14 @@ async function getSupabaseCategoryCards() {
     return [] as DbCategoryCard[];
   }
 
-  return ((data ?? []) as Array<{ name: string; icon: string | null; parent_id: number | null }>).map((category) => ({
+  return ((data ?? []) as Array<{ id: number; name: string; icon: string | null; parent_id: number | null }>).map((category) => ({
+    id: category.id,
     name: category.name,
     icon: category.icon ?? "wrench",
-    count: "0",
+    count: "",
     parent_id: category.parent_id,
   }));
-}
+}, ["public-category-cards"], { revalidate: 120 });
 
 function uniqueCategoryCards<T extends { name: string }>(items: T[]) {
   const seen = new Set<string>();
@@ -68,6 +79,29 @@ function uniqueCategoryCards<T extends { name: string }>(items: T[]) {
   });
 }
 
+function normalizedText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function categoryMatchesQuery(categoryName: string, query: string) {
+  const queryKey = normalizedText(query);
+
+  if (!queryKey) {
+    return true;
+  }
+
+  const terms = searchTermsForCategory(categoryName).map(normalizedText);
+  const nameKey = normalizedText(categoryName);
+
+  return [nameKey, ...terms].some(
+    (term) => term.includes(queryKey) || queryKey.includes(term),
+  );
+}
+
 export default async function CategoriesPage({
   searchParams,
 }: CategoriesPageProps) {
@@ -75,18 +109,39 @@ export default async function CategoriesPage({
   const city = params?.city?.trim() || undefined;
   const area = params?.area?.trim() || undefined;
   const q = params?.q?.trim() || "";
-  const dbCategories = await getSupabaseCategoryCards();
-  const dbParentCategories = dbCategories.filter((category) => category.parent_id === null);
-  const dbSubcategories = dbCategories.filter((category) => category.parent_id !== null);
+  const hasFilter = Boolean(q || city || area);
+  const [dbCategories, cityOptions] = await Promise.all([
+    getSupabaseCategoryCards(),
+    getCityOptions(),
+  ]);
+  const liveCountMap = hasFilter
+    ? await getLiveCategoryCountMap([
+        ...dbCategories,
+        ...categories,
+        ...parentCategories,
+      ])
+    : null;
+  const countedDbCategories = dbCategories.map((category) => ({
+    ...category,
+    count: countForCategory(category, liveCountMap),
+  }));
+  const countedLocalCategories = categories.map((category) => ({
+    ...category,
+    count: countForCategory(category, liveCountMap),
+  }));
+  const countedParentCategories = parentCategories.map((category) => ({
+    ...category,
+    count: countForCategory(category, liveCountMap),
+  }));
+  const dbParentCategories = countedDbCategories.filter((category) => category.parent_id === null);
+  const dbSubcategories = countedDbCategories.filter((category) => category.parent_id !== null);
   const recipientCount = await getBroadcastRecipientCount({ city, area });
   const normalizedQuery = q.toLowerCase();
   const searchableCategories = q
-    ? uniqueCategoryCards([...dbSubcategories, ...dbParentCategories, ...categories, ...parentCategories])
-    : uniqueCategoryCards([...dbParentCategories, ...parentCategories]);
+    ? uniqueCategoryCards([...dbSubcategories, ...dbParentCategories, ...countedLocalCategories, ...countedParentCategories])
+    : uniqueCategoryCards([...dbParentCategories, ...countedParentCategories]);
   const visibleCategories = q
-    ? searchableCategories.filter((category) =>
-        category.name.toLowerCase().includes(normalizedQuery),
-      )
+    ? searchableCategories.filter((category) => categoryMatchesQuery(category.name, normalizedQuery))
     : searchableCategories;
 
   return (
@@ -144,7 +199,7 @@ export default async function CategoriesPage({
                 className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="">All cities</option>
-                {cities.map((cityOption) => (
+                {cityOptions.map((cityOption) => (
                   <option key={cityOption} value={cityOption}>
                     {cityOption}
                   </option>

@@ -7,15 +7,15 @@ import {
   Building2,
   ImageIcon,
   MapPin,
-  MessageCircle,
-  Phone,
   ShieldCheck,
   Sparkles,
   Users,
   Video,
 } from "lucide-react";
 
+import { ContactActionButton } from "@/components/contact-action-button";
 import { PageNavigation } from "@/components/page-navigation";
+import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import { ProfessionalCard } from "@/components/professional-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,10 +27,12 @@ import {
   type CompanyListingCardRow,
 } from "@/lib/company-listing-cards";
 import { getActiveCompanySubscription } from "@/lib/company-packages";
+import { trackedContactHref } from "@/lib/contact-tracking";
 import {
   getLocalCompanyListingRecords,
   getLocalCompanyRecordById,
 } from "@/lib/local-demo-store";
+import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -181,11 +183,7 @@ async function getCompanyMedia(companyId: string) {
 }
 
 function whatsappHref(value: string | null, companyName: string) {
-  if (!value) {
-    return null;
-  }
-
-  return `https://wa.me/${value.replace(/\D/g, "")}?text=${encodeURIComponent(`Hello, I found ${companyName} on Kamker.`)}`;
+  return buildWhatsappHref(value, `Hello, I found ${companyName} on Kamker.`);
 }
 
 export async function generateMetadata({ params }: CompanyProfilePageProps) {
@@ -239,6 +237,26 @@ export default async function CompanyProfilePage({
   });
   const staffCards = filteredStaff.map(companyListingToProfessionalCard);
   const whatsapp = whatsappHref(company.whatsapp, company.company_name);
+  const companyPath = `/companies/${company.id}`;
+  const phoneHref = company.phone ? `tel:${company.phone}` : null;
+  const trackedPhoneHref = trackedContactHref({
+    href: phoneHref,
+    eventType: "call_click",
+    targetType: "company",
+    targetId: company.id,
+    path: companyPath,
+    category: company.category,
+    city: company.city,
+  });
+  const trackedWhatsappHref = trackedContactHref({
+    href: whatsapp,
+    eventType: "whatsapp_click",
+    targetType: "company",
+    targetId: company.id,
+    path: companyPath,
+    category: company.category,
+    city: company.city,
+  });
   const verificationLabel =
     company.verification_status === "verified" ? "Verified Company" : "Verification Pending";
 
@@ -251,18 +269,20 @@ export default async function CompanyProfilePage({
           <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
             <div className="p-5 sm:p-7">
               <div className="flex items-start gap-4">
-                <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl border bg-muted sm:size-24">
+                <div className="shrink-0">
                   {company.logo_url ? (
-                    <Image
+                    <ProfilePhotoViewer
                       src={company.logo_url}
                       alt={`${company.company_name} logo`}
-                      fill
+                      width={96}
+                      height={96}
                       priority
-                      sizes="96px"
-                      className="object-cover"
+                      buttonClassName="size-20 rounded-2xl border bg-muted sm:size-24"
+                      imageClassName="size-20 rounded-2xl sm:size-24"
+                      overlayLabel="View logo"
                     />
                   ) : (
-                    <div className="flex size-full items-center justify-center text-primary">
+                    <div className="flex size-20 items-center justify-center rounded-2xl border bg-muted text-primary sm:size-24">
                       <Building2 className="size-9" aria-hidden="true" />
                     </div>
                   )}
@@ -337,22 +357,19 @@ export default async function CompanyProfilePage({
                 Contact directly for staff availability, rates, and service areas.
               </p>
               <div className="mt-5 grid gap-2">
-                {company.phone ? (
-                  <Button asChild variant="outline" className="h-12 justify-start bg-white">
-                    <a href={`tel:${company.phone}`}>
-                      <Phone className="size-4" aria-hidden="true" />
-                      {company.phone}
-                    </a>
-                  </Button>
-                ) : null}
-                {whatsapp ? (
-                  <Button asChild className="h-12 justify-start bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                    <a href={whatsapp}>
-                      <MessageCircle className="size-4" aria-hidden="true" />
-                      WhatsApp
-                    </a>
-                  </Button>
-                ) : null}
+                <ContactActionButton
+                  href={trackedPhoneHref}
+                  displayValue={company.phone}
+                  type="call"
+                  className="h-12 justify-start bg-white"
+                  variant="outline"
+                />
+                <ContactActionButton
+                  href={trackedWhatsappHref}
+                  displayValue={company.whatsapp}
+                  type="whatsapp"
+                  className="h-12 justify-start bg-[#25d366] text-white hover:bg-[#21bd5b]"
+                />
                 <Button asChild variant="outline" className="h-12 justify-start bg-white">
                   <Link href={`/send-requirement?city=${encodeURIComponent(company.city)}`}>
                     Send Requirement

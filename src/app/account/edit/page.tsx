@@ -1,13 +1,15 @@
 import { redirect } from "next/navigation";
 import { Save, UserCog } from "lucide-react";
 
+import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { PhotoUploadField } from "@/components/photo-upload-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAccountProfessional, getDemoAccountProfessional } from "@/lib/account";
-import { categories, cities } from "@/lib/marketplace-data";
+import { getCityOptions } from "@/lib/city-options";
+import { categories } from "@/lib/marketplace-data";
 
 import { updateProfessionalProfile } from "./actions";
 
@@ -24,6 +26,9 @@ const statusMessages = {
   "not-configured": "Supabase is not configured yet.",
   "invalid-photo": "Upload a jpg, png, or webp image under 8MB.",
   "photo-error": "Could not upload profile photo. Please try again.",
+  "phone-invalid": "Enter a valid Pakistan mobile number, for example 03001234567.",
+  "whatsapp-invalid": "Enter a valid WhatsApp number or leave it blank.",
+  "duplicate-phone": "This phone number is already registered to another worker profile.",
   error: "Could not update profile. Please try again.",
 } as const;
 
@@ -40,6 +45,7 @@ function TextInput({
   type = "text",
   placeholder,
   maxLength,
+  error,
   disabled = false,
 }: {
   label: string;
@@ -48,6 +54,7 @@ function TextInput({
   type?: string;
   placeholder?: string;
   maxLength?: number;
+  error?: string;
   disabled?: boolean;
 }) {
   return (
@@ -60,8 +67,10 @@ function TextInput({
         placeholder={placeholder ?? label}
         maxLength={maxLength}
         disabled={disabled}
-        className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+        aria-invalid={Boolean(error)}
+        className={`h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60 ${error ? "border-red-500 bg-red-50 focus-visible:ring-red-500" : ""}`}
       />
+      {error ? <span className="text-xs font-medium text-red-600">{error}</span> : null}
     </label>
   );
 }
@@ -107,7 +116,18 @@ export default async function EditAccountPage({
   const params = await searchParams;
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
-  const dbProfessional = await getAccountProfessional();
+  const phoneError =
+    status === "phone-invalid"
+      ? statusMessages["phone-invalid"]
+      : status === "duplicate-phone"
+        ? statusMessages["duplicate-phone"]
+        : undefined;
+  const whatsappError =
+    status === "whatsapp-invalid" ? statusMessages["whatsapp-invalid"] : undefined;
+  const [dbProfessional, cityOptions] = await Promise.all([
+    getAccountProfessional(),
+    getCityOptions(),
+  ]);
 
   if (!dbProfessional) {
     redirect("/login");
@@ -179,25 +199,47 @@ export default async function EditAccountPage({
                 value={fullName}
                 disabled={isDemo}
               />
-              <TextInput
-                label="Phone number"
-                name="phone"
-                type="tel"
-                value={phoneNumber}
-                disabled={isDemo}
-              />
-              <TextInput
-                label="WhatsApp number"
-                name="whatsapp"
-                type="tel"
-                value={whatsappNumber}
-                disabled={isDemo}
-              />
+              {isDemo ? (
+                <>
+                  <TextInput
+                    label="Phone number"
+                    name="phone"
+                    type="tel"
+                    value={phoneNumber}
+                    maxLength={16}
+                    disabled
+                  />
+                  <TextInput
+                    label="WhatsApp number"
+                    name="whatsapp"
+                    type="tel"
+                    value={whatsappNumber}
+                    disabled
+                  />
+                </>
+              ) : (
+                <>
+                  <TextInput
+                    label="Phone number"
+                    name="phone"
+                    type="tel"
+                    value={phoneNumber}
+                    error={phoneError}
+                    maxLength={16}
+                  />
+                  <CountryPhoneField
+                    label="WhatsApp number"
+                    name="whatsapp"
+                    defaultValue={whatsappNumber}
+                    error={whatsappError}
+                  />
+                </>
+              )}
               <SelectInput
                 label="City"
                 name="city"
                 value={city}
-                options={cities}
+                options={cityOptions}
                 disabled={isDemo}
               />
               <TextInput

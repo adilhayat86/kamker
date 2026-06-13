@@ -1,0 +1,732 @@
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+
+const PK_OFFSET_MS = 5 * 60 * 60 * 1000;
+
+export type AnalyticsRange = "today" | "yesterday" | "7" | "30" | "custom" | "all";
+
+export type AnalyticsFilters = {
+  range: AnalyticsRange;
+  category: string;
+  city: string;
+  source: string;
+  start: string;
+  end: string;
+  startIso: string | null;
+  endIso: string | null;
+  label: string;
+};
+
+type SupabaseRelation = { name?: string | null } | Array<{ name?: string | null }> | null;
+
+type WorkerRow = {
+  id: string;
+  full_name: string | null;
+  created_at: string;
+  is_active: boolean | null;
+  categories: SupabaseRelation;
+  cities: SupabaseRelation;
+};
+
+type CompanyStaffRow = {
+  id: string;
+  title: string | null;
+  category: string | null;
+  city: string | null;
+  status: string | null;
+  created_at: string;
+};
+
+type RequirementRow = {
+  id: string;
+  required_service: string | null;
+  status: string | null;
+  created_at: string;
+  cities: SupabaseRelation;
+};
+
+type EventRow = {
+  event_type: string | null;
+  target_type: string | null;
+  target_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+};
+
+export type BreakdownRow = {
+  label: string;
+  value: number;
+  percent: number;
+};
+
+export type TimelineRow = {
+  date: string;
+  workers: number;
+  staff: number;
+  requirements: number;
+  contacts: number;
+};
+
+export type AnalyticsReport = {
+  filters: AnalyticsFilters;
+  supabaseConfigured: boolean;
+  categoryOptions: string[];
+  cityOptions: string[];
+  stats: {
+    workerRegistrations: number;
+    approvedWorkers: number;
+    companyStaffProfiles: number;
+    approvedCompanyStaff: number;
+    requirementsSubmitted: number;
+    profileViews: number;
+    pageViews: number;
+    uniqueVisitors: number;
+    trackedSearches: number;
+    callClicks: number;
+    whatsappClicks: number;
+    contactClicks: number;
+    totalRegistrations: number;
+    selectedCategoryRegistrations: number;
+    selectedCategoryRequirements: number;
+    selectedCategoryContactClicks: number;
+  };
+  funnel: BreakdownRow[];
+  categoryBreakdown: BreakdownRow[];
+  cityBreakdown: BreakdownRow[];
+  sourceBreakdown: BreakdownRow[];
+  searchTermBreakdown: BreakdownRow[];
+  pageBreakdown: BreakdownRow[];
+  timeline: TimelineRow[];
+  recentSignals: Array<{
+    type: string;
+    label: string;
+    detail: string;
+    createdAt: string;
+  }>;
+};
+
+function normalize(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function matchesFilter(value: string | null | undefined, filter: string) {
+  const normalizedFilter = normalize(filter);
+  if (!normalizedFilter || normalizedFilter === "all") {
+    return true;
+  }
+
+  const normalizedValue = normalize(value);
+  return (
+    normalizedValue === normalizedFilter ||
+    normalizedValue.includes(normalizedFilter) ||
+    normalizedFilter.includes(normalizedValue)
+  );
+}
+
+function relationName(value: SupabaseRelation) {
+  if (Array.isArray(value)) {
+    return value[0]?.name ?? "Unknown";
+  }
+
+  return value?.name ?? "Unknown";
+}
+
+function startOfPakistanDay(date: Date) {
+  const pkDate = new Date(date.getTime() + PK_OFFSET_MS);
+  return new Date(
+    Date.UTC(
+      pkDate.getUTCFullYear(),
+      pkDate.getUTCMonth(),
+      pkDate.getUTCDate(),
+      0,
+      0,
+      0,
+      0,
+    ) - PK_OFFSET_MS,
+  );
+}
+
+function pkDateLabel(dateValue: string) {
+  const date = new Date(new Date(dateValue).getTime() + PK_OFFSET_MS);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function dateInputValue(date: Date) {
+  return pkDateLabel(date.toISOString());
+}
+
+function parseDateInput(value: string | undefined) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day) - PK_OFFSET_MS);
+}
+
+function paramsGet(
+  params: URLSearchParams | Record<string, string | string[] | undefined> | undefined,
+  key: string,
+) {
+  if (!params) {
+    return "";
+  }
+
+  if (params instanceof URLSearchParams) {
+    return params.get(key) ?? "";
+  }
+
+  const value = params[key];
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+}
+
+export function parseAnalyticsFilters(
+  params?: URLSearchParams | Record<string, string | string[] | undefined>,
+): AnalyticsFilters {
+  const rawRange = paramsGet(params, "range") || paramsGet(params, "period") || "7";
+  const range: AnalyticsRange =
+    rawRange === "today" ||
+    rawRange === "yesterday" ||
+    rawRange === "7" ||
+    rawRange === "30" ||
+    rawRange === "custom" ||
+    rawRange === "all"
+      ? rawRange
+      : "7";
+  const now = new Date();
+  const todayStart = startOfPakistanDay(now);
+  let startDate: Date | null = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  let endDate: Date | null = now;
+  let label = "Last 7 days";
+
+  if (range === "today") {
+    startDate = todayStart;
+    endDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+    label = "Today";
+  } else if (range === "yesterday") {
+    startDate = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+    endDate = todayStart;
+    label = "Yesterday";
+  } else if (range === "30") {
+    startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    endDate = now;
+    label = "Last 30 days";
+  } else if (range === "all") {
+    startDate = null;
+    endDate = null;
+    label = "All time";
+  } else if (range === "custom") {
+    const parsedStart = parseDateInput(paramsGet(params, "start"));
+    const parsedEnd = parseDateInput(paramsGet(params, "end"));
+    startDate = parsedStart ?? todayStart;
+    endDate = parsedEnd
+      ? new Date(parsedEnd.getTime() + 24 * 60 * 60 * 1000)
+      : new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+    label = `${dateInputValue(startDate)} to ${dateInputValue(
+      new Date(endDate.getTime() - 1),
+    )}`;
+  }
+
+  return {
+    range,
+    category: paramsGet(params, "category").trim(),
+    city: paramsGet(params, "city").trim(),
+    source: paramsGet(params, "source").trim() || "all",
+    start: startDate ? dateInputValue(startDate) : "",
+    end: endDate ? dateInputValue(new Date(endDate.getTime() - 1)) : "",
+    startIso: startDate?.toISOString() ?? null,
+    endIso: endDate?.toISOString() ?? null,
+    label,
+  };
+}
+
+function countBy(items: string[]) {
+  return items.reduce<Record<string, number>>((accumulator, item) => {
+    const key = item || "Unknown";
+    accumulator[key] = (accumulator[key] ?? 0) + 1;
+    return accumulator;
+  }, {});
+}
+
+function breakdown(counts: Record<string, number>, limit = 10): BreakdownRow[] {
+  const max = Math.max(...Object.values(counts), 1);
+  return Object.entries(counts)
+    .sort(([, left], [, right]) => right - left)
+    .slice(0, limit)
+    .map(([label, value]) => ({
+      label,
+      value,
+      percent: Math.round((value / max) * 100),
+    }));
+}
+
+function addCount(map: Map<string, number>, key: string, amount = 1) {
+  map.set(key, (map.get(key) ?? 0) + amount);
+}
+
+function applyDateWindow<T extends { created_at: string }>(items: T[], filters: AnalyticsFilters) {
+  return items.filter((item) => {
+    const createdAt = new Date(item.created_at).getTime();
+    const start = filters.startIso ? new Date(filters.startIso).getTime() : null;
+    const end = filters.endIso ? new Date(filters.endIso).getTime() : null;
+    return (!start || createdAt >= start) && (!end || createdAt < end);
+  });
+}
+
+function eventSource(event: EventRow) {
+  return String(event.metadata?.source ?? "unknown");
+}
+
+function eventCategory(event: EventRow) {
+  return String(event.metadata?.category ?? event.metadata?.profession ?? "Unknown");
+}
+
+function eventCity(event: EventRow) {
+  return String(event.metadata?.city ?? "Unknown");
+}
+
+function eventSearchTerm(event: EventRow) {
+  const term = String(event.metadata?.search_term ?? event.metadata?.query ?? "").trim();
+
+  if (term) {
+    return term;
+  }
+
+  const category = String(event.metadata?.category ?? "").trim();
+  const city = String(event.metadata?.city ?? "").trim();
+
+  if (category && city) {
+    return `${category} in ${city}`;
+  }
+
+  return category || city || "Filtered search";
+}
+
+function eventPath(event: EventRow) {
+  return String(event.metadata?.path ?? "Unknown");
+}
+
+function eventVisitorId(event: EventRow) {
+  return String(event.metadata?.visitor_id ?? "").trim();
+}
+
+async function dateQuery<T>(table: string, select: string, filters: AnalyticsFilters, limit = 800) {
+  if (!supabase) {
+    return [] as T[];
+  }
+
+  let query = supabase.from(table).select(select).order("created_at", { ascending: false }).limit(limit);
+
+  if (filters.startIso) {
+    query = query.gte("created_at", filters.startIso);
+  }
+
+  if (filters.endIso) {
+    query = query.lt("created_at", filters.endIso);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error(`Failed to load ${table} analytics`, error);
+    return [] as T[];
+  }
+
+  return (data ?? []) as T[];
+}
+
+export function buildAnalyticsSearchParams(filters: AnalyticsFilters) {
+  const params = new URLSearchParams();
+  params.set("range", filters.range);
+
+  if (filters.category) {
+    params.set("category", filters.category);
+  }
+
+  if (filters.city) {
+    params.set("city", filters.city);
+  }
+
+  if (filters.source && filters.source !== "all") {
+    params.set("source", filters.source);
+  }
+
+  if (filters.range === "custom") {
+    if (filters.start) {
+      params.set("start", filters.start);
+    }
+
+    if (filters.end) {
+      params.set("end", filters.end);
+    }
+  }
+
+  return params;
+}
+
+export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promise<AnalyticsReport> {
+  if (!isSupabaseConfigured || !supabase) {
+    return emptyReport(filters);
+  }
+
+  const [workersRaw, staffRaw, requirementsRaw, eventsRaw, categoriesRaw, citiesRaw] =
+    await Promise.all([
+      dateQuery<WorkerRow>(
+        "professionals",
+        "id, full_name, created_at, is_active, categories(name), cities(name)",
+        filters,
+      ),
+      dateQuery<CompanyStaffRow>(
+        "company_listings",
+        "id, title, category, city, status, created_at",
+        filters,
+      ),
+      dateQuery<RequirementRow>(
+        "requirements",
+        "id, required_service, status, created_at, cities(name)",
+        filters,
+      ),
+      dateQuery<EventRow>(
+        "analytics_events",
+        "event_type, target_type, target_id, metadata, created_at",
+        filters,
+        1200,
+      ),
+      supabase.from("categories").select("name").order("name", { ascending: true }),
+      supabase.from("cities").select("name").order("name", { ascending: true }),
+    ]);
+
+  const workers = applyDateWindow(workersRaw, filters).filter((worker) => {
+    const sourceMatches = filters.source === "all" || filters.source === "unknown";
+    return (
+      sourceMatches &&
+      matchesFilter(relationName(worker.categories), filters.category) &&
+      matchesFilter(relationName(worker.cities), filters.city)
+    );
+  });
+
+  const staff = applyDateWindow(staffRaw, filters).filter((item) => {
+    const sourceMatches = filters.source === "all" || filters.source === "unknown";
+    return (
+      sourceMatches &&
+      matchesFilter(item.category, filters.category) &&
+      matchesFilter(item.city, filters.city)
+    );
+  });
+
+  const requirements = applyDateWindow(requirementsRaw, filters).filter((requirement) => {
+    const sourceMatches = filters.source === "all" || filters.source === "unknown";
+    return (
+      sourceMatches &&
+      matchesFilter(requirement.required_service, filters.category) &&
+      matchesFilter(relationName(requirement.cities), filters.city)
+    );
+  });
+
+  const events = applyDateWindow(eventsRaw, filters).filter((event) => {
+    const sourceMatches =
+      filters.source === "all" || matchesFilter(eventSource(event), filters.source);
+    return (
+      sourceMatches &&
+      matchesFilter(eventCategory(event), filters.category) &&
+      matchesFilter(eventCity(event), filters.city)
+    );
+  });
+
+  const categoryOptions = Array.from(
+    new Set(
+      [
+        ...(((categoriesRaw.data ?? []) as Array<{ name: string | null }>).map(
+          (item) => item.name ?? "",
+        )),
+        ...workersRaw.map((worker) => relationName(worker.categories)),
+        ...staffRaw.map((item) => item.category ?? ""),
+        ...requirementsRaw.map((item) => item.required_service ?? ""),
+        ...eventsRaw.map(eventCategory),
+      ].filter(Boolean),
+    ),
+  ).sort();
+
+  const cityOptions = Array.from(
+    new Set(
+      [
+        ...(((citiesRaw.data ?? []) as Array<{ name: string | null }>).map(
+          (item) => item.name ?? "",
+        )),
+        ...workersRaw.map((worker) => relationName(worker.cities)),
+        ...staffRaw.map((item) => item.city ?? ""),
+        ...requirementsRaw.map((item) => relationName(item.cities)),
+        ...eventsRaw.map(eventCity),
+      ].filter(Boolean),
+    ),
+  ).sort();
+
+  const byEvent = countBy(events.map((event) => event.event_type ?? "unknown"));
+  const searchEvents = events.filter((event) => event.event_type === "search");
+  const pageViewEvents = events.filter((event) => event.event_type === "view");
+  const trackedSearchEvents = [
+    ...searchEvents,
+    ...pageViewEvents.filter((event) => eventSearchTerm(event) !== "Filtered search"),
+  ];
+  const uniqueVisitorCount = new Set(
+    events.map(eventVisitorId).filter(Boolean),
+  ).size;
+  const sourceSpecific = filters.source !== "all" && filters.source !== "unknown";
+  const sourceWorkerRegistrations = events.filter(
+    (event) => event.event_type === "worker_registration",
+  ).length;
+  const sourceCompanyStaffProfiles = events.filter(
+    (event) => event.event_type === "company_staff_registration",
+  ).length;
+  const sourceRequirements = events.filter(
+    (event) => event.event_type === "requirement_submission",
+  ).length;
+  const callClicks = byEvent.call_click ?? 0;
+  const whatsappClicks = byEvent.whatsapp_click ?? 0;
+  const contactClicks = callClicks + whatsappClicks;
+  const selectedCategoryLabel = filters.category || "All categories";
+
+  const categoryCounts = countBy([
+    ...workers.map((worker) => relationName(worker.categories)),
+    ...staff.map((item) => item.category ?? "Unknown"),
+    ...requirements.map((item) => item.required_service ?? "Unknown"),
+    ...events.map(eventCategory),
+  ]);
+  const cityCounts = countBy([
+    ...workers.map((worker) => relationName(worker.cities)),
+    ...staff.map((item) => item.city ?? "Unknown"),
+    ...requirements.map((item) => relationName(item.cities)),
+    ...events.map(eventCity),
+  ]);
+  const sourceCounts = countBy(events.map(eventSource));
+  const searchTermCounts = countBy(trackedSearchEvents.map(eventSearchTerm));
+  const pageCounts = countBy(pageViewEvents.map(eventPath));
+
+  const timelineMap = new Map<
+    string,
+    { workers: number; staff: number; requirements: number; contacts: number }
+  >();
+  const ensureTimeline = (date: string) => {
+    if (!timelineMap.has(date)) {
+      timelineMap.set(date, { workers: 0, staff: 0, requirements: 0, contacts: 0 });
+    }
+
+    return timelineMap.get(date)!;
+  };
+
+  workers.forEach((worker) => {
+    ensureTimeline(pkDateLabel(worker.created_at)).workers += 1;
+  });
+  staff.forEach((item) => {
+    ensureTimeline(pkDateLabel(item.created_at)).staff += 1;
+  });
+  requirements.forEach((requirement) => {
+    ensureTimeline(pkDateLabel(requirement.created_at)).requirements += 1;
+  });
+  events
+    .filter(
+      (event) =>
+        event.event_type === "call_click" ||
+        event.event_type === "whatsapp_click" ||
+        event.event_type === "worker_registration" ||
+        event.event_type === "company_staff_registration" ||
+        event.event_type === "requirement_submission",
+    )
+    .forEach((event) => {
+      const row = ensureTimeline(pkDateLabel(event.created_at));
+      if (event.event_type === "worker_registration") {
+        row.workers += 1;
+      } else if (event.event_type === "company_staff_registration") {
+        row.staff += 1;
+      } else if (event.event_type === "requirement_submission") {
+        row.requirements += 1;
+      } else {
+        row.contacts += 1;
+      }
+    });
+
+  const categoryContacts = new Map<string, number>();
+  events
+    .filter((event) => event.event_type === "call_click" || event.event_type === "whatsapp_click")
+    .forEach((event) => addCount(categoryContacts, eventCategory(event)));
+
+  const timeline = Array.from(timelineMap.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([date, value]) => ({ date, ...value }));
+
+  const workerRegistrationCount = sourceSpecific ? sourceWorkerRegistrations : workers.length;
+  const companyStaffProfileCount = sourceSpecific ? sourceCompanyStaffProfiles : staff.length;
+  const requirementCount = sourceSpecific ? sourceRequirements : requirements.length;
+  const selectedCategoryRegistrations = workerRegistrationCount + companyStaffProfileCount;
+
+  const recentSignals = [
+    ...workers.slice(0, 5).map((worker) => ({
+      type: "Worker",
+      label: worker.full_name ?? "Worker registration",
+      detail: `${relationName(worker.categories)} / ${relationName(worker.cities)}`,
+      createdAt: worker.created_at,
+    })),
+    ...staff.slice(0, 5).map((item) => ({
+      type: "Company Staff",
+      label: item.title ?? "Staff profile",
+      detail: `${item.category ?? "Unknown"} / ${item.city ?? "Unknown"}`,
+      createdAt: item.created_at,
+    })),
+    ...requirements.slice(0, 5).map((requirement) => ({
+      type: "Requirement",
+      label: requirement.required_service ?? "Requirement",
+      detail: `${relationName(requirement.cities)} / ${requirement.status ?? "new"}`,
+      createdAt: requirement.created_at,
+    })),
+    ...events.slice(0, 5).map((event) => ({
+      type: event.event_type ?? "Event",
+      label: eventCategory(event),
+      detail: `${eventCity(event)} / ${eventSource(event)}`,
+      createdAt: event.created_at,
+    })),
+  ]
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+    .slice(0, 10);
+
+  return {
+    filters,
+    supabaseConfigured: true,
+    categoryOptions,
+    cityOptions,
+    stats: {
+      workerRegistrations: workerRegistrationCount,
+      approvedWorkers: sourceSpecific
+        ? sourceWorkerRegistrations
+        : workers.filter((worker) => worker.is_active).length,
+      companyStaffProfiles: companyStaffProfileCount,
+      approvedCompanyStaff: sourceSpecific
+        ? sourceCompanyStaffProfiles
+        : staff.filter((item) => item.status === "approved").length,
+      requirementsSubmitted: requirementCount,
+      profileViews: byEvent.view ?? 0,
+      pageViews: pageViewEvents.length,
+      uniqueVisitors: uniqueVisitorCount,
+      trackedSearches: searchEvents.length,
+      callClicks,
+      whatsappClicks,
+      contactClicks,
+      totalRegistrations: workerRegistrationCount + companyStaffProfileCount,
+      selectedCategoryRegistrations,
+      selectedCategoryRequirements: requirementCount,
+      selectedCategoryContactClicks: filters.category
+        ? categoryContacts.get(selectedCategoryLabel) ?? contactClicks
+        : contactClicks,
+    },
+    funnel: [
+      { label: "Searches / views", value: (byEvent.search ?? 0) + pageViewEvents.length, percent: 100 },
+      { label: "Profile / page views", value: pageViewEvents.length, percent: 0 },
+      { label: "Call / WhatsApp clicks", value: contactClicks, percent: 0 },
+      { label: "Requirements submitted", value: requirementCount, percent: 0 },
+      { label: "Workers registered", value: workerRegistrationCount + companyStaffProfileCount, percent: 0 },
+    ].map((item, index, items) => ({
+      ...item,
+      percent:
+        index === 0
+          ? 100
+          : Math.round((item.value / Math.max(items[0]?.value || item.value || 1, 1)) * 100),
+    })),
+    categoryBreakdown: breakdown(categoryCounts, 12),
+    cityBreakdown: breakdown(cityCounts, 10),
+    sourceBreakdown: breakdown(sourceCounts, 8),
+    searchTermBreakdown: breakdown(searchTermCounts, 12),
+    pageBreakdown: breakdown(pageCounts, 12),
+    timeline,
+    recentSignals,
+  };
+}
+
+function emptyReport(filters: AnalyticsFilters): AnalyticsReport {
+  return {
+    filters,
+    supabaseConfigured: false,
+    categoryOptions: [],
+    cityOptions: [],
+    stats: {
+      workerRegistrations: 0,
+      approvedWorkers: 0,
+      companyStaffProfiles: 0,
+      approvedCompanyStaff: 0,
+      requirementsSubmitted: 0,
+      profileViews: 0,
+      pageViews: 0,
+      uniqueVisitors: 0,
+      trackedSearches: 0,
+      callClicks: 0,
+      whatsappClicks: 0,
+      contactClicks: 0,
+      totalRegistrations: 0,
+      selectedCategoryRegistrations: 0,
+      selectedCategoryRequirements: 0,
+      selectedCategoryContactClicks: 0,
+    },
+    funnel: [],
+    categoryBreakdown: [],
+    cityBreakdown: [],
+    sourceBreakdown: [],
+    searchTermBreakdown: [],
+    pageBreakdown: [],
+    timeline: [],
+    recentSignals: [],
+  };
+}
+
+export function analyticsReportToCsv(report: AnalyticsReport) {
+  const rows = [
+    ["Kamker Analytics Report"],
+    ["Date range", report.filters.label],
+    ["Category", report.filters.category || "All"],
+    ["City", report.filters.city || "All"],
+    ["Source", report.filters.source || "All"],
+    [],
+    ["Metric", "Value"],
+    ["Worker registrations", report.stats.workerRegistrations],
+    ["Company staff profiles", report.stats.companyStaffProfiles],
+    ["Requirements submitted", report.stats.requirementsSubmitted],
+    ["Page views", report.stats.pageViews],
+    ["Unique visitors", report.stats.uniqueVisitors],
+    ["Tracked searches", report.stats.trackedSearches],
+    ["Profile views", report.stats.profileViews],
+    ["Call clicks", report.stats.callClicks],
+    ["WhatsApp clicks", report.stats.whatsappClicks],
+    ["Contact clicks", report.stats.contactClicks],
+    [],
+    ["Top categories", "Count"],
+    ...report.categoryBreakdown.map((item) => [item.label, item.value]),
+    [],
+    ["Top cities", "Count"],
+    ...report.cityBreakdown.map((item) => [item.label, item.value]),
+    [],
+    ["Top search terms", "Searches"],
+    ...report.searchTermBreakdown.map((item) => [item.label, item.value]),
+    [],
+    ["Top pages", "Views"],
+    ...report.pageBreakdown.map((item) => [item.label, item.value]),
+    [],
+    ["Timeline", "Workers", "Company staff", "Requirements", "Contacts"],
+    ...report.timeline.map((item) => [
+      item.date,
+      item.workers,
+      item.staff,
+      item.requirements,
+      item.contacts,
+    ]),
+  ];
+
+  return rows
+    .map((row) =>
+      row
+        .map((cell) => {
+          const value = String(cell ?? "");
+          return `"${value.replaceAll('"', '""')}"`;
+        })
+        .join(","),
+    )
+    .join("\n");
+}

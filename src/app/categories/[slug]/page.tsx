@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getBroadcastRecipientCount } from "@/lib/broadcast";
+import { countForCategory } from "@/lib/category-counts";
 import { getApprovedCompanyListingCards } from "@/lib/company-listing-cards";
 import {
   categories,
@@ -20,9 +21,14 @@ import {
   getGroupSubcategoryCards,
   parentCategories,
   recentProfessionals,
+  searchTermsForCategory,
   type Professional,
 } from "@/lib/marketplace-data";
 import { getLocalProfessionalCards } from "@/lib/local-demo-store";
+import {
+  getCategoryIdsByNames,
+  getCityIdByName,
+} from "@/lib/public-directory-lookups";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type CategoryDetailPageProps = {
@@ -131,14 +137,17 @@ function normaliseMatchValue(value: string) {
 
 function serviceMatchesCategory(serviceName: string, categoryName: string) {
   const service = normaliseMatchValue(serviceName);
-  const category = normaliseMatchValue(categoryName);
-  const singularCategory = category.replace(/s$/, "");
+  const categoryTerms = searchTermsForCategory(categoryName).map(normaliseMatchValue);
 
-  return (
-    service.includes(category) ||
-    service.includes(singularCategory) ||
-    category.includes(service)
-  );
+  return categoryTerms.some((category) => {
+    const singularCategory = category.replace(/s$/, "");
+
+    return (
+      service.includes(category) ||
+      service.includes(singularCategory) ||
+      category.includes(service)
+    );
+  });
 }
 
 function professionalMatchesTargets(
@@ -207,15 +216,37 @@ async function getCategoryProfessionals(
     );
   }
 
-  const { data, error } = await supabase
+  const [cityId, categoryIds] = await Promise.all([
+    city ? getCityIdByName(city) : Promise.resolve(null),
+    getCategoryIdsByNames(targetCategories),
+  ]);
+
+  if (city && cityId === null) {
+    return [] as Professional[];
+  }
+
+  if (categoryIds.length === 0) {
+    return recentProfessionals.filter((professional) =>
+      professionalMatchesTargets(professional, targetCategories, city, area),
+    );
+  }
+
+  let query = supabase
     .from("professionals")
     .select(
       "id, full_name, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_featured, featured_until, rating, cities(name), categories(name)",
     )
     .eq("is_active", true)
+    .in("category_id", categoryIds)
     .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(60);
+    .limit(18);
+
+  if (cityId !== null) {
+    query = query.eq("city_id", cityId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Failed to load category professionals", error);
@@ -253,7 +284,7 @@ export async function generateMetadata({ params }: CategoryDetailPageProps) {
   return {
     title: name ? `${name} Professionals | Kamker` : "Category | Kamker",
     description: name
-      ? `Find and send requirements to ${name} professionals on Kamker.`
+      ? `Find ${name} professionals on Kamker and prepare reviewed customer requirements.`
       : "Find professionals on Kamker.",
   };
 }
@@ -268,7 +299,6 @@ export default async function CategoryDetailPage({
   const dbCategory = serviceGroup || category ? null : await getDbCategoryBySlug(slug);
   const dbSubcategories = dbCategory?.parent_id === null ? await getDbSubcategories(dbCategory.id) : [];
   const dbParentCategory = dbCategory?.parent_id ? await getDbParentCategory(dbCategory.parent_id) : null;
-
   if (!serviceGroup && !category && !dbCategory) {
     notFound();
   }
@@ -280,16 +310,19 @@ export default async function CategoryDetailPage({
   const pageDescription = serviceGroup
     ? serviceGroup.description
     : dbCategory
-      ? dbCategory.description ?? "Send one requirement and reach approved professionals matching this service category."
+      ? dbCategory.description ?? "Browse approved professionals and prepare a reviewed requirement for this service category."
     : parentGroup
-      ? `${category?.name} are part of ${parentGroup.name}. Send one requirement and reach approved matching professionals.`
-      : "Send one requirement and reach approved professionals matching this service category.";
+      ? `${category?.name} are part of ${parentGroup.name}. Browse matching professionals and prepare a reviewed requirement when needed.`
+      : "Browse approved professionals and prepare a reviewed requirement for this service category.";
   const subcategoryCards = serviceGroup
-    ? getGroupSubcategoryCards(serviceGroup)
+    ? getGroupSubcategoryCards(serviceGroup).map((subcategory) => ({
+        ...subcategory,
+        count: countForCategory(subcategory, null),
+      }))
     : dbSubcategories.map((subcategory) => ({
         name: subcategory.name,
         icon: subcategory.icon ?? "wrench",
-        count: "0",
+        count: countForCategory(subcategory, null),
       }));
   const targetCategories = serviceGroup
     ? serviceGroup.subcategories
@@ -302,27 +335,64 @@ export default async function CategoryDetailPage({
         : dbCategory
           ? [dbCategory.name]
       : [];
-  const matchingProfessionals = await getCategoryProfessionals(
-    targetCategories,
-    city,
-    area,
-  );
-  const companyManagedProfessionals = await getApprovedCompanyListingCards({
-    categories: serviceGroup ? undefined : targetCategories,
-    serviceGroup: serviceGroup?.name,
-    city,
-    area,
-    limit: 20,
-  });
+  const isParentCategoryPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
+  const isServiceGroupPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
+  const [matchingProfessionals, companyManagedProfessionals, recipientCount] =
+    await Promise.all([
+      getCategoryProfessionals(
+        targetCategories,
+        city,
+        area,
+      ),
+      getApprovedCompanyListingCards({
+        categories: serviceGroup ? undefined : targetCategories,
+        serviceGroup: serviceGroup?.name,
+        city,
+        area,
+        limit: 12,
+      }),
+      getBroadcastRecipientCount({
+        category: serviceGroup?.name ?? parentGroup?.name ?? dbParentCategory?.name ?? category?.name ?? dbCategory?.name,
+        subcategory:
+          isParentCategoryPage
+            ? undefined
+            : category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined),
+        city,
+        area,
+        scope: isServiceGroupPage ? "serviceGroup" : "category",
+      }),
+    ]);
   const visibleProfessionals = [...companyManagedProfessionals, ...matchingProfessionals].sort(
     (a, b) => Number(b.is_featured) - Number(a.is_featured),
   );
-  const recipientCount = await getBroadcastRecipientCount({
-    category: serviceGroup?.name ?? parentGroup?.name ?? dbParentCategory?.name ?? category?.name ?? dbCategory?.name,
-    subcategory: category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined),
-    city,
-    area,
-  });
+  const distinctParentRoles = new Set(
+    visibleProfessionals
+      .map((professional) => normaliseMatchValue(professional.role))
+      .filter(Boolean),
+  );
+  const professionalPreview = isParentCategoryPage
+    ? visibleProfessionals.filter(
+        (professional, index, list) =>
+          list.findIndex(
+            (item) =>
+              normaliseMatchValue(item.role) ===
+              normaliseMatchValue(professional.role),
+          ) === index,
+      )
+    : visibleProfessionals;
+  const shouldShowProfessionalSection =
+    !isParentCategoryPage ||
+    (distinctParentRoles.size > 1 && professionalPreview.length > 0);
+  const professionalSectionLabel = isParentCategoryPage
+    ? "Featured professionals"
+    : "Available professionals";
+  const professionalSectionTitle = isParentCategoryPage
+    ? `Featured ${pageName} professionals`
+    : `${category?.name ?? dbCategory?.name ?? pageName} professionals`;
+  const directoryHref = isParentCategoryPage
+    ? "/categories"
+    : `/professionals?category=${encodeURIComponent(category?.name ?? dbCategory?.name ?? "")}`;
+  const directoryLabel = isParentCategoryPage ? "View all categories" : "View directory";
 
   return (
     <main className="min-h-screen bg-background">
@@ -343,7 +413,7 @@ export default async function CategoryDetailPage({
           {serviceGroup || dbCategory?.parent_id === null ? "Service Group" : "Subcategory"}
         </Badge>
         <h1 className="mt-3 text-3xl font-bold tracking-normal sm:text-4xl">
-          {pageName} Professionals
+          {isParentCategoryPage ? `${pageName} Services` : `${pageName} Professionals`}
         </h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
           {pageDescription}
@@ -359,77 +429,82 @@ export default async function CategoryDetailPage({
         <BroadcastRequirementCta
           count={recipientCount}
           category={serviceGroup?.name ?? parentGroup?.name ?? dbParentCategory?.name ?? category?.name ?? dbCategory?.name}
-          subcategory={category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined)}
+          subcategory={
+            isParentCategoryPage
+              ? undefined
+              : category?.name ?? (dbCategory?.parent_id ? dbCategory.name : undefined)
+          }
           city={city}
           area={area}
+          scope={isServiceGroupPage ? "serviceGroup" : "category"}
         />
 
-        <section className="mt-7">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-                Available professionals
-              </p>
-              <h2 className="mt-1 text-2xl font-bold tracking-normal">
-                {serviceGroup
-                  ? `${serviceGroup.name} professionals`
-                  : dbCategory?.parent_id === null
-                    ? `${dbCategory.name} professionals`
-                  : `${category?.name} professionals`}
-              </h2>
-            </div>
-            <Button asChild variant="outline" className="h-11 w-full sm:w-auto">
-              <Link
-                href={`/professionals?category=${encodeURIComponent(category?.name ?? serviceGroup?.name ?? dbCategory?.name ?? "")}`}
-              >
-                View directory
-              </Link>
-            </Button>
-          </div>
-
-          {visibleProfessionals.length > 0 ? (
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              {visibleProfessionals.slice(0, 6).map((professional) => (
-                <ProfessionalCard
-                  key={professional.id}
-                  professional={professional}
-                  featured={professional.is_featured}
-                />
-              ))}
-            </div>
-          ) : (
-            <Card className="mt-5 bg-white shadow-sm">
-              <CardContent className="p-5">
-                <p className="font-semibold">No visible profiles yet</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Approved professionals will appear here. You can still send a
-                  requirement so Kamker can match it when profiles are available.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </section>
-
-        {serviceGroup || dbCategory?.parent_id === null ? (
-          <Card className="mt-8 bg-white shadow-sm">
+        {isParentCategoryPage ? (
+          <Card className="mt-7 bg-white shadow-sm">
             <CardContent className="p-5">
               <p className="text-sm font-semibold uppercase tracking-normal text-primary">
                 Choose a specific service
               </p>
+              <h2 className="mt-1 text-2xl font-bold tracking-normal">
+                {pageName} services
+              </h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Message the full {serviceGroup?.name ?? dbCategory?.name} group, or choose one professional type for a more targeted requirement.
+                Choose one professional type inside {pageName} for a more
+                targeted search or reviewed requirement.
               </p>
               <CategoryGrid categories={subcategoryCards} city={city} area={area} />
             </CardContent>
           </Card>
-        ) : parentGroup || dbParentCategory ? (
+        ) : null}
+
+        {shouldShowProfessionalSection ? (
+          <section className="mt-7">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                  {professionalSectionLabel}
+                </p>
+                <h2 className="mt-1 text-2xl font-bold tracking-normal">
+                  {professionalSectionTitle}
+                </h2>
+              </div>
+              <Button asChild variant="outline" className="h-11 w-full sm:w-auto">
+                <Link href={directoryHref}>{directoryLabel}</Link>
+              </Button>
+            </div>
+
+            {professionalPreview.length > 0 ? (
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                {professionalPreview.slice(0, 6).map((professional) => (
+                  <ProfessionalCard
+                    key={professional.id}
+                    professional={professional}
+                    featured={professional.is_featured}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card className="mt-5 bg-white shadow-sm">
+                <CardContent className="p-5">
+                  <p className="font-semibold">No visible profiles yet</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Approved professionals will appear here. You can still send a
+                    requirement so Kamker can match it when profiles are available.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </section>
+        ) : null}
+
+        {!isParentCategoryPage && (parentGroup || dbParentCategory) ? (
           <Card className="mt-8 bg-white shadow-sm">
             <CardContent className="p-5">
               <p className="text-sm font-semibold uppercase tracking-normal text-primary">
                 Parent service group
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                {category?.name ?? dbCategory?.name} belongs to {parentGroup?.name ?? dbParentCategory?.name}. You can also send one broader requirement to every approved professional in this group.
+                {category?.name ?? dbCategory?.name} belongs to {parentGroup?.name ?? dbParentCategory?.name}. You can also prepare one broader reviewed requirement for this group.
               </p>
               <Button asChild className="mt-4 h-11 w-full sm:w-auto" variant="outline">
                 <Link href={`/categories/${parentGroup ? categorySlug(parentGroup.name) : dbParentCategory?.slug}`}>

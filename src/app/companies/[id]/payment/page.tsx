@@ -7,13 +7,14 @@ import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getPaymentWhatsappLink, manualPaymentConfig } from "@/lib/payment-config";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 import { submitCompanyPackagePayment } from "./actions";
 
 export const metadata = {
   title: "Activate Company Package | Kamker",
-  description: "Upload payment proof to activate a Kamker company professional package.",
+  description: "Upload payment proof to activate a Kamker company staff package.",
 };
 
 type Company = {
@@ -51,16 +52,8 @@ type CompanyPaymentPageProps = {
   }>;
 };
 
-const supportWhatsappNumber = process.env.NEXT_PUBLIC_KAMKER_SUPPORT_WHATSAPP || "923000000000";
-
 function formatPrice(value: number) {
   return `Rs ${value.toLocaleString("en-PK")}`;
-}
-
-function whatsappLink(message: string) {
-  const cleanNumber = supportWhatsappNumber.replace(/\D/g, "");
-
-  return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
 }
 
 const statusMessages = {
@@ -210,7 +203,7 @@ export default async function CompanyPaymentPage({
               </div>
 
               <Button asChild className="mt-6 h-12 w-full bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                <a href={whatsappLink(message)}>
+                <a href={getPaymentWhatsappLink(message)}>
                   <MessageCircle className="size-4" aria-hidden="true" />
                   Ask Kamker on WhatsApp
                 </a>
@@ -238,6 +231,31 @@ export default async function CompanyPaymentPage({
                 </div>
               </div>
 
+              <div className="mt-5 rounded-xl border border-primary/20 bg-blue-50 p-4 text-sm">
+                <p className="font-semibold text-foreground">Pay to Kamker</p>
+                <dl className="mt-3 grid gap-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-muted-foreground">Method</dt>
+                    <dd className="font-semibold">{manualPaymentConfig.bankName}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-muted-foreground">Account title</dt>
+                    <dd className="font-semibold">{manualPaymentConfig.accountTitle}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-muted-foreground">Account number</dt>
+                    <dd className="font-semibold tracking-wide">{manualPaymentConfig.accountNumber}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-muted-foreground">Amount</dt>
+                    <dd className="font-semibold">{formatPrice(companyPackage.price_pkr)}</dd>
+                  </div>
+                </dl>
+                <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                  After payment, upload the receipt screenshot below for AI review.
+                </p>
+              </div>
+
               <form action={submitCompanyPackagePayment} className="mt-5 grid gap-4">
                 <input type="hidden" name="companyId" value={company.id} />
                 <input type="hidden" name="packageKey" value={companyPackage.package_key} />
@@ -246,6 +264,7 @@ export default async function CompanyPaymentPage({
                   <span className="text-sm font-medium">Payment method</span>
                   <select
                     name="paymentMethod"
+                    required
                     className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     defaultValue="JazzCash/EasyPaisa"
                   >
@@ -260,6 +279,7 @@ export default async function CompanyPaymentPage({
                   <span className="text-sm font-medium">Payer name</span>
                   <input
                     name="payerName"
+                    required
                     className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     placeholder="Name used for payment"
                   />
@@ -269,8 +289,10 @@ export default async function CompanyPaymentPage({
                   <span className="text-sm font-medium">Sender phone</span>
                   <input
                     name="senderPhone"
+                    required
+                    inputMode="tel"
                     className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    placeholder="03..."
+                    placeholder="Any payment sender number"
                   />
                 </label>
 
@@ -288,6 +310,7 @@ export default async function CompanyPaymentPage({
                   <input
                     name="proofImage"
                     type="file"
+                    required
                     accept="image/jpeg,image/png,image/webp"
                     className="rounded-md border border-dashed border-input bg-background px-3 py-3 text-sm shadow-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
                   />
@@ -308,7 +331,7 @@ export default async function CompanyPaymentPage({
 
                 <Button className="h-12 w-full">
                   <UploadCloud className="size-4" aria-hidden="true" />
-                  Upload Receipt for Review
+                  Upload Receipt
                 </Button>
               </form>
 

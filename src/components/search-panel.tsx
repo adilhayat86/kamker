@@ -6,7 +6,7 @@ import { ChevronDown, MapPin, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { categories, cities } from "@/lib/marketplace-data";
+import { categories, cities as fallbackCities } from "@/lib/marketplace-data";
 import {
   workerDayAvailabilityOptions,
   workerTimeAvailabilityOptions,
@@ -16,17 +16,23 @@ const ageRangeOptions = [
   { value: "18-25", label: "18-25" },
   { value: "26-35", label: "26-35" },
   { value: "36-45", label: "36-45" },
-  { value: "46+", label: "46+" },
+  { value: "46-plus", label: "46+" },
 ];
 
 const hourlyRateOptions = [
-  { value: "0-500", label: "Under Rs. 500/hr" },
+  { value: "under-300", label: "Under Rs. 300/hr" },
+  { value: "300-500", label: "Rs. 300-500/hr" },
   { value: "500-1000", label: "Rs. 500-1,000/hr" },
+  { value: "under-1000", label: "Under Rs. 1,000/hr" },
   { value: "1000-2000", label: "Rs. 1,000-2,000/hr" },
-  { value: "2000+", label: "Rs. 2,000+/hr" },
+  { value: "2000-plus", label: "Rs. 2,000+/hr" },
 ];
 
-export function SearchPanel() {
+export function SearchPanel({
+  cityOptions = fallbackCities,
+}: {
+  cityOptions?: string[];
+}) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
   return (
@@ -60,7 +66,7 @@ export function SearchPanel() {
               defaultValue=""
             >
               <option value="">All locations</option>
-              {cities.map((city) => (
+              {cityOptions.map((city) => (
                 <option key={city} value={city}>
                   {city}
                 </option>

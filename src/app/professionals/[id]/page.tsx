@@ -1,14 +1,17 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BadgeCheck, Crown, MapPin, MessageCircle, Phone, Send, Star } from "lucide-react";
 
+import { ContactActionButton } from "@/components/contact-action-button";
 import { PageNavigation } from "@/components/page-navigation";
+import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { trackedContactHref } from "@/lib/contact-tracking";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { recentProfessionals } from "@/lib/marketplace-data";
+import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
 import {
   getLocalProfessionalRecordById,
   localRecordToProfessional,
@@ -24,7 +27,7 @@ type ProfessionalProfilePageProps = {
 type DbProfessional = {
   id: string;
   full_name: string;
-  phone_number: string;
+  phone_number: string | null;
   whatsapp_number: string | null;
   area: string | null;
   gender: string | null;
@@ -117,6 +120,27 @@ export default async function ProfessionalProfilePage({
 
   if (dbProfessional) {
     const whatsappNumber = dbProfessional.whatsapp_number ?? dbProfessional.phone_number;
+    const whatsappLink = buildWhatsappHref(whatsappNumber);
+    const phoneLink = dbProfessional.phone_number ? `tel:${dbProfessional.phone_number}` : null;
+    const profilePath = `/professionals/${dbProfessional.id}`;
+    const trackedPhoneLink = trackedContactHref({
+      href: phoneLink,
+      eventType: "call_click",
+      targetType: "professional",
+      targetId: dbProfessional.id,
+      path: profilePath,
+      category: dbProfessional.categories?.name ?? "Professional",
+      city: dbProfessional.cities?.name ?? "Pakistan",
+    });
+    const trackedWhatsappLink = trackedContactHref({
+      href: whatsappLink,
+      eventType: "whatsapp_click",
+      targetType: "professional",
+      targetId: dbProfessional.id,
+      path: profilePath,
+      category: dbProfessional.categories?.name ?? "Professional",
+      city: dbProfessional.cities?.name ?? "Pakistan",
+    });
 
     return (
       <main className="min-h-screen bg-background px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
@@ -125,13 +149,10 @@ export default async function ProfessionalProfilePage({
           <Card className="mt-6 bg-white shadow-sm">
             <CardContent className="p-5">
               <div className="flex flex-col gap-5 sm:flex-row">
-                <Image
+                <ProfilePhotoViewer
                   src={dbProfessional.profile_photo_url || "/kamker-professionals.png"}
                   alt={`${dbProfessional.full_name} profile photo`}
-                  width={128}
-                  height={128}
                   priority
-                  className="size-28 rounded-full bg-accent object-cover"
                 />
                 <div className="flex-1">
                   <Badge className="gap-1 bg-primary text-primary-foreground">
@@ -219,18 +240,20 @@ export default async function ProfessionalProfilePage({
               </div>
 
               <div className="mt-6 hidden gap-2 sm:grid sm:grid-cols-3">
-                <Button asChild variant="outline" className="h-12">
-                  <a href={`tel:${dbProfessional.phone_number}`}>
-                    <Phone aria-hidden="true" />
-                    Call
-                  </a>
-                </Button>
-                <Button asChild className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                  <a href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}>
-                    <MessageCircle aria-hidden="true" />
-                    WhatsApp
-                  </a>
-                </Button>
+                <ContactActionButton
+                  href={trackedPhoneLink ?? phoneLink}
+                  displayValue={dbProfessional.phone_number}
+                  type="call"
+                  className="h-12"
+                  variant="outline"
+                  disabledLabel="Number removed"
+                />
+                <ContactActionButton
+                  href={trackedWhatsappLink}
+                  displayValue={whatsappNumber}
+                  type="whatsapp"
+                  className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]"
+                />
                 <Button asChild className="h-12">
                   <Link href="/send-requirement">
                     <Send aria-hidden="true" />
@@ -242,17 +265,31 @@ export default async function ProfessionalProfilePage({
           </Card>
         </section>
         <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 gap-2 border-t bg-white/95 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
-          <Button asChild variant="outline" className="h-12">
-            <a href={`tel:${dbProfessional.phone_number}`}>
-              <Phone aria-hidden="true" />
-              Call
-            </a>
+          <Button asChild={Boolean(phoneLink)} variant="outline" className="h-12" disabled={!phoneLink}>
+            {phoneLink ? (
+              <a href={trackedPhoneLink ?? phoneLink}>
+                <Phone aria-hidden="true" />
+                Call
+              </a>
+            ) : (
+              <span>
+                <Phone aria-hidden="true" />
+                Call
+              </span>
+            )}
           </Button>
-          <Button asChild className="h-12 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
-            <a href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}>
+          <Button asChild={Boolean(trackedWhatsappLink)} className="h-12 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!trackedWhatsappLink}>
+            {trackedWhatsappLink ? (
+            <a href={trackedWhatsappLink}>
               <MessageCircle aria-hidden="true" />
               WhatsApp
             </a>
+            ) : (
+              <span>
+                <MessageCircle aria-hidden="true" />
+                WhatsApp
+              </span>
+            )}
           </Button>
           <Button asChild className="h-12 px-2">
             <Link href="/send-requirement">
@@ -275,13 +312,10 @@ export default async function ProfessionalProfilePage({
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
             <div className="flex flex-col gap-5 sm:flex-row">
-              <Image
+              <ProfilePhotoViewer
                 src={professional.image}
                 alt={`${professional.name} profile photo`}
-                width={128}
-                height={128}
                 priority
-                className="size-28 rounded-full bg-accent object-cover"
               />
               <div className="flex-1">
                 <Badge className="gap-1 bg-primary text-primary-foreground">
@@ -349,14 +383,19 @@ export default async function ProfessionalProfilePage({
             </div>
 
             <div className="mt-6 hidden gap-2 sm:grid sm:grid-cols-3">
-              <Button variant="outline" className="h-12">
-                <Phone aria-hidden="true" />
-                Call
-              </Button>
-              <Button className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                <MessageCircle aria-hidden="true" />
-                WhatsApp
-              </Button>
+              <ContactActionButton
+                href={professional.phone ? `tel:${professional.phone}` : null}
+                displayValue={professional.phone}
+                type="call"
+                className="h-12"
+                variant="outline"
+              />
+              <ContactActionButton
+                href={buildWhatsappHref(professional.whatsapp)}
+                displayValue={professional.whatsapp}
+                type="whatsapp"
+                className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]"
+              />
               <Button asChild className="h-12">
                 <Link href="/send-requirement">
                   <Send aria-hidden="true" />
@@ -368,13 +407,17 @@ export default async function ProfessionalProfilePage({
         </Card>
       </section>
       <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 gap-2 border-t bg-white/95 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
-        <Button variant="outline" className="h-12">
-          <Phone aria-hidden="true" />
-          Call
+        <Button asChild variant="outline" className="h-12">
+          <a href={`tel:${professional.phone}`}>
+            <Phone aria-hidden="true" />
+            Call
+          </a>
         </Button>
-        <Button className="h-12 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
-          <MessageCircle aria-hidden="true" />
-          WhatsApp
+        <Button asChild className="h-12 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
+          <a href={buildWhatsappHref(professional.whatsapp) ?? "#"}>
+            <MessageCircle aria-hidden="true" />
+            WhatsApp
+          </a>
         </Button>
         <Button asChild className="h-12 px-2">
           <Link href="/send-requirement">

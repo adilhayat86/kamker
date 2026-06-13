@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import {
   BriefcaseBusiness,
   CheckCircle2,
@@ -18,7 +19,11 @@ import { SearchPanel } from "@/components/search-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { cities, parentCategories } from "@/lib/marketplace-data";
+import { getCityOptions } from "@/lib/city-options";
+import { categories, cities, parentCategories } from "@/lib/marketplace-data";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+
+export const revalidate = 120;
 
 const bottomNavItems = [
   { label: "Home", icon: Home, href: "/" },
@@ -26,13 +31,6 @@ const bottomNavItems = [
   { label: "Professionals", icon: Users, href: "/professionals" },
   { label: "Register", icon: BriefcaseBusiness, href: "/register" },
   { label: "Account", icon: User, href: "/account" },
-];
-
-const stats = [
-  ["50,000+", "Professionals"],
-  ["120+", "Categories"],
-  ["25+", "Cities"],
-  ["Fast", "Response"],
 ];
 
 const trustItems = [
@@ -48,7 +46,134 @@ const steps = [
   ["Register", "Workers, companies, and customers choose the right registration path."],
 ];
 
-export default function HomePage() {
+const popularSearchLinks = [
+  ["Part time workers", "/part-time-workers"],
+  ["Part time maids", "/part-time-maids"],
+  ["Part time nurses", "/part-time-nurses"],
+  ["Part time drivers", "/part-time-drivers"],
+  ["Part time tutors", "/part-time-tutors"],
+  ["Workers in Karachi", "/part-time-workers/karachi"],
+  ["Workers in Lahore", "/part-time-workers/lahore"],
+  ["Maids in Lahore", "/part-time-maids/lahore"],
+  ["Nurses in Karachi", "/part-time-nurses/karachi"],
+];
+
+const homepageJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      name: "Kamker",
+      url: "https://kamker.com",
+      logo: "https://kamker.com/kamker-logo-old-wordmark.png",
+      description:
+        "Kamker helps customers find part time workers and professionals by category and city across Pakistan.",
+    },
+    {
+      "@type": "WebSite",
+      name: "Kamker",
+      url: "https://kamker.com",
+      description:
+        "Find nurses, maids, drivers, tutors, cooks, guards, and other part time workers by city in Pakistan.",
+      potentialAction: {
+        "@type": "SearchAction",
+        target: "https://kamker.com/professionals?q={search_term_string}",
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
+};
+
+function formatStatCount(value: number) {
+  return value.toLocaleString("en-PK");
+}
+
+function isExpectedStatsFetchFailure(error: { message?: string; details?: string }) {
+  return (
+    error.message?.includes("fetch failed") ||
+    error.details?.includes("fetch failed")
+  );
+}
+
+async function countRows(table: string, filters?: Record<string, string | boolean>) {
+  if (!supabase) {
+    return null;
+  }
+
+  let query = supabase.from(table).select("id", { count: "exact", head: true });
+
+  Object.entries(filters ?? {}).forEach(([key, value]) => {
+    query = query.eq(key, value);
+  });
+
+  const { count, error } = await query;
+
+  if (error) {
+    if (!isExpectedStatsFetchFailure(error)) {
+      console.error(`Failed to load homepage ${table} count`, error);
+    }
+
+    return null;
+  }
+
+  return count ?? 0;
+}
+
+const getHomepageStats = unstable_cache(async function getHomepageStats() {
+  if (!isSupabaseConfigured || !supabase) {
+    return [
+      ["Live", "Directory"],
+      ["Verified", "Profiles"],
+      ["City", "Filters"],
+      ["Direct", "Contact"],
+    ];
+  }
+
+  const [
+    professionalCount,
+    companyStaffCount,
+    categoryCount,
+    cityCount,
+    companyCount,
+  ] = await Promise.all([
+    countRows("professionals", { is_active: true }),
+    countRows("company_listings", { status: "approved" }),
+    countRows("categories"),
+    countRows("cities"),
+    countRows("companies"),
+  ]);
+
+  const totalProfessionals =
+    professionalCount === null && companyStaffCount === null
+      ? null
+      : (professionalCount ?? 0) + (companyStaffCount ?? 0);
+
+  return [
+    [
+      totalProfessionals === null ? "Live" : formatStatCount(totalProfessionals),
+      totalProfessionals === null ? "Directory" : "Professionals",
+    ],
+    [
+      categoryCount === null ? formatStatCount(categories.length) : formatStatCount(categoryCount),
+      "Categories",
+    ],
+    [
+      cityCount === null ? formatStatCount(cities.length) : formatStatCount(cityCount),
+      "Cities",
+    ],
+    [
+      companyCount === null ? "Growing" : formatStatCount(companyCount),
+      "Companies",
+    ],
+  ];
+}, ["homepage-stats"], { revalidate: 60 });
+
+export default async function HomePage() {
+  const [stats, cityOptions] = await Promise.all([
+    getHomepageStats(),
+    getCityOptions(),
+  ]);
+
   return (
     <main className="min-h-screen overflow-hidden pb-24 md:pb-0">
       <header className="border-b bg-background/95">
@@ -82,18 +207,7 @@ export default function HomePage() {
 
       <section className="border-b bg-background px-4 py-4 shadow-sm sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <SearchPanel />
-          <div className="-mx-4 mt-3 flex snap-x gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
-            {cities.map((city) => <Badge key={city} variant="outline" className="shrink-0 snap-start bg-white px-4 py-1.5">{city}</Badge>)}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {stats.map(([value, label]) => (
-            <Card key={label} className="border-primary/10 bg-white shadow-sm"><CardContent className="p-4 text-center sm:p-6"><p className="text-2xl font-bold text-primary sm:text-4xl">{value}</p><p className="mt-1.5 text-sm font-semibold text-muted-foreground">{label}</p></CardContent></Card>
-          ))}
+          <SearchPanel cityOptions={cityOptions} />
         </div>
       </section>
 
@@ -103,9 +217,34 @@ export default function HomePage() {
         <div className="flex items-end justify-between gap-4"><div><p className="text-sm font-semibold uppercase tracking-normal text-primary">Popular services</p><h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">Browse by service group</h2></div></div>
         <CategoryGrid categories={parentCategories} />
         <Button asChild variant="outline" className="mt-5 h-12 w-full sm:w-auto"><Link href="/categories">View All Categories</Link></Button>
+        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {stats.map(([value, label]) => (
+            <Card key={label} className="border-primary/10 bg-white shadow-sm"><CardContent className="p-4 text-center sm:p-6"><p className="text-2xl font-bold text-primary sm:text-4xl">{value}</p><p className="mt-1.5 text-sm font-semibold text-muted-foreground">{label}</p></CardContent></Card>
+          ))}
+        </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8"><AdBanner label="Reserved ad space after categories" /></section>
+
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+          Popular searches
+        </p>
+        <h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">
+          Find workers by city and service
+        </h2>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {popularSearchLinks.map(([label, href]) => (
+            <Link
+              key={href}
+              href={href}
+              className="rounded-full border border-sky-100 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-primary hover:text-primary"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <section className="border-y bg-secondary/80">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -145,6 +284,11 @@ export default function HomePage() {
           })}
         </div>
       </nav>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homepageJsonLd) }}
+      />
     </main>
   );
 }

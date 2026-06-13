@@ -1,9 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, Building2, MapPin, MessageCircle, Phone, Sparkles, Star } from "lucide-react";
+import { BadgeCheck, Building2, MapPin, Sparkles, Star } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { ContactActionButton } from "@/components/contact-action-button";
 import { PageNavigation } from "@/components/page-navigation";
+import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,10 +12,12 @@ import {
   getMockCompanyListingById,
   type CompanyListingCardRow,
 } from "@/lib/company-listing-cards";
+import { trackedContactHref } from "@/lib/contact-tracking";
 import {
   getLocalCompanyListingRecords,
   getLocalCompanyRecordById,
 } from "@/lib/local-demo-store";
+import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -36,11 +39,7 @@ function formatRate(listing: Pick<CompanyListingCardRow, "hourly_rate" | "monthl
 }
 
 function whatsappHref(value: string | null, title: string) {
-  if (!value) {
-    return null;
-  }
-
-  return `https://wa.me/${value.replace(/\D/g, "")}?text=${encodeURIComponent(`Hello, I found ${title} on Kamker.`)}`;
+  return buildWhatsappHref(value, `Hello, I found ${title} on Kamker.`);
 }
 
 async function getListing(id: string) {
@@ -130,6 +129,26 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
   }
 
   const whatsapp = whatsappHref(listing.whatsapp, listing.title);
+  const listingPath = `/company-listings/${listing.id}`;
+  const phoneHref = listing.phone ? `tel:${listing.phone}` : null;
+  const trackedPhoneHref = trackedContactHref({
+    href: phoneHref,
+    eventType: "call_click",
+    targetType: "company_listing",
+    targetId: listing.id,
+    path: listingPath,
+    category: listing.category,
+    city: listing.city,
+  });
+  const trackedWhatsappHref = trackedContactHref({
+    href: whatsapp,
+    eventType: "whatsapp_click",
+    targetType: "company_listing",
+    targetId: listing.id,
+    path: listingPath,
+    category: listing.category,
+    city: listing.city,
+  });
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -139,13 +158,14 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5 sm:p-7">
             <div className="grid gap-6 md:grid-cols-[180px_1fr]">
-              <Image
+              <ProfilePhotoViewer
                 src={listing.profile_photo_url ?? listing.photo_url ?? "/kamker-professionals.png"}
                 alt={`${listing.title} profile photo`}
                 width={180}
                 height={180}
                 priority
-                className="size-36 rounded-2xl bg-accent object-cover sm:size-44"
+                buttonClassName="size-36 rounded-2xl sm:size-44"
+                imageClassName="size-36 rounded-2xl sm:size-44"
               />
               <div>
                 <div className="flex flex-wrap gap-2">
@@ -182,7 +202,7 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
                     {listing.years_experience ?? 0} years experience
                   </span>
                   <span>Availability: {listing.availability ?? "Ask company"}</span>
-                  <span>Age: {listing.age ? `Age ${listing.age}` : "Age not added"}</span>
+                  <span>Age: {listing.age ?? "Age not added"}</span>
                   <span>
                     Managed by:{" "}
                     {listing.companies?.id ? (
@@ -220,22 +240,19 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
             ) : null}
 
             <div className="mt-6 grid gap-2 sm:grid-cols-3">
-              {listing.phone ? (
-                <Button asChild variant="outline" className="h-12">
-                  <a href={`tel:${listing.phone}`}>
-                    <Phone className="size-4" aria-hidden="true" />
-                    Call
-                  </a>
-                </Button>
-              ) : null}
-              {whatsapp ? (
-                <Button asChild className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-                  <a href={whatsapp}>
-                    <MessageCircle className="size-4" aria-hidden="true" />
-                    WhatsApp
-                  </a>
-                </Button>
-              ) : null}
+              <ContactActionButton
+                href={trackedPhoneHref}
+                displayValue={listing.phone}
+                type="call"
+                className="h-12"
+                variant="outline"
+              />
+              <ContactActionButton
+                href={trackedWhatsappHref}
+                displayValue={listing.whatsapp}
+                type="whatsapp"
+                className="h-12 bg-[#25d366] text-white hover:bg-[#21bd5b]"
+              />
               <Button asChild className="h-12" variant="outline">
                 <Link href={`/send-requirement?category=${encodeURIComponent(listing.category)}&city=${encodeURIComponent(listing.city)}${listing.area ? `&area=${encodeURIComponent(listing.area)}` : ""}`}>
                   Send Requirement

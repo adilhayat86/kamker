@@ -2,16 +2,22 @@
 
 import { redirect } from "next/navigation";
 
+import { trackAnalyticsEvent } from "@/lib/analytics";
 import {
   getActiveCompanySubscription,
   getPublishedCompanyListingUsage,
 } from "@/lib/company-packages";
 import { uploadCompanyStaffPhoto } from "@/lib/company-media";
+import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import {
   getLocalCompanyRecordById,
   isLocalDemoStoreEnabled,
   saveLocalCompanyListing,
 } from "@/lib/local-demo-store";
+import {
+  normalizePakistanMobilePhone,
+  validatePhoneFieldWithCountry,
+} from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
@@ -32,6 +38,29 @@ function ageField(formData: FormData) {
   return Number.isInteger(value) && value >= 16 && value <= 80 ? value : null;
 }
 
+function draftKey(companyId: string) {
+  return `company_listing_${companyId}`;
+}
+
+function draftPath(companyId: string) {
+  return `/companies/${companyId}/listings/new`;
+}
+
+async function saveCompanyListingDraft(
+  companyId: string,
+  values: Record<string, string | number>,
+) {
+  if (!companyId) {
+    return;
+  }
+
+  await saveFormDraft(draftKey(companyId), values, { path: draftPath(companyId) });
+}
+
+async function clearCompanyListingDraft(companyId: string) {
+  await clearFormDraft(draftKey(companyId), { path: draftPath(companyId) });
+}
+
 export async function createCompanyListing(formData: FormData) {
   const companyId = field(formData, "companyId");
   const title = field(formData, "title");
@@ -47,18 +76,67 @@ export async function createCompanyListing(formData: FormData) {
   const description = field(formData, "description");
   const hourlyRate = optionalNumber(formData, "hourlyRate");
   const monthlyRate = optionalNumber(formData, "monthlyRate");
-  const phone = field(formData, "phone");
-  const whatsapp = field(formData, "whatsapp");
+  const phoneInput = field(formData, "phone");
+  const phoneValidation = phoneInput
+    ? normalizePakistanMobilePhone(phoneInput)
+    : { ok: true, normalized: "" };
+  const phone = phoneValidation.normalized || phoneInput;
+  const whatsappValidation = validatePhoneFieldWithCountry(formData, "whatsapp");
+  const whatsapp = whatsappValidation.normalized;
+  const source = field(formData, "source") || "unknown";
+  const draft = {
+    title,
+    serviceGroup,
+    category,
+    city,
+    area,
+    tagline,
+    gender,
+    age: field(formData, "age"),
+    availability,
+    yearsExperience: field(formData, "yearsExperience"),
+    hourlyRate: field(formData, "hourlyRate"),
+    monthlyRate: field(formData, "monthlyRate"),
+    phone: phoneInput,
+    whatsapp,
+    description,
+  };
+  const errors = [
+    !title ? "title" : null,
+    !serviceGroup ? "serviceGroup" : null,
+    !category ? "category" : null,
+    !city ? "city" : null,
+    age === null ? "age" : null,
+    phoneInput && !phoneValidation.ok ? "phoneInvalid" : null,
+    !whatsappValidation.ok ? "whatsappInvalid" : null,
+    !tagline || tagline.length > 30 ? "tagline" : null,
+    !description ? "description" : null,
+  ].filter((error): error is string => Boolean(error));
 
-  if (!companyId || !title || !serviceGroup || !category || !city || age === null || !tagline || !description || tagline.length > 30) {
+  if (!companyId || errors.length > 0) {
+    await saveCompanyListingDraft(companyId, {
+      ...draft,
+      errors: errors.join(","),
+    });
     redirect(`/companies/${companyId || "missing"}/listings/new?status=missing`);
   }
+
+  if (age === null) {
+    await saveCompanyListingDraft(companyId, {
+      ...draft,
+      errors: "age",
+    });
+    redirect(`/companies/${companyId}/listings/new?status=missing`);
+  }
+
+  const validAge = age;
 
   if (!isSupabaseConfigured || !supabase) {
     if (isLocalDemoStoreEnabled) {
       const company = await getLocalCompanyRecordById(companyId);
 
       if (!company) {
+        await saveCompanyListingDraft(companyId, draft);
         redirect(`/companies/${companyId}/listings/new?status=company-missing`);
       }
 
@@ -68,10 +146,12 @@ export async function createCompanyListing(formData: FormData) {
       ]);
 
       if (!activeSubscription) {
+        await saveCompanyListingDraft(companyId, draft);
         redirect(`/companies/${companyId}/listings/new?status=no-package`);
       }
 
       if (usage.published >= activeSubscription.listings_limit) {
+        await saveCompanyListingDraft(companyId, draft);
         redirect(`/companies/${companyId}/listings/new?status=quota-full`);
       }
 
@@ -84,7 +164,7 @@ export async function createCompanyListing(formData: FormData) {
         area,
         tagline,
         gender,
-        age,
+        age: validAge,
         availability,
         yearsExperience,
         description,
@@ -95,9 +175,11 @@ export async function createCompanyListing(formData: FormData) {
         whatsapp,
       });
 
+      await clearCompanyListingDraft(companyId);
       redirect(`/companies/${companyId}/dashboard?status=local-listing-added`);
     }
 
+    await saveCompanyListingDraft(companyId, draft);
     redirect(`/companies/${companyId}/listings/new?status=not-configured`);
   }
 
@@ -108,6 +190,7 @@ export async function createCompanyListing(formData: FormData) {
     .maybeSingle();
 
   if (!company) {
+    await saveCompanyListingDraft(companyId, draft);
     redirect(`/companies/${companyId}/listings/new?status=company-missing`);
   }
 
@@ -117,23 +200,29 @@ export async function createCompanyListing(formData: FormData) {
   ]);
 
   if (!activeSubscription) {
+    await saveCompanyListingDraft(companyId, draft);
     redirect(`/companies/${companyId}/listings/new?status=no-package`);
   }
 
   if (usage.published >= activeSubscription.listings_limit) {
+    await saveCompanyListingDraft(companyId, draft);
     redirect(`/companies/${companyId}/listings/new?status=quota-full`);
   }
 
+  const browserUploadedPhotoUrl = field(formData, "profilePhotoUrl");
   let uploadedStaffPhoto: Awaited<ReturnType<typeof uploadCompanyStaffPhoto>> = null;
 
-  try {
-    uploadedStaffPhoto = await uploadCompanyStaffPhoto(formData, companyId);
-  } catch (error) {
-    redirect(
-      error instanceof Error && error.message === "invalid-company-media"
-        ? `/companies/${companyId}/listings/new?status=invalid-photo`
-        : `/companies/${companyId}/listings/new?status=photo-error`,
-    );
+  if (!browserUploadedPhotoUrl) {
+    try {
+      uploadedStaffPhoto = await uploadCompanyStaffPhoto(formData, companyId);
+    } catch (error) {
+      await saveCompanyListingDraft(companyId, draft);
+      redirect(
+        error instanceof Error && error.message === "invalid-company-media"
+          ? `/companies/${companyId}/listings/new?status=invalid-photo`
+          : `/companies/${companyId}/listings/new?status=photo-error`,
+      );
+    }
   }
 
   const { data: listing, error } = await supabase
@@ -147,13 +236,13 @@ export async function createCompanyListing(formData: FormData) {
       area: area || null,
       tagline,
       gender: gender || null,
-      age,
+      age: validAge,
       availability: availability || null,
       years_experience: yearsExperience,
       description,
       hourly_rate: hourlyRate,
       monthly_rate: monthlyRate,
-      profile_photo_url: uploadedStaffPhoto?.publicUrl ?? null,
+      profile_photo_url: browserUploadedPhotoUrl || uploadedStaffPhoto?.publicUrl || null,
       phone: phone || null,
       whatsapp: whatsapp || null,
       status: "pending",
@@ -164,8 +253,22 @@ export async function createCompanyListing(formData: FormData) {
 
   if (error || !listing) {
     console.error("Failed to create company listing", error);
+    await saveCompanyListingDraft(companyId, draft);
     redirect(`/companies/${companyId}/listings/new?status=error`);
   }
+
+  await trackAnalyticsEvent({
+    eventType: "company_staff_registration",
+    targetType: "company_listing",
+    targetId: listing.id as string,
+    metadata: {
+      category,
+      city,
+      source,
+      path: `/companies/${companyId}/listings/new`,
+      companyId,
+    },
+  });
 
   await sendAdminWhatsappAlert(
     [
@@ -181,5 +284,6 @@ export async function createCompanyListing(formData: FormData) {
     listing.id as string,
   );
 
+  await clearCompanyListingDraft(companyId);
   redirect(`/companies/${companyId}/dashboard?status=staff-profile-submitted`);
 }

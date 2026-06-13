@@ -1,22 +1,26 @@
-import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   BadgeCheck,
   Clock,
   MapPin,
-  MessageCircle,
-  Phone,
   Search,
+  Send,
   Sparkles,
   Star,
 } from "lucide-react";
 
+import { ContactActionButton } from "@/components/contact-action-button";
+import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import { ProfessionalCard } from "@/components/professional-card";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getCityOptions } from "@/lib/city-options";
+import { trackedContactHref } from "@/lib/contact-tracking";
+import { trackAnalyticsEvent } from "@/lib/analytics";
 import {
   workerAvailabilitySummary,
   workerDayAvailabilityLabel,
@@ -27,7 +31,6 @@ import {
 import { getApprovedCompanyListingCards } from "@/lib/company-listing-cards";
 import {
   categories,
-  cities,
   isActiveFeaturedProfessional,
   recentProfessionals,
   type Professional,
@@ -36,17 +39,18 @@ import {
   getLocalProfessionalRecords,
   type LocalProfessionalRecord,
 } from "@/lib/local-demo-store";
+import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
+import {
+  categoryNamesForSearch,
+  getCategoryIdsByNames,
+  getCityIdByName,
+} from "@/lib/public-directory-lookups";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-
-export const metadata = {
-  title: "Professionals | Kamker",
-  description: "Browse verified Kamker professional profiles.",
-};
 
 type DbProfessional = {
   id: string;
   full_name: string;
-  phone_number: string;
+  phone_number: string | null;
   whatsapp_number: string | null;
   area: string | null;
   gender?: string | null;
@@ -84,14 +88,42 @@ type ProfessionalsPageProps = {
     rate?: string;
     verified?: string;
     sort?: string;
+    source?: string;
     page?: string;
   }>;
 };
+
+export async function generateMetadata({
+  searchParams,
+}: ProfessionalsPageProps): Promise<Metadata> {
+  const filters = await searchParams;
+  const hasSearchFilters = Object.entries(filters ?? {}).some(
+    ([key, value]) => key !== "page" && Boolean(value?.trim()),
+  );
+
+  return {
+    title: "Professionals | Kamker",
+    description: "Browse verified Kamker professional profiles.",
+    alternates: {
+      canonical: "/professionals",
+    },
+    robots: hasSearchFilters
+      ? {
+          index: false,
+          follow: true,
+        }
+      : {
+          index: true,
+          follow: true,
+        },
+  };
+}
 
 const hourlyRateOptions = [
   { value: "under-300", label: "Under Rs. 300/hour", min: 0, max: 299 },
   { value: "300-500", label: "Rs. 300-500/hour", min: 300, max: 500 },
   { value: "500-1000", label: "Rs. 500-1,000/hour", min: 500, max: 1000 },
+  { value: "under-1000", label: "Under Rs. 1,000/hour", min: 0, max: 1000 },
   { value: "1000-2000", label: "Rs. 1,000-2,000/hour", min: 1000, max: 2000 },
   { value: "2000-plus", label: "Rs. 2,000+/hour", min: 2000, max: Number.POSITIVE_INFINITY },
 ];
@@ -109,6 +141,112 @@ function matches(value: string | null | undefined, query: string) {
 
 function normalise(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? "";
+}
+
+function matchesSearchCategoryIntent(categoryName: string | null | undefined, query: string) {
+  if (!categoryName || !query) {
+    return false;
+  }
+
+  const categoryKey = normalise(categoryName);
+  return categoryNamesForSearch(query).some(
+    (matchedCategory) => normalise(matchedCategory) === categoryKey,
+  );
+}
+
+function cityFromSearchIntent(query: string, cityOptions: string[]) {
+  const queryKey = normalise(query);
+
+  if (!queryKey) {
+    return "";
+  }
+
+  return cityOptions.find((cityOption) => normalise(cityOption) === queryKey) ?? "";
+}
+
+function categoryFromSearchIntent(query: string) {
+  return categoryNamesForSearch(query)[0] ?? "";
+}
+
+function buildSearchResultSummary({
+  count,
+  city,
+  category,
+}: {
+  count: number;
+  city: string;
+  category: string;
+}) {
+  const countLabel = count.toLocaleString("en-PK");
+
+  if (category && city) {
+    return `Found ${countLabel} ${category} in ${city}`;
+  }
+
+  if (city) {
+    return `Found ${countLabel} professional${count === 1 ? "" : "s"} in ${city}`;
+  }
+
+  if (category) {
+    return `Found ${countLabel} ${category}`;
+  }
+
+  return `Found ${countLabel} approved professional${count === 1 ? "" : "s"}`;
+}
+
+function buildSearchRequirementHref({
+  q,
+  city,
+  category,
+  estimate,
+}: {
+  q: string;
+  city: string;
+  category: string;
+  estimate: number;
+}) {
+  const params = new URLSearchParams();
+
+  if (category) {
+    params.set("category", category);
+  } else if (q && !city) {
+    params.set("service", q);
+  }
+
+  if (city) {
+    params.set("city", city);
+  }
+
+  params.set("estimate", String(Math.max(0, Math.floor(estimate))));
+  params.set("source", "professionals-search");
+
+  return `/send-requirement?${params.toString()}`;
+}
+
+function buildSearchRequirementLabel({
+  count,
+  city,
+  category,
+}: {
+  count: number;
+  city: string;
+  category: string;
+}) {
+  const countLabel = count.toLocaleString("en-PK");
+
+  if (category && city) {
+    return `Send Requirement to ${countLabel} ${category} in ${city}`;
+  }
+
+  if (category) {
+    return `Send Requirement to ${countLabel} ${category}`;
+  }
+
+  if (city) {
+    return `Send Requirement to ${countLabel} professionals in ${city}`;
+  }
+
+  return `Send Requirement to ${countLabel} professionals`;
 }
 
 function parseHourlyRate(value: string | null | undefined) {
@@ -175,6 +313,8 @@ function matchesCompanyProfessionalFilters(
     category: string;
     gender: string;
     age: string;
+    availabilityTime: string;
+    availabilityDays: string;
     rate: string;
     verified: boolean;
   },
@@ -183,6 +323,7 @@ function matchesCompanyProfessionalFilters(
     ? matches(professional.name, filters.q) ||
       matches(professional.area, filters.q) ||
       matches(professional.role, filters.q) ||
+      matchesSearchCategoryIntent(professional.role, filters.q) ||
       matches(professional.tagline, filters.q) ||
       matches(professional.bio, filters.q) ||
       matches(professional.city, filters.q)
@@ -191,6 +332,18 @@ function matchesCompanyProfessionalFilters(
   const categoryMatch = filters.category ? professional.role === filters.category : true;
   const genderMatch = filters.gender ? normalise(professional.gender) === normalise(filters.gender) : true;
   const ageMatch = matchesAgeRange(professional.age, filters.age);
+  const availabilityTimeMatch = filters.availabilityTime
+    ? matches(
+        professional.availability,
+        workerTimeAvailabilityLabel(filters.availabilityTime),
+      )
+    : true;
+  const availabilityDaysMatch = filters.availabilityDays
+    ? matches(
+        professional.availability,
+        workerDayAvailabilityLabel(filters.availabilityDays),
+      )
+    : true;
   const hourlyRateMatch = matchesHourlyRate(professional.rate, filters.rate);
   const verifiedMatch = filters.verified
     ? professional.is_company_managed
@@ -198,7 +351,17 @@ function matchesCompanyProfessionalFilters(
       : true
     : true;
 
-  return keywordMatch && cityMatch && categoryMatch && genderMatch && ageMatch && hourlyRateMatch && verifiedMatch;
+  return (
+    keywordMatch &&
+    cityMatch &&
+    categoryMatch &&
+    genderMatch &&
+    ageMatch &&
+    availabilityTimeMatch &&
+    availabilityDaysMatch &&
+    hourlyRateMatch &&
+    verifiedMatch
+  );
 }
 
 function isDbFeatured(professional: DirectoryProfessional) {
@@ -227,15 +390,47 @@ function buildPageHref(params: Record<string, string>, page: number) {
 }
 
 async function getDbProfessionals({
+  q,
+  city,
+  category,
+  gender,
+  age,
   availabilityTime,
   availabilityDays,
+  rate,
+  verified,
+  sort,
+  page,
 }: {
+  q: string;
+  city: string;
+  category: string;
+  gender: string;
+  age: string;
   availabilityTime: string;
   availabilityDays: string;
+  rate: string;
+  verified: boolean;
+  sort: string;
+  page: number;
 }) {
   if (!isSupabaseConfigured || !supabase) {
     return getLocalProfessionalRecords();
   }
+
+  const categoryNames = category
+    ? [category]
+    : q
+      ? categoryNamesForSearch(q)
+      : [];
+  const [cityId, categoryIds] = await Promise.all([
+    city ? getCityIdByName(city) : Promise.resolve(null),
+    getCategoryIdsByNames(categoryNames),
+  ]);
+  const selectedAgeRange = ageRangeOptions.find((option) => option.value === age);
+  const selectedRateRange = hourlyRateOptions.find((option) => option.value === rate);
+  const pageWindow = pageSize + 12;
+  const from = Math.max(page - 1, 0) * pageSize;
 
   let query = supabase
     .from("professionals")
@@ -243,6 +438,39 @@ async function getDbProfessionals({
       "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, availability_time, availability_days, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, is_featured, featured_until, rating, created_at, cities(name), categories(name)",
     )
     .eq("is_active", true);
+
+  if (city) {
+    if (cityId === null) {
+      return [] as DbProfessional[];
+    }
+
+    query = query.eq("city_id", cityId);
+  }
+
+  if (categoryNames.length > 0) {
+    if (categoryIds.length === 0) {
+      return [] as DbProfessional[];
+    }
+
+    query = query.in("category_id", categoryIds);
+  }
+
+  if (q && categoryNames.length === 0) {
+    const safeQuery = q.replace(/[%(),]/g, " ").trim();
+    if (safeQuery) {
+      query = query.or(
+        `full_name.ilike.%${safeQuery}%,area.ilike.%${safeQuery}%,experience.ilike.%${safeQuery}%,short_bio.ilike.%${safeQuery}%,tagline.ilike.%${safeQuery}%`,
+      );
+    }
+  }
+
+  if (gender) {
+    query = query.ilike("gender", gender);
+  }
+
+  if (selectedAgeRange) {
+    query = query.gte("age", selectedAgeRange.min).lte("age", selectedAgeRange.max);
+  }
 
   if (availabilityTime) {
     query = query.eq("availability_time", availabilityTime);
@@ -252,18 +480,36 @@ async function getDbProfessionals({
     query = query.eq("availability_days", availabilityDays);
   }
 
-  const { data, error } = await query
-    .order("is_featured", { ascending: false })
-    .order("featured_until", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false })
-    .limit(500);
+  if (verified) {
+    query = query.or("is_cnic_verified.eq.true,is_phone_verified.eq.true");
+  }
+
+  if (sort === "experienced") {
+    query = query.order("years_experience", { ascending: false, nullsFirst: false });
+  } else if (sort === "newest") {
+    query = query.order("created_at", { ascending: false });
+  } else {
+    query = query
+      .order("is_featured", { ascending: false })
+      .order("featured_until", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
+  }
+
+  const limitForPostFilter = selectedRateRange ? Math.min(pageWindow * 4, 120) : pageWindow;
+  const { data, error } = await query.range(from, from + limitForPostFilter - 1);
 
   if (error) {
     console.error("Failed to load professionals", error);
     return [] as DbProfessional[];
   }
 
-  return (data ?? []) as unknown as DbProfessional[];
+  const professionals = (data ?? []) as unknown as DbProfessional[];
+
+  return selectedRateRange
+    ? professionals
+        .filter((professional) => matchesHourlyRate(professional.expected_rate, rate))
+        .slice(0, pageWindow)
+    : professionals;
 }
 
 function availabilityLabels(professional: DirectoryProfessional) {
@@ -288,7 +534,29 @@ function DbProfessionalCard({
   professional: DbProfessional;
   featured?: boolean;
 }) {
-  const whatsappNumber = professional.whatsapp_number ?? professional.phone_number;
+  const contactPhone = professional.phone_number;
+  const whatsappDisplay = professional.whatsapp_number ?? contactPhone;
+  const whatsappLink = buildWhatsappHref(whatsappDisplay);
+  const profilePath = `/professionals/${professional.id}`;
+  const phoneLink = contactPhone ? `tel:${contactPhone}` : null;
+  const trackedPhoneLink = trackedContactHref({
+    href: phoneLink,
+    eventType: "call_click",
+    targetType: "professional",
+    targetId: professional.id,
+    path: profilePath,
+    category: professional.categories?.name ?? "Professional",
+    city: professional.cities?.name ?? "Pakistan",
+  });
+  const trackedWhatsappLink = trackedContactHref({
+    href: whatsappLink,
+    eventType: "whatsapp_click",
+    targetType: "professional",
+    targetId: professional.id,
+    path: profilePath,
+    category: professional.categories?.name ?? "Professional",
+    city: professional.cities?.name ?? "Pakistan",
+  });
   const { timeLabel, daysLabel, combinedLabel } = availabilityLabels(professional);
   const tagline = professional.tagline?.trim() || "Trusted local professional";
   const verifiedLabel = professional.is_cnic_verified
@@ -307,13 +575,13 @@ function DbProfessionalCard({
     >
       <CardContent className="p-4">
         <div className="flex gap-4">
-          <Image
+          <ProfilePhotoViewer
             src={professional.profile_photo_url || "/kamker-professionals.png"}
             alt={`${professional.full_name} profile photo`}
             width={88}
             height={88}
-            loading="lazy"
-            className="size-20 rounded-full bg-accent object-cover"
+            buttonClassName="size-20"
+            imageClassName="size-20"
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -380,18 +648,19 @@ function DbProfessionalCard({
           </div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <Button asChild variant="outline" className="h-11">
-            <a href={`tel:${professional.phone_number}`}>
-              <Phone aria-hidden="true" />
-              Call
-            </a>
-          </Button>
-          <Button asChild className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]">
-            <a href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}>
-              <MessageCircle aria-hidden="true" />
-              WhatsApp
-            </a>
-          </Button>
+          <ContactActionButton
+            href={trackedPhoneLink ?? phoneLink}
+            displayValue={contactPhone}
+            type="call"
+            className="h-11"
+            variant="outline"
+          />
+          <ContactActionButton
+            href={trackedWhatsappLink}
+            displayValue={whatsappDisplay}
+            type="whatsapp"
+            className="h-11 bg-[#25d366] text-white hover:bg-[#21bd5b]"
+          />
         </div>
         <Button asChild className="mt-2 h-11 w-full" variant="outline">
           <Link href={`/professionals/${professional.id}`}>View Profile</Link>
@@ -410,7 +679,29 @@ function ConversionProfessionalCard({
   professional: DirectoryProfessional;
   featured?: boolean;
 }) {
-  const whatsappNumber = professional.whatsapp_number ?? professional.phone_number;
+  const contactPhone = professional.phone_number;
+  const whatsappDisplay = professional.whatsapp_number ?? contactPhone;
+  const whatsappLink = buildWhatsappHref(whatsappDisplay);
+  const profilePath = `/professionals/${professional.id}`;
+  const phoneLink = contactPhone ? `tel:${contactPhone}` : null;
+  const trackedPhoneLink = trackedContactHref({
+    href: phoneLink,
+    eventType: "call_click",
+    targetType: "professional",
+    targetId: professional.id,
+    path: profilePath,
+    category: professional.categories?.name ?? "Professional",
+    city: professional.cities?.name ?? "Pakistan",
+  });
+  const trackedWhatsappLink = trackedContactHref({
+    href: whatsappLink,
+    eventType: "whatsapp_click",
+    targetType: "professional",
+    targetId: professional.id,
+    path: profilePath,
+    category: professional.categories?.name ?? "Professional",
+    city: professional.cities?.name ?? "Pakistan",
+  });
   const tagline = professional.tagline?.trim() || "Trusted local professional";
   const { combinedLabel } = availabilityLabels(professional);
 
@@ -424,13 +715,13 @@ function ConversionProfessionalCard({
     >
       <CardContent className="flex h-full flex-col p-3.5 sm:p-4">
         <div className="flex gap-3.5">
-          <Image
+          <ProfilePhotoViewer
             src={professional.profile_photo_url || "/kamker-professionals.png"}
             alt={`${professional.full_name} profile photo`}
             width={88}
             height={88}
-            loading="lazy"
-            className="size-20 shrink-0 rounded-full bg-accent object-cover"
+            buttonClassName="size-20"
+            imageClassName="size-20"
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -490,18 +781,19 @@ function ConversionProfessionalCard({
         </div>
 
         <div className="mt-auto grid grid-cols-3 gap-2 pt-3">
-          <Button asChild variant="outline" className="h-10 px-2">
-            <a href={`tel:${professional.phone_number}`}>
-              <Phone aria-hidden="true" />
-              Call
-            </a>
-          </Button>
-          <Button asChild className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]">
-            <a href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}>
-              <MessageCircle aria-hidden="true" />
-              WhatsApp
-            </a>
-          </Button>
+          <ContactActionButton
+            href={trackedPhoneLink ?? phoneLink}
+            displayValue={contactPhone}
+            type="call"
+            className="h-10 px-2"
+            variant="outline"
+          />
+          <ContactActionButton
+            href={trackedWhatsappLink}
+            displayValue={whatsappDisplay}
+            type="whatsapp"
+            className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]"
+          />
           <Button asChild className="h-10 px-2" variant="outline">
             <Link href={`/professionals/${professional.id}`}>View Profile</Link>
           </Button>
@@ -525,47 +817,78 @@ export default async function ProfessionalsPage({
   const rate = params?.rate?.trim() ?? "";
   const verified = params?.verified === "true";
   const sort = params?.sort?.trim() || "featured";
+  const source = params?.source?.trim() || "direct";
   const currentPage = Math.max(Number(params?.page ?? "1") || 1, 1);
+  const cityOptions = await getCityOptions();
+  const inferredCity = city || cityFromSearchIntent(q, cityOptions);
+  const searchTermIsCityOnly = Boolean(!city && q && inferredCity);
+  const effectiveSearchQuery = searchTermIsCityOnly ? "" : q;
+  const effectiveCity = inferredCity || city;
+  const queryCategoryNames = category
+    ? [category]
+    : effectiveSearchQuery
+      ? categoryNamesForSearch(effectiveSearchQuery)
+      : [];
 
-  const dbProfessionals = await getDbProfessionals({
-    availabilityTime,
-    availabilityDays,
-  });
-  const companyProfessionals = await getApprovedCompanyListingCards({ limit: 200 });
-  const filteredCompanyProfessionals = companyProfessionals.filter((professional) =>
-    matchesCompanyProfessionalFilters(professional, {
-      q,
-      city,
+  const [dbProfessionals, companyProfessionals] = await Promise.all([
+    getDbProfessionals({
+      q: effectiveSearchQuery,
+      city: effectiveCity,
       category,
       gender,
       age,
+      availabilityTime,
+      availabilityDays,
+      rate,
+      verified,
+      sort,
+      page: currentPage,
+    }),
+    getApprovedCompanyListingCards({
+      categories: queryCategoryNames.length > 0 ? queryCategoryNames : undefined,
+      city: effectiveCity || undefined,
+      limit: 60,
+    }),
+  ]);
+  const filteredCompanyProfessionals = companyProfessionals.filter((professional) =>
+    matchesCompanyProfessionalFilters(professional, {
+      q: effectiveSearchQuery,
+      city: effectiveCity,
+      category,
+      gender,
+      age,
+      availabilityTime,
+      availabilityDays,
       rate,
       verified,
     }),
   );
   const filteredDemoProfessionals = recentProfessionals.filter((professional) =>
     matchesCompanyProfessionalFilters(professional, {
-      q,
-      city,
+      q: effectiveSearchQuery,
+      city: effectiveCity,
       category,
       gender,
       age,
+      availabilityTime,
+      availabilityDays,
       rate,
       verified,
     }),
   );
   const filteredDbProfessionals = dbProfessionals
     .filter((professional) => {
-      const keywordMatch = q
-        ? matches(professional.full_name, q) ||
-          matches(professional.area, q) ||
-          matches(professional.experience, q) ||
-          matches(professional.short_bio, q) ||
-          matches(professional.expected_rate, q) ||
-          matches(professional.categories?.name, q) ||
-          matches(professional.cities?.name, q)
+      const keywordMatch = effectiveSearchQuery
+        ? matches(professional.full_name, effectiveSearchQuery) ||
+          matches(professional.area, effectiveSearchQuery) ||
+          matches(professional.experience, effectiveSearchQuery) ||
+          matches(professional.short_bio, effectiveSearchQuery) ||
+          matches(professional.expected_rate, effectiveSearchQuery) ||
+          matches(professional.categories?.name, effectiveSearchQuery) ||
+          matchesSearchCategoryIntent(professional.categories?.name, effectiveSearchQuery) ||
+          matches(professional.cities?.name, effectiveSearchQuery)
         : true;
-      const cityMatch = city ? professional.cities?.name === city : true;
+      const cityMatch = effectiveCity ? professional.cities?.name === effectiveCity : true;
       const categoryMatch = category ? professional.categories?.name === category : true;
       const genderMatch = gender ? normalise(professional.gender) === normalise(gender) : true;
       const ageMatch = matchesAgeRange(professional.age, age);
@@ -642,6 +965,59 @@ export default async function ProfessionalsPage({
     filteredDbProfessionals.length +
     filteredCompanyProfessionals.length +
     (hasDbProfessionals ? 0 : filteredDemoProfessionals.length);
+  const inferredCategory = category || categoryFromSearchIntent(effectiveSearchQuery);
+  const resultSummary = buildSearchResultSummary({
+    count: totalVisibleProfessionals,
+    city: inferredCity,
+    category: inferredCategory,
+  });
+  const sendRequirementHref = buildSearchRequirementHref({
+    q,
+    city: inferredCity,
+    category: inferredCategory,
+    estimate: totalVisibleProfessionals,
+  });
+  const sendRequirementLabel = buildSearchRequirementLabel({
+    count: totalVisibleProfessionals,
+    city: inferredCity,
+    category: inferredCategory,
+  });
+  const hasSearchIntent = Boolean(
+    q ||
+      city ||
+      category ||
+      gender ||
+      age ||
+      availabilityTime ||
+      availabilityDays ||
+      rate ||
+      verified,
+  );
+
+  if (hasSearchIntent && currentPage === 1) {
+    await trackAnalyticsEvent({
+      eventType: "search",
+      targetType: "professional",
+      metadata: {
+        query: q,
+        search_term: q || category || city || "filtered search",
+        category: inferredCategory || category,
+        selected_category: category,
+        city: inferredCity || city,
+        selected_city: city,
+        gender,
+        age,
+        availability_time: availabilityTime,
+        availability_days: availabilityDays,
+        rate,
+        verified,
+        sort,
+        source,
+        result_count: totalVisibleProfessionals,
+        path: "/professionals",
+      },
+    });
+  }
   const pageHrefParams = {
     q,
     city,
@@ -706,7 +1082,7 @@ export default async function ProfessionalsPage({
                   className="h-10 rounded-md border border-input bg-background px-3 text-sm"
                 >
                   <option value="">All cities</option>
-                  {cities.map((cityOption) => (
+                  {cityOptions.map((cityOption) => (
                     <option key={cityOption} value={cityOption}>
                       {cityOption}
                     </option>
@@ -836,16 +1212,41 @@ export default async function ProfessionalsPage({
           </details>
         </form>
 
-        {hasDirectoryProfessionals ? (
-          <p className="mt-4 text-sm text-muted-foreground">
-            Showing {activeProfessionals.length} of {totalVisibleProfessionals} approved professional
-            {totalVisibleProfessionals === 1 ? "" : "s"}.
-          </p>
+        {totalVisibleProfessionals > 0 ? (
+          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-sky-100 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-base font-semibold text-foreground">
+                {resultSummary}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Showing {activeProfessionals.length} on this page.
+              </p>
+              <p className="mt-1 text-xs font-medium text-slate-500">
+                Send Requirement is a paid outreach option after Kamker review.
+              </p>
+            </div>
+            <Button asChild className="h-11 w-full sm:w-auto">
+              <Link href={sendRequirementHref}>
+                <Send aria-hidden="true" />
+                {sendRequirementLabel}
+              </Link>
+            </Button>
+          </div>
         ) : null}
 
-        {hasDirectoryProfessionals && activeProfessionals.length === 0 ? (
+        {totalVisibleProfessionals === 0 ? (
           <div className="mt-6 rounded-lg border border-dashed bg-white p-6 text-sm text-muted-foreground">
-            No professionals found. Try changing filters.
+            <p>No professionals found. Try changing filters.</p>
+            <p className="mt-2 text-xs font-medium text-slate-500">
+              Paid outreach can still be requested after Kamker reviews your
+              details.
+            </p>
+            <Button asChild className="mt-4 h-11 w-full sm:w-auto" variant="outline">
+              <Link href={sendRequirementHref}>
+                <Send aria-hidden="true" />
+                Send Requirement anyway
+              </Link>
+            </Button>
           </div>
         ) : null}
 

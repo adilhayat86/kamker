@@ -1,11 +1,14 @@
-import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, Clock, MapPin, MessageCircle, Phone, Sparkles, Star } from "lucide-react";
+import { BadgeCheck, Clock, MapPin, Sparkles, Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ContactActionButton } from "@/components/contact-action-button";
+import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
+import { trackedProfessionalContactHref } from "@/lib/contact-tracking";
 import type { Professional } from "@/lib/marketplace-data";
+import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
 import { workerAvailabilityLabel } from "@/lib/worker-availability";
 
 type ProfessionalCardProps = {
@@ -18,13 +21,24 @@ export function ProfessionalCard({
   featured = false,
 }: ProfessionalCardProps) {
   const phoneHref = professional.phone ? `tel:${professional.phone}` : null;
-  const whatsappHref = professional.whatsapp
-    ? `https://wa.me/${professional.whatsapp.replace(/\D/g, "")}`
-    : null;
+  const whatsappHref = buildWhatsappHref(professional.whatsapp);
+  const trackedPhoneHref = trackedProfessionalContactHref({
+    href: phoneHref,
+    eventType: "call_click",
+    professional,
+  });
+  const trackedWhatsappHref = trackedProfessionalContactHref({
+    href: whatsappHref,
+    eventType: "whatsapp_click",
+    professional,
+  });
   const profileHref = professional.profileHref ?? `/professionals/${professional.id}`;
   const companyHref = professional.company_id
     ? `/companies/${professional.company_id}`
     : null;
+  const isVerified = professional.is_company_managed
+    ? Boolean(professional.company_verified)
+    : Boolean(professional.is_cnic_verified || professional.is_phone_verified);
   const tagline = professional.tagline?.trim() || (
     professional.is_company_managed ? "Company managed worker" : "Trusted local professional"
   );
@@ -42,13 +56,13 @@ export function ProfessionalCard({
     >
       <CardContent className="flex h-full flex-col p-3.5 sm:p-4">
         <div className="flex items-start gap-3.5">
-          <Image
+          <ProfilePhotoViewer
             src={professional.image}
             alt={`${professional.name} profile photo`}
             width={96}
             height={96}
-            loading="lazy"
-            className="size-20 shrink-0 rounded-full bg-accent object-cover sm:size-24"
+            buttonClassName="size-20 sm:size-24"
+            imageClassName="size-20 sm:size-24"
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -70,10 +84,12 @@ export function ProfessionalCard({
                     Featured
                   </Badge>
                 ) : null}
-                <Badge className="gap-1 bg-primary text-primary-foreground">
-                  <BadgeCheck className="size-3" aria-hidden="true" />
-                  Verified
-                </Badge>
+                {isVerified ? (
+                  <Badge className="gap-1 bg-primary text-primary-foreground">
+                    <BadgeCheck className="size-3" aria-hidden="true" />
+                    Verified
+                  </Badge>
+                ) : null}
                 {professional.is_company_managed ? (
                   <Badge variant="outline">Company Managed</Badge>
                 ) : null}
@@ -118,38 +134,32 @@ export function ProfessionalCard({
             )
           ) : (
             <>
-              <Badge variant="outline">CNIC Verified</Badge>
-              <Badge variant="outline">Phone Verified</Badge>
+              {professional.is_cnic_verified ? (
+                <Badge variant="outline">CNIC Verified</Badge>
+              ) : null}
+              {professional.is_phone_verified ? (
+                <Badge variant="outline">Phone Verified</Badge>
+              ) : null}
+              {professional.phone || professional.whatsapp ? (
+                <Badge variant="outline">Direct Contact</Badge>
+              ) : null}
             </>
           )}
         </div>
         <div className={actionGridClass}>
-          <Button asChild={Boolean(phoneHref)} variant="outline" className="h-10 px-2" disabled={!phoneHref}>
-            {phoneHref ? (
-              <a href={phoneHref}>
-                <Phone aria-hidden="true" />
-                Call
-              </a>
-            ) : (
-              <span>
-                <Phone aria-hidden="true" />
-                Call
-              </span>
-            )}
-          </Button>
-          <Button asChild={Boolean(whatsappHref)} className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]" disabled={!whatsappHref}>
-            {whatsappHref ? (
-              <a href={whatsappHref}>
-                <MessageCircle aria-hidden="true" />
-                WhatsApp
-              </a>
-            ) : (
-              <span>
-                <MessageCircle aria-hidden="true" />
-                WhatsApp
-              </span>
-            )}
-          </Button>
+          <ContactActionButton
+            href={trackedPhoneHref}
+            displayValue={professional.phone}
+            type="call"
+            className="h-10 px-2"
+            variant="outline"
+          />
+          <ContactActionButton
+            href={trackedWhatsappHref}
+            displayValue={professional.whatsapp}
+            type="whatsapp"
+            className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]"
+          />
           {professional.is_company_managed ? (
             <>
               <Button asChild className="h-10 px-2" variant="outline">

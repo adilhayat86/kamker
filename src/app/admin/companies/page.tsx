@@ -7,7 +7,7 @@ import {
   approveCompanyVerification,
   rejectCompanyVerification,
 } from "@/app/admin/actions";
-import { AdminShell } from "@/components/admin/admin-ui";
+import { AdminSection, AdminShell } from "@/components/admin/admin-ui";
 import { DismissibleCard, DismissibleNotice } from "@/components/dismissible-notice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,23 @@ type CompanyPackage = {
   featured_limit: number;
 };
 
-async function getCompanies() {
+type CompaniesPageProps = {
+  searchParams?: Promise<{
+    q?: string;
+    verification?: string;
+    payment?: string;
+  }>;
+};
+
+async function getCompanies({
+  q,
+  verification,
+  payment,
+}: {
+  q?: string;
+  verification?: string;
+  payment?: string;
+}) {
   if (!isSupabaseConfigured || !supabase) {
     return [] as Company[];
   }
@@ -58,14 +74,33 @@ async function getCompanies() {
     .from("companies")
     .select("id, company_name, category, city, area, contact_person, phone, whatsapp, description, license_number, verification_status, payment_status, created_at")
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(120);
 
   if (error) {
     console.error("Failed to load companies", error);
     return [] as Company[];
   }
 
-  return (data ?? []) as Company[];
+  return ((data ?? []) as Company[]).filter((company) => {
+    const query = q?.trim().toLowerCase();
+    const matchesQuery = query
+      ? [
+          company.company_name,
+          company.category,
+          company.city,
+          company.area,
+          company.contact_person,
+          company.phone,
+          company.whatsapp,
+        ].some((value) => value?.toLowerCase().includes(query))
+      : true;
+    const matchesVerification = verification
+      ? company.verification_status === verification
+      : true;
+    const matchesPayment = payment ? company.payment_status === payment : true;
+
+    return matchesQuery && matchesVerification && matchesPayment;
+  });
 }
 
 async function getCompanyPackages() {
@@ -93,7 +128,9 @@ function isSensitiveCategory(category: string) {
   return value.includes("security") || value.includes("bodyguard") || value.includes("firearm") || value.includes("fire safety");
 }
 
-export default async function AdminCompaniesPage() {
+export default async function AdminCompaniesPage({
+  searchParams,
+}: CompaniesPageProps) {
   const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
@@ -101,8 +138,13 @@ export default async function AdminCompaniesPage() {
     redirect("/admin/login");
   }
 
+  const params = await searchParams;
   const [companies, companyPackages] = await Promise.all([
-    getCompanies(),
+    getCompanies({
+      q: params?.q,
+      verification: params?.verification,
+      payment: params?.payment,
+    }),
     getCompanyPackages(),
   ]);
   const companiesWithUsage = await Promise.all(
@@ -141,6 +183,47 @@ export default async function AdminCompaniesPage() {
                 </div>
           </DismissibleCard>
         ) : null}
+
+        <AdminSection
+          title="Search & Filters"
+          description="Find companies by name, city, category, contact person, phone, payment, or verification status."
+        >
+          <form className="grid gap-3 lg:grid-cols-[1fr_180px_180px_auto]">
+            <input
+              name="q"
+              defaultValue={params?.q ?? ""}
+              placeholder="Search company, city, phone"
+              className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+            />
+            <select
+              name="verification"
+              defaultValue={params?.verification ?? ""}
+              className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+            >
+              <option value="">All verification</option>
+              <option value="pending">Pending</option>
+              <option value="verified">Verified</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <select
+              name="payment"
+              defaultValue={params?.payment ?? ""}
+              className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+            >
+              <option value="">All payments</option>
+              <option value="unpaid">Unpaid</option>
+              <option value="pending_review">Pending review</option>
+              <option value="paid">Paid</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <Button>Filter</Button>
+          </form>
+          <div className="mt-3">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/admin/companies">Reset filters</Link>
+            </Button>
+          </div>
+        </AdminSection>
 
         <div className="mt-6 grid gap-4">
           {companies.length > 0 ? (

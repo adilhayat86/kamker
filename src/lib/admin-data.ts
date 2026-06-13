@@ -1,4 +1,5 @@
 import { isAdminPasswordConfigured } from "@/lib/admin-auth";
+import { isCloudinaryConfigured } from "@/lib/cloudinary";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export type AdminCountSummary = {
@@ -36,6 +37,20 @@ export type AdminAnalyticsRow = {
   created_at: string;
 };
 
+export type SystemHealth = {
+  adminAuth: boolean;
+  supabase: boolean;
+  databaseSchema: boolean;
+  storageBuckets: boolean;
+  cloudinary: boolean;
+  openai: boolean;
+  whatsapp: boolean;
+  missingTables: string[];
+  missingColumns: string[];
+  missingBuckets: string[];
+  bucketIssues: string[];
+};
+
 async function countRows(table: string, filters: Record<string, string | boolean | null> = {}) {
   if (!isSupabaseConfigured || !supabase) {
     return 0;
@@ -51,6 +66,24 @@ async function countRows(table: string, filters: Record<string, string | boolean
 
   if (error) {
     console.error(`Failed to count ${table}`, error);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
+async function countRowsIn(table: string, column: string, values: string[]) {
+  if (!isSupabaseConfigured || !supabase) {
+    return 0;
+  }
+
+  const { count, error } = await supabase
+    .from(table)
+    .select("id", { count: "exact", head: true })
+    .in(column, values);
+
+  if (error) {
+    console.error(`Failed to count ${table} where ${column} is in list`, error);
     return 0;
   }
 
@@ -94,15 +127,15 @@ export async function getAdminCountSummary(): Promise<AdminCountSummary> {
     todayCallClicks,
     todayWhatsappClicks,
   ] = await Promise.all([
-    countRows("professionals", { is_active: false }),
-    countRows("professionals", { is_active: true }),
+    countRows("professionals", { is_active: false, is_banned: false }),
+    countRows("professionals", { is_active: true, is_banned: false }),
     countRows("companies", { verification_status: "pending" }),
     countRows("companies", { verification_status: "verified" }),
     countRows("company_listings", { status: "pending" }),
     countRows("company_listings", { status: "approved" }),
     countRows("proof_reviews", { audit_status: "unchecked" }),
-    countRows("requirements", { status: "new" }),
-    countRows("professionals", { is_featured: true }),
+    countRowsIn("requirements", "status", ["open", "new"]),
+    countRows("professionals", { is_featured: true, is_banned: false }),
     countRows("company_listings", { is_featured: true }),
     countRows("company_package_subscriptions", { status: "active" }),
     countAnalyticsSince("call_click", today.toISOString()),
@@ -216,15 +249,221 @@ export function groupCount(values: string[]) {
 }
 
 export async function getSystemHealth() {
-  const configured = {
+  const configured: SystemHealth = {
     adminAuth: isAdminPasswordConfigured(),
     supabase: isSupabaseConfigured,
+    databaseSchema: false,
+    storageBuckets: false,
+    cloudinary: isCloudinaryConfigured,
     openai: Boolean(process.env.OPENAI_API_KEY),
     whatsapp:
       Boolean(process.env.WHATSAPP_ACCESS_TOKEN) &&
       Boolean(process.env.WHATSAPP_PHONE_NUMBER_ID) &&
       Boolean(process.env.KAMKER_ADMIN_WHATSAPP),
+    missingTables: [],
+    missingColumns: [],
+    missingBuckets: [],
+    bucketIssues: [],
   };
 
+  if (isSupabaseConfigured && supabase) {
+    const [databaseReadiness, storageReadiness] = await Promise.all([
+      getDatabaseSchemaReadiness(),
+      getStorageBucketReadiness(),
+    ]);
+
+    configured.databaseSchema = databaseReadiness.ready;
+    configured.storageBuckets = storageReadiness.ready;
+    configured.missingTables = databaseReadiness.missingTables;
+    configured.missingColumns = databaseReadiness.missingColumns;
+    configured.missingBuckets = storageReadiness.missingBuckets;
+    configured.bucketIssues = storageReadiness.bucketIssues;
+  }
+
   return configured;
+}
+
+async function hasReadableTable(table: string) {
+  if (!supabase) {
+    return false;
+  }
+
+  const { error } = await supabase
+    .from(table)
+    .select("id", { head: true, count: "exact" })
+    .limit(1);
+
+  if (error) {
+    console.error(`Admin system health table check failed for ${table}`, error);
+    return false;
+  }
+
+  return true;
+}
+
+async function hasCompanyStaffRequirementMatchColumn() {
+  if (!supabase) {
+    return false;
+  }
+
+  const { error } = await supabase
+    .from("requirement_matches")
+    .select("company_listing_id")
+    .limit(1);
+
+  if (error) {
+    console.error(
+      "Admin system health column check failed for requirement_matches.company_listing_id",
+      error,
+    );
+    return false;
+  }
+
+  return true;
+}
+
+async function hasReadableColumn(table: string, column: string) {
+  if (!supabase) {
+    return false;
+  }
+
+  const { error } = await supabase.from(table).select(column).limit(1);
+
+  if (error) {
+    console.error(`Admin system health column check failed for ${table}.${column}`, error);
+    return false;
+  }
+
+  return true;
+}
+
+async function getDatabaseSchemaReadiness() {
+  const requiredTables = [
+    "professionals",
+    "customers",
+    "categories",
+    "cities",
+    "requirements",
+    "requirement_matches",
+    "companies",
+    "company_packages",
+    "manual_payments",
+    "company_package_subscriptions",
+    "company_listings",
+    "company_media",
+    "proof_reviews",
+    "analytics_events",
+    "whatsapp_messages",
+    "admin_passwords",
+    "admin_audit_logs",
+  ];
+
+  const tableChecks = await Promise.all(
+    requiredTables.map(async (table) => ({
+      table,
+      ready: await hasReadableTable(table),
+    })),
+  );
+  const columnChecks = await Promise.all([
+    {
+      column: "requirement_matches.company_listing_id",
+      ready: await hasCompanyStaffRequirementMatchColumn(),
+    },
+    {
+      column: "professionals.age",
+      ready: await hasReadableColumn("professionals", "age"),
+    },
+    {
+      column: "professionals.tagline",
+      ready: await hasReadableColumn("professionals", "tagline"),
+    },
+    {
+      column: "professionals.profile_photo_url",
+      ready: await hasReadableColumn("professionals", "profile_photo_url"),
+    },
+    {
+      column: "professionals.phone_normalized",
+      ready: await hasReadableColumn("professionals", "phone_normalized"),
+    },
+    {
+      column: "professionals.is_banned",
+      ready: await hasReadableColumn("professionals", "is_banned"),
+    },
+    {
+      column: "company_listings.service_group",
+      ready: await hasReadableColumn("company_listings", "service_group"),
+    },
+    {
+      column: "company_listings.age",
+      ready: await hasReadableColumn("company_listings", "age"),
+    },
+    {
+      column: "company_listings.profile_photo_url",
+      ready: await hasReadableColumn("company_listings", "profile_photo_url"),
+    },
+    {
+      column: "companies.logo_url",
+      ready: await hasReadableColumn("companies", "logo_url"),
+    },
+  ]);
+
+  return {
+    ready:
+      tableChecks.every((check) => check.ready) &&
+      columnChecks.every((check) => check.ready),
+    missingTables: tableChecks
+      .filter((check) => !check.ready)
+      .map((check) => check.table),
+    missingColumns: columnChecks
+      .filter((check) => !check.ready)
+      .map((check) => check.column),
+  };
+}
+
+type RequiredBucket = {
+  name: string;
+  minFileSizeLimit: number;
+};
+
+async function checkStorageBucket(bucket: RequiredBucket) {
+  if (!supabase) {
+    return { bucket: bucket.name, ready: false, issue: null };
+  }
+
+  const { data, error } = await supabase.storage.getBucket(bucket.name);
+
+  if (error) {
+    console.error(`Admin system health bucket check failed for ${bucket.name}`, error);
+    return { bucket: bucket.name, ready: false, issue: null };
+  }
+
+  const fileSizeLimit =
+    typeof data?.file_size_limit === "number" ? data.file_size_limit : null;
+
+  if (fileSizeLimit !== null && fileSizeLimit < bucket.minFileSizeLimit) {
+    return {
+      bucket: bucket.name,
+      ready: false,
+      issue: `${bucket.name} limit is ${(fileSizeLimit / 1024 / 1024).toFixed(1)}MB; expected at least ${(bucket.minFileSizeLimit / 1024 / 1024).toFixed(0)}MB`,
+    };
+  }
+
+  return { bucket: bucket.name, ready: true, issue: null };
+}
+
+async function getStorageBucketReadiness() {
+  const requiredBuckets: RequiredBucket[] = [
+    { name: "proof-images", minFileSizeLimit: 8 * 1024 * 1024 },
+  ];
+  const bucketChecks = await Promise.all(requiredBuckets.map(checkStorageBucket));
+
+  return {
+    ready: bucketChecks.every((check) => check.ready),
+    missingBuckets: bucketChecks
+      .filter((check) => !check.ready && !check.issue)
+      .map((check) => check.bucket),
+    bucketIssues: bucketChecks
+      .map((check) => check.issue)
+      .filter((issue): issue is string => Boolean(issue)),
+  };
 }

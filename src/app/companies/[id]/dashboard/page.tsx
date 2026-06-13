@@ -109,7 +109,7 @@ const statusMessages = {
   "logo-updated": "Company logo updated.",
   "media-added": "Company media added to the public profile.",
   "missing-media": "Please choose a logo, image, or video file.",
-  "invalid-media": "Upload jpg, png, or webp images under 2MB, or mp4/webm videos under 20MB.",
+  "invalid-media": "Upload jpg, png, or webp images under 10MB, or mp4/webm videos under 20MB.",
   "media-error": "Could not save company media. Please try again.",
   "not-configured": "Supabase is not configured yet.",
   "local-listing-added": "Local demo professional added to this company.",
@@ -261,6 +261,10 @@ function paymentStateLabel(activeSubscription: Awaited<ReturnType<typeof getActi
 
 function paymentStateDescription(activeSubscription: Awaited<ReturnType<typeof getActiveCompanySubscription>>, payment: CompanyPaymentStatus | null) {
   if (activeSubscription) {
+    if (!payment) {
+      return "Your package is active. This package was activated without a receipt on file, so you can add staff profiles now.";
+    }
+
     return "Your package is active. Add staff profiles and publish them after review.";
   }
 
@@ -275,12 +279,13 @@ function onboardingSteps(activeSubscription: Awaited<ReturnType<typeof getActive
   const receiptUploaded = Boolean(payment);
   const underReview = Boolean(payment?.status === "pending_review" || payment?.proof_decision === "needs_review");
   const packageActive = Boolean(activeSubscription);
+  const manuallyActivated = packageActive && !receiptUploaded;
 
   return [
     { label: "Company registered", complete: true, current: false },
     { label: "Package selected", complete: receiptUploaded || packageActive, current: !receiptUploaded && !packageActive },
-    { label: "Receipt uploaded", complete: receiptUploaded || packageActive, current: false },
-    { label: "AI review", complete: packageActive, current: underReview },
+    { label: "Receipt uploaded", complete: receiptUploaded, current: false },
+    { label: manuallyActivated ? "Admin activation" : "AI review", complete: packageActive, current: underReview },
     { label: "Package active", complete: packageActive, current: packageActive },
     { label: "Add staff profiles", complete: false, current: packageActive },
   ];
@@ -568,7 +573,7 @@ export default async function CompanyDashboardPage({
                   </Button>
                 </form>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Images: jpg/png/webp under 2MB. Videos: mp4/webm under 20MB.
+                  Images: jpg/png/webp under 10MB. Videos: mp4/webm under 20MB.
                 </p>
                 {media.length > 0 ? (
                   <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -671,7 +676,9 @@ export default async function CompanyDashboardPage({
               </div>
             ) : (
               <p className="mt-4 text-sm text-muted-foreground">
-                No company package receipt has been uploaded yet.
+                {activeSubscription
+                  ? "Package is active through admin activation. No receipt is attached to this package record."
+                  : "No company package receipt has been uploaded yet."}
               </p>
             )}
 
@@ -726,14 +733,32 @@ export default async function CompanyDashboardPage({
               <div className="mt-5 grid gap-3">
                 {listings.map((listing) => (
                   <div key={listing.id} className="rounded-lg border p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold">{listing.title}</p>
-                      <Badge variant="outline">{listing.status}</Badge>
-                      {listing.is_featured ? <Badge>Featured</Badge> : null}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold">{listing.title}</p>
+                          <Badge variant="outline">{listing.status}</Badge>
+                          {listing.is_featured ? <Badge>Featured</Badge> : null}
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {listing.category} - {listing.city}{listing.area ? ` - ${listing.area}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                        {listing.status === "approved" ? (
+                          <Button asChild size="sm" variant="outline" className="w-full sm:w-auto">
+                            <Link href={`/company-listings/${listing.id}`}>Worker Profile</Link>
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" className="w-full sm:w-auto" disabled>
+                            Awaiting Approval
+                          </Button>
+                        )}
+                        <Button asChild size="sm" variant="outline" className="w-full sm:w-auto">
+                          <Link href={`/companies/${company.id}`}>Company Profile</Link>
+                        </Button>
+                      </div>
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {listing.category} · {listing.city}{listing.area ? ` · ${listing.area}` : ""}
-                    </p>
                     <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
                       <span>Hourly: {listing.hourly_rate ? `Rs ${listing.hourly_rate}` : "Not provided"}</span>
                       <span>Monthly: {listing.monthly_rate ? `Rs ${listing.monthly_rate}` : "Not provided"}</span>

@@ -2,6 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import {
+  activateCompanyPackage,
+  activateFeaturedProfileProof,
+  rejectManualPayment,
+  rejectProofReview,
+} from "@/app/admin/actions";
+import {
   AdminEmptyState,
   AdminMetaGrid,
   AdminSection,
@@ -51,16 +57,40 @@ type ManualPayment = {
   companies: { company_name: string } | null;
 };
 
-async function getProofReviews() {
+type PaymentsPageProps = {
+  searchParams?: Promise<{
+    proofType?: string;
+    proofStatus?: string;
+    paymentStatus?: string;
+    q?: string;
+  }>;
+};
+
+async function getProofReviews({
+  proofType,
+  proofStatus,
+}: {
+  proofType?: string;
+  proofStatus?: string;
+}) {
   if (!isSupabaseConfigured || !supabase) {
     return [] as ProofReview[];
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("proof_reviews")
     .select("id, review_type, related_id, expected_amount_pkr, image_url, ai_detected_amount_pkr, ai_confidence, ai_decision, audit_status, created_at")
-    .order("created_at", { ascending: false })
-    .limit(60);
+    .order("created_at", { ascending: false });
+
+  if (proofType) {
+    query = query.eq("review_type", proofType);
+  }
+
+  if (proofStatus) {
+    query = query.eq("audit_status", proofStatus);
+  }
+
+  const { data, error } = await query.limit(40);
 
   if (error) {
     console.error("Failed to load proof reviews", error);
@@ -70,26 +100,52 @@ async function getProofReviews() {
   return (data ?? []) as ProofReview[];
 }
 
-async function getManualPayments() {
+async function getManualPayments({
+  paymentStatus,
+  q,
+}: {
+  paymentStatus?: string;
+  q?: string;
+}) {
   if (!isSupabaseConfigured || !supabase) {
     return [] as ManualPayment[];
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("manual_payments")
     .select("id, company_id, package_key, amount_pkr, payment_method, payer_name, sender_phone, transaction_reference, status, created_at, companies(company_name)")
-    .order("created_at", { ascending: false })
-    .limit(60);
+    .order("created_at", { ascending: false });
+
+  if (paymentStatus) {
+    query = query.eq("status", paymentStatus);
+  }
+
+  const { data, error } = await query.limit(40);
 
   if (error) {
     console.error("Failed to load manual payments", error);
     return [] as ManualPayment[];
   }
 
-  return (data ?? []) as unknown as ManualPayment[];
+  return ((data ?? []) as unknown as ManualPayment[]).filter((payment) => {
+    const query = q?.trim().toLowerCase();
+    const matchesQuery = query
+      ? [
+          payment.companies?.company_name,
+          payment.package_key,
+          payment.payment_method,
+          payment.payer_name,
+          payment.sender_phone,
+          payment.transaction_reference,
+        ].some((value) => value?.toLowerCase().includes(query))
+      : true;
+    return matchesQuery;
+  });
 }
 
-export default async function AdminPaymentsPage() {
+export default async function AdminPaymentsPage({
+  searchParams,
+}: PaymentsPageProps) {
   const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
@@ -97,11 +153,21 @@ export default async function AdminPaymentsPage() {
     redirect("/admin/login");
   }
 
+  const params = await searchParams;
   const [summary, proofs, payments] = await Promise.all([
     getAdminCountSummary(),
-    getProofReviews(),
-    getManualPayments(),
+    getProofReviews({
+      proofType: params?.proofType,
+      proofStatus: params?.proofStatus,
+    }),
+    getManualPayments({
+      paymentStatus: params?.paymentStatus,
+      q: params?.q,
+    }),
   ]);
+  const needsActionCount =
+    proofs.filter((proof) => proof.audit_status === "unchecked").length +
+    payments.filter((payment) => payment.status === "pending_review").length;
 
   return (
     <AdminShell
@@ -115,11 +181,66 @@ export default async function AdminPaymentsPage() {
         </AdminWarning>
       ) : null}
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid gap-4 sm:grid-cols-4">
+        <AdminStatCard
+          label="Needs Action"
+          value={needsActionCount}
+          tone={needsActionCount ? "urgent" : "good"}
+        />
         <AdminStatCard label="Pending Proof Reviews" value={summary.pendingProofs} tone={summary.pendingProofs ? "warning" : "good"} />
         <AdminStatCard label="Manual Payments Loaded" value={payments.length} />
         <AdminStatCard label="Proof Reviews Loaded" value={proofs.length} />
       </div>
+
+      <AdminSection
+        title="Search & Filters"
+        description="Narrow payment and proof queues during package activation or featured-profile review."
+      >
+        <form className="grid gap-3 lg:grid-cols-[1fr_190px_190px_190px_auto]">
+          <input
+            name="q"
+            defaultValue={params?.q ?? ""}
+            placeholder="Search company, payer, phone, reference"
+            className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+          />
+          <select
+            name="proofType"
+            defaultValue={params?.proofType ?? ""}
+            className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+          >
+            <option value="">All proof types</option>
+            <option value="company_package">Company packages</option>
+            <option value="featured_profile">Featured profiles</option>
+          </select>
+          <select
+            name="proofStatus"
+            defaultValue={params?.proofStatus ?? ""}
+            className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+          >
+            <option value="">All proof status</option>
+            <option value="unchecked">Needs review</option>
+            <option value="approved">Approved</option>
+            <option value="auto_approved">Auto approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <select
+            name="paymentStatus"
+            defaultValue={params?.paymentStatus ?? ""}
+            className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+          >
+            <option value="">All payment status</option>
+            <option value="pending_review">Pending review</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <Button>Filter</Button>
+        </form>
+        <div className="mt-3">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/payments">Reset filters</Link>
+          </Button>
+        </div>
+      </AdminSection>
 
       <AdminSection title="Proof Reviews" description="AI-readable proof checks and manual review status.">
         <div className="grid gap-3">
@@ -136,10 +257,27 @@ export default async function AdminPaymentsPage() {
                     <p className="mt-1 text-sm text-muted-foreground">
                       Created {new Date(proof.created_at).toLocaleString("en-PK")}
                     </p>
+                    {proof.review_type === "featured_profile" ? (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Worker featured payment proof
+                      </p>
+                    ) : null}
                   </div>
-                  <Button asChild variant="outline">
-                    <Link href={proof.image_url}>Open Proof Image</Link>
-                  </Button>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    {proof.review_type === "featured_profile" && proof.related_id ? (
+                      <Button asChild variant="outline">
+                        <Link href={`/professionals/${proof.related_id}`}>Worker Profile</Link>
+                      </Button>
+                    ) : null}
+                    {proof.review_type === "company_package" && proof.related_id ? (
+                      <Button asChild variant="outline">
+                        <Link href={`#payment-${proof.related_id}`}>Review Payment</Link>
+                      </Button>
+                    ) : null}
+                    <Button asChild variant="outline">
+                      <Link href={proof.image_url}>Open Proof Image</Link>
+                    </Button>
+                  </div>
                 </div>
                 <div className="mt-4">
                   <AdminMetaGrid
@@ -151,6 +289,46 @@ export default async function AdminPaymentsPage() {
                     ]}
                   />
                 </div>
+                {proof.review_type === "featured_profile" &&
+                proof.related_id &&
+                proof.audit_status !== "approved" &&
+                proof.audit_status !== "auto_approved" &&
+                proof.audit_status !== "rejected" ? (
+                  <div className="mt-4 grid gap-2 rounded-lg border bg-slate-50 p-3 sm:grid-cols-[1fr_auto_auto]">
+                    <p className="text-sm text-muted-foreground">
+                      Approve this proof and activate the worker featured profile, or reject the proof.
+                    </p>
+                    <form action={activateFeaturedProfileProof}>
+                      <input type="hidden" name="proofReviewId" value={proof.id} />
+                      <Button type="submit" disabled={!adminAuthenticated}>
+                        Activate Featured Profile
+                      </Button>
+                    </form>
+                    <form action={rejectProofReview}>
+                      <input type="hidden" name="proofReviewId" value={proof.id} />
+                      <Button type="submit" variant="outline" disabled={!adminAuthenticated}>
+                        Reject Proof
+                      </Button>
+                    </form>
+                  </div>
+                ) : null}
+                {proof.review_type !== "featured_profile" &&
+                proof.audit_status !== "approved" &&
+                proof.audit_status !== "auto_approved" &&
+                proof.audit_status !== "rejected" ? (
+                  <form
+                    action={rejectProofReview}
+                    className="mt-4 grid gap-2 rounded-lg border bg-slate-50 p-3 sm:grid-cols-[1fr_auto]"
+                  >
+                    <input type="hidden" name="proofReviewId" value={proof.id} />
+                    <p className="text-sm text-muted-foreground">
+                      Review the linked manual payment below to activate the package, or reject this proof if the screenshot is invalid or unrelated.
+                    </p>
+                    <Button type="submit" variant="outline" disabled={!adminAuthenticated}>
+                      Reject Proof
+                    </Button>
+                  </form>
+                ) : null}
               </div>
             ))
           ) : (
@@ -163,7 +341,11 @@ export default async function AdminPaymentsPage() {
         <div className="grid gap-3">
           {payments.length > 0 ? (
             payments.map((payment) => (
-              <div key={payment.id} className="rounded-lg border p-4">
+              <div
+                key={payment.id}
+                id={`payment-${payment.id}`}
+                className="scroll-mt-24 rounded-lg border p-4"
+              >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -188,6 +370,27 @@ export default async function AdminPaymentsPage() {
                     ]}
                   />
                 </div>
+                {payment.status === "pending_review" ? (
+                  <div className="mt-4 grid gap-2 rounded-lg border bg-slate-50 p-3 sm:grid-cols-[1fr_auto_auto]">
+                    <p className="text-sm text-muted-foreground">
+                      Approve this payment and activate the selected company package, or reject the payment proof.
+                    </p>
+                    <form action={activateCompanyPackage}>
+                      <input type="hidden" name="companyId" value={payment.company_id} />
+                      <input type="hidden" name="packageKey" value={payment.package_key} />
+                      <input type="hidden" name="manualPaymentId" value={payment.id} />
+                      <Button type="submit" disabled={!adminAuthenticated}>
+                        Activate Package
+                      </Button>
+                    </form>
+                    <form action={rejectManualPayment}>
+                      <input type="hidden" name="manualPaymentId" value={payment.id} />
+                      <Button type="submit" variant="outline" disabled={!adminAuthenticated}>
+                        Reject Payment
+                      </Button>
+                    </form>
+                  </div>
+                ) : null}
               </div>
             ))
           ) : (

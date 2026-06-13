@@ -1,17 +1,21 @@
 import Link from "next/link";
-import { Camera } from "lucide-react";
+import { Camera, Info } from "lucide-react";
 
+import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { PhotoUploadField } from "@/components/photo-upload-field";
+import { ProfessionCategoryField } from "@/components/profession-category-field";
+import { RegistrationSensitiveFieldRestore } from "@/components/registration-sensitive-field-restore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   workerDayAvailabilityOptions,
   workerTimeAvailabilityOptions,
 } from "@/lib/worker-availability";
-import { categories, cities } from "@/lib/marketplace-data";
+import { getCityOptions } from "@/lib/city-options";
+import { categories } from "@/lib/marketplace-data";
 import { getFormDraft } from "@/lib/form-draft";
 import { cn } from "@/lib/utils";
 
@@ -26,14 +30,22 @@ const statusMessages = {
   "local-success":
     "Test worker saved locally because Supabase is not configured. Configure Supabase for real registrations and login.",
   missing:
-    "Fix the highlighted fields. For security, password and photo are not saved after the form leaves this page, but the browser now blocks missing required fields before sending.",
+    "Some required information is missing or invalid. Check the highlighted fields below; your typed values, password, and selected photo should remain on this device.",
   "not-configured": "Supabase is not configured yet.",
-  "invalid-photo": "Upload a jpg, png, or webp image under 8MB.",
+  "invalid-photo": "Upload a jpg, png, or webp image under 10MB.",
   "photo-error": "Could not upload profile photo. Please try again.",
   error: "Could not register professional. Please try again.",
 } as const;
 
 const genderOptions = ["Female", "Male"];
+
+const secretQuestionOptions = [
+  "What is your first school name?",
+  "What is your favorite color?",
+  "What is your childhood nickname?",
+  "What is your mother tongue?",
+  "What city were you born in?",
+];
 
 type ProfessionalDraft = {
   fullName: string;
@@ -58,27 +70,54 @@ type ProfessionalDraft = {
 type ProfessionalRegisterPageProps = {
   searchParams?: Promise<{
     status?: keyof typeof statusMessages;
+    source?: string;
   }>;
 };
+
+function RequiredMark() {
+  return (
+    <>
+      <span aria-hidden="true" className="ml-1 text-red-600">
+        *
+      </span>
+      <span className="sr-only"> required</span>
+    </>
+  );
+}
 
 export default async function ProfessionalRegisterPage({
   searchParams,
 }: ProfessionalRegisterPageProps) {
   const params = await searchParams;
   const status = params?.status;
+  const source = params?.source?.trim() ?? "";
   const statusMessage = status ? statusMessages[status] : null;
+  const shouldRestoreSensitiveFields =
+    status === "missing" ||
+    status === "invalid-photo" ||
+    status === "photo-error" ||
+    status === "error";
   const draft = await getFormDraft<ProfessionalDraft>("professional");
+  const cityOptions = await getCityOptions();
   const failedFields = new Set(
     (draft.errors ?? "").split(",").filter(Boolean),
   );
   const errorFor = (field: string) => {
-    if (!failedFields.has(field)) {
+    const phoneError = field === "phone" && (
+      failedFields.has("phoneInvalid") || failedFields.has("phoneDuplicate")
+    );
+    const whatsappError = field === "whatsapp" && failedFields.has("whatsappInvalid");
+
+    if (!failedFields.has(field) && !phoneError && !whatsappError) {
       return undefined;
     }
 
     const messages: Record<string, string> = {
       fullName: "Full name is required.",
       phone: "Phone number is required.",
+      phoneInvalid: "Enter a valid Pakistan mobile number.",
+      phoneDuplicate: "This phone number is already registered. Login or contact Kamker support if this is your number.",
+      whatsappInvalid: "Enter a valid WhatsApp number or leave it blank.",
       city: "Choose a city.",
       category: "Choose a profession/category.",
       gender: "Choose gender.",
@@ -88,9 +127,21 @@ export default async function ProfessionalRegisterPage({
       rate: "Hourly rate is required.",
       tagline: "Tagline is required and must be 30 characters or less.",
       password: "Password is required. Re-enter it after this error.",
-      secretQuestion: "Secret question is required.",
+      secretQuestion: "Choose a secret question.",
       secretAnswer: "Secret answer is required. Re-enter it after this error.",
     };
+
+    if (field === "phone" && failedFields.has("phoneDuplicate")) {
+      return messages.phoneDuplicate;
+    }
+
+    if (field === "phone" && failedFields.has("phoneInvalid")) {
+      return messages.phoneInvalid;
+    }
+
+    if (field === "whatsapp" && failedFields.has("whatsappInvalid")) {
+      return messages.whatsappInvalid;
+    }
 
     return messages[field] ?? "This field needs attention.";
   };
@@ -105,6 +156,19 @@ export default async function ProfessionalRegisterPage({
         <p className="mt-2 text-sm text-muted-foreground">
           Create an hourly-rate profile so customers can find and contact you directly.
         </p>
+        <div className="mt-5 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
+          <div className="flex gap-3">
+            <Info className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+            <div>
+              <p className="font-semibold">Before you submit</p>
+              <p>
+                Fields marked with <span className="font-semibold text-red-700">*</span> are required.
+                Example text inside a box is only a guide; it is not saved unless you type your own value.
+                If photo upload causes trouble, register without photo first and add it later.
+              </p>
+            </div>
+          </div>
+        </div>
         {statusMessage ? (
           <DismissibleNotice className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close registration message">
             {statusMessage}
@@ -134,30 +198,45 @@ export default async function ProfessionalRegisterPage({
               <div>
                 <p className="font-semibold">Profile photo</p>
                 <p className="text-sm text-muted-foreground">
-                  Upload a jpg, png, or webp image from your phone. Large photos will be compressed before upload.
+                  Optional. Upload a jpg, png, or webp image from your phone. Large photos will be compressed before upload.
                 </p>
               </div>
             </div>
             <form action={registerProfessional} className="grid gap-6">
+              <RegistrationSensitiveFieldRestore restoreOnMount={shouldRestoreSensitiveFields} />
+              <input type="hidden" name="source" value={source} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Basic info</p>
                   <p className="mt-1 text-sm text-muted-foreground">Your name, contact, and work location.</p>
                 </div>
                 <PhotoUploadField />
-                <FormField label="Full name" name="fullName" defaultValue={draft.fullName} error={errorFor("fullName")} required />
-                <FormField label="Phone number" name="phone" type="tel" defaultValue={draft.phone} error={errorFor("phone")} required />
-                <FormField label="WhatsApp number" name="whatsapp" type="tel" defaultValue={draft.whatsapp} />
-                <SelectField label="City" name="city" options={cities} defaultValue={draft.city} error={errorFor("city")} required />
-                <FormField label="Area" name="area" placeholder="G-10, DHA, Gulberg" defaultValue={draft.area} />
+                <FormField label="Full name" name="fullName" placeholder="Your real name" defaultValue={draft.fullName} error={errorFor("fullName")} autoComplete="name" required />
+                <FormField
+                  label="Phone number"
+                  name="phone"
+                  type="tel"
+                  placeholder="Mobile number for login"
+                  defaultValue={draft.phone}
+                  error={errorFor("phone")}
+                  maxLength={16}
+                  inputMode="tel"
+                  autoComplete="tel"
+                  helperText="Use your active Pakistan mobile number. Customers will use this to contact you and you will use it to log in."
+                  required
+                />
+                <CountryPhoneField label="WhatsApp number" name="whatsapp" defaultValue={draft.whatsapp} error={errorFor("whatsapp")} />
+                <SelectField label="City" name="city" options={cityOptions} defaultValue={draft.city} error={errorFor("city")} helperText="Choose the city where customers should search for you." required />
+                <FormField label="Area" name="area" placeholder="Work area or nearby society" defaultValue={draft.area} />
                 <SelectField label="Gender" name="gender" options={genderOptions} defaultValue={draft.gender} error={errorFor("gender")} required />
                 <FormField
                   label="Age"
                   name="age"
                   type="number"
-                  placeholder="28"
+                  placeholder="Your age"
                   defaultValue={draft.age}
                   error={errorFor("age")}
+                  helperText="Age must be between 16 and 80."
                   required
                   min={16}
                   max={80}
@@ -169,21 +248,19 @@ export default async function ProfessionalRegisterPage({
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Service details</p>
                   <p className="mt-1 text-sm text-muted-foreground">This is what customers scan first.</p>
                 </div>
-                <SelectField
-                  label="Profession/category"
-                  name="category"
+                <ProfessionCategoryField
                   options={categories.map((category) => category.name)}
                   defaultValue={draft.category}
                   error={errorFor("category")}
-                  required
                 />
                 <label className="grid gap-2">
-                  <span className="text-sm font-medium">Work time</span>
+                  <span className="text-sm font-medium">Work time<RequiredMark /></span>
                   <select
                     name="availabilityTime"
                     defaultValue={draft.availabilityTime ?? ""}
                     required
                     aria-invalid={Boolean(errorFor("availabilityTime"))}
+                    aria-describedby="availability-time-help"
                     className={cn(
                       "h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       errorFor("availabilityTime") &&
@@ -199,6 +276,9 @@ export default async function ProfessionalRegisterPage({
                       </option>
                     ))}
                   </select>
+                  <span id="availability-time-help" className="text-xs leading-5 text-muted-foreground">
+                    Choose the time customers can usually contact you for work.
+                  </span>
                   {errorFor("availabilityTime") ? (
                     <span className="text-xs font-medium text-red-600">
                       {errorFor("availabilityTime")}
@@ -206,12 +286,13 @@ export default async function ProfessionalRegisterPage({
                   ) : null}
                 </label>
                 <label className="grid gap-2">
-                  <span className="text-sm font-medium">Work days</span>
+                  <span className="text-sm font-medium">Work days<RequiredMark /></span>
                   <select
                     name="availabilityDays"
                     defaultValue={draft.availabilityDays ?? ""}
                     required
                     aria-invalid={Boolean(errorFor("availabilityDays"))}
+                    aria-describedby="availability-days-help"
                     className={cn(
                       "h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       errorFor("availabilityDays") &&
@@ -227,6 +308,9 @@ export default async function ProfessionalRegisterPage({
                       </option>
                     ))}
                   </select>
+                  <span id="availability-days-help" className="text-xs leading-5 text-muted-foreground">
+                    Choose the days you normally accept work.
+                  </span>
                   {errorFor("availabilityDays") ? (
                     <span className="text-xs font-medium text-red-600">
                       {errorFor("availabilityDays")}
@@ -237,30 +321,36 @@ export default async function ProfessionalRegisterPage({
                   label="Years of experience"
                   name="yearsExperience"
                   type="number"
-                  placeholder="5"
+                  placeholder="Years"
                   defaultValue={draft.yearsExperience}
+                  min={0}
                 />
                 <FormField
                   label="Hourly Rate"
                   name="rate"
-                  placeholder="Rs. 500/hour"
+                  type="number"
+                  placeholder="Amount in rupees"
                   defaultValue={draft.rate}
                   error={errorFor("rate")}
+                  inputMode="numeric"
+                  helperText="Write numbers only. Example: type 500 instead of Rs. 500/hour."
                   required
+                  min={0}
                 />
                 <FormField
                   label="Profile Tagline"
                   name="tagline"
-                  placeholder="Trusted elderly caregiver"
+                  placeholder="Short trust-building line"
                   maxLength={30}
                   defaultValue={draft.tagline}
                   error={errorFor("tagline")}
+                  helperText="Maximum 30 characters. This appears under your name in search results."
                   required
                 />
                 <FormField
                   label="Experience details"
                   name="experience"
-                  placeholder="5 years home nursing"
+                  placeholder="Brief work history"
                   defaultValue={draft.experience}
                 />
                 <div className="sm:col-span-2">
@@ -278,22 +368,25 @@ export default async function ProfessionalRegisterPage({
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Security</p>
                   <p className="mt-1 text-sm text-muted-foreground">Used for login, review, and account recovery.</p>
                 </div>
-                <FormField label="CNIC optional" name="cnic" />
-                <FormField label="Password" name="password" type="password" error={errorFor("password")} required />
-                <FormField
+                <FormField label="CNIC optional" name="cnic" helperText="CNIC can be added later for verification." />
+                <FormField label="Password" name="password" type="password" error={errorFor("password")} autoComplete="new-password" helperText="Use a password you can remember. You will need it to log in after registration." required />
+                <SelectField
                   label="Secret question"
                   name="secretQuestion"
-                  placeholder="What is your first school name?"
+                  options={secretQuestionOptions}
                   defaultValue={draft.secretQuestion}
                   error={errorFor("secretQuestion")}
+                  helperText="Choose a question for account recovery. Do not leave the placeholder selected."
                   required
                 />
                 <FormField
                   label="Secret answer"
                   name="secretAnswer"
                   type="password"
-                  placeholder="Answer"
+                  placeholder="Your recovery answer"
                   error={errorFor("secretAnswer")}
+                  autoComplete="off"
+                  helperText="Keep this answer private. You may need it if you forget your password."
                   required
                 />
               </div>

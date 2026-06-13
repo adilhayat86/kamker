@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { serviceGroups } from "@/lib/marketplace-data";
 
 type RequirementForMatching = {
   id: string;
@@ -16,9 +17,46 @@ type MatchableProfessional = {
   categories: { name: string } | null;
 };
 
+type MatchableCompanyListing = {
+  id: string;
+  area: string | null;
+  availability: string | null;
+  city: string | null;
+  category: string | null;
+  service_group: string | null;
+};
+
 function sameText(left?: string | null, right?: string | null) {
   return Boolean(
     left && right && left.trim().toLowerCase() === right.trim().toLowerCase(),
+  );
+}
+
+function normalize(value?: string | null) {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function serviceMatches(workerService?: string | null, requiredService?: string | null) {
+  if (sameText(workerService, requiredService)) {
+    return true;
+  }
+
+  const requiredKey = normalize(requiredService);
+  const workerKey = normalize(workerService);
+  const serviceGroup = serviceGroups.find(
+    (group) => normalize(group.name) === requiredKey,
+  );
+
+  if (!serviceGroup) {
+    return false;
+  }
+
+  return serviceGroup.subcategories.some(
+    (subcategory) => normalize(subcategory) === workerKey,
   );
 }
 
@@ -43,7 +81,7 @@ export function calculateRequirementMatchScore(
 ) {
   let score = 0;
 
-  if (sameText(professional.categories?.name, requirement.requiredService)) {
+  if (serviceMatches(professional.categories?.name, requirement.requiredService)) {
     score += 45;
   }
 
@@ -62,23 +100,59 @@ export function calculateRequirementMatchScore(
   return score;
 }
 
+function calculateCompanyListingMatchScore(
+  requirement: Omit<RequirementForMatching, "id">,
+  listing: MatchableCompanyListing,
+) {
+  const categoryBackedListing: MatchableProfessional = {
+    id: listing.id,
+    area: listing.area,
+    availability: listing.availability,
+    cities: { name: listing.city ?? "" },
+    categories: { name: listing.category ?? "" },
+  };
+  const serviceGroupBackedListing: MatchableProfessional = {
+    ...categoryBackedListing,
+    categories: { name: listing.service_group ?? "" },
+  };
+
+  return Math.max(
+    calculateRequirementMatchScore(requirement, categoryBackedListing),
+    calculateRequirementMatchScore(requirement, serviceGroupBackedListing),
+  );
+}
+
 export async function createRequirementMatches(requirement: RequirementForMatching) {
   if (!isSupabaseConfigured || !supabase) {
     return 0;
   }
 
-  const { data, error } = await supabase
-    .from("professionals")
-    .select("id, area, availability, cities(name), categories(name)")
-    .eq("is_active", true)
-    .limit(500);
+  const [professionalsResult, companyListingsResult] = await Promise.all([
+    supabase
+      .from("professionals")
+      .select("id, area, availability, cities(name), categories(name)")
+      .eq("is_active", true)
+      .limit(500),
+    supabase
+      .from("company_listings")
+      .select("id, area, availability, city, category, service_group")
+      .eq("status", "approved")
+      .limit(500),
+  ]);
 
-  if (error) {
-    console.error("Failed to load professionals for requirement matching", error);
+  if (professionalsResult.error) {
+    console.error("Failed to load professionals for requirement matching", professionalsResult.error);
     return 0;
   }
 
-  const matches = ((data ?? []) as unknown as MatchableProfessional[])
+  if (companyListingsResult.error) {
+    console.error(
+      "Failed to load company staff for requirement matching",
+      companyListingsResult.error,
+    );
+  }
+
+  const matches = ((professionalsResult.data ?? []) as unknown as MatchableProfessional[])
     .map((professional) => ({
       requirement_id: requirement.id,
       professional_id: professional.id,
@@ -87,33 +161,57 @@ export async function createRequirementMatches(requirement: RequirementForMatchi
     .filter((match) => match.match_score >= 70)
     .sort((left, right) => right.match_score - left.match_score);
 
-  if (matches.length === 0) {
-    return 0;
+  const companyMatches = ((companyListingsResult.data ?? []) as unknown as MatchableCompanyListing[])
+    .map((listing) => ({
+      requirement_id: requirement.id,
+      company_listing_id: listing.id,
+      match_score: calculateCompanyListingMatchScore(requirement, listing),
+    }))
+    .filter((match) => match.match_score >= 70)
+    .sort((left, right) => right.match_score - left.match_score);
+
+  let savedCount = 0;
+
+  if (matches.length > 0) {
+    const { error: insertError } = await supabase
+      .from("requirement_matches")
+      .upsert(matches, { onConflict: "requirement_id,professional_id" });
+
+    if (insertError) {
+      console.error("Failed to save professional requirement matches", insertError);
+    } else {
+      savedCount += matches.length;
+    }
   }
 
-  const { error: insertError } = await supabase
-    .from("requirement_matches")
-    .upsert(matches, { onConflict: "requirement_id,professional_id" });
+  if (companyMatches.length > 0) {
+    const { error: companyInsertError } = await supabase
+      .from("requirement_matches")
+      .upsert(companyMatches, { onConflict: "requirement_id,company_listing_id" });
 
-  if (insertError) {
-    console.error("Failed to save requirement matches", insertError);
-    return 0;
+    if (companyInsertError) {
+      console.error("Failed to save company staff requirement matches", companyInsertError);
+    } else {
+      savedCount += companyMatches.length;
+    }
   }
 
-  const notifications = matches.map((match) => ({
-    requirement_id: match.requirement_id,
-    professional_id: match.professional_id,
-    channel: "app",
-    status: "unread",
-  }));
+  if (matches.length > 0) {
+    const notifications = matches.map((match) => ({
+      requirement_id: match.requirement_id,
+      professional_id: match.professional_id,
+      channel: "app",
+      status: "unread",
+    }));
 
-  const { error: notificationError } = await supabase
-    .from("requirement_notifications")
-    .upsert(notifications, { onConflict: "requirement_id,professional_id,channel" });
+    const { error: notificationError } = await supabase
+      .from("requirement_notifications")
+      .upsert(notifications, { onConflict: "requirement_id,professional_id,channel" });
 
-  if (notificationError) {
-    console.error("Failed to create requirement notifications", notificationError);
+    if (notificationError) {
+      console.error("Failed to create requirement notifications", notificationError);
+    }
   }
 
-  return matches.length;
+  return savedCount;
 }

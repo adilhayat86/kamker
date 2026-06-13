@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { createAdminCategory } from "@/app/admin/actions";
+import { createAdminCategory, updateAdminCategory } from "@/app/admin/actions";
 import {
   AdminEmptyState,
   AdminMetaGrid,
@@ -214,6 +214,146 @@ export default async function AdminCategoriesPage() {
                     <span className="text-sm text-muted-foreground">No subcategories yet.</span>
                   )}
                 </div>
+                <form action={updateAdminCategory} className="mt-5 grid gap-3 rounded-lg border bg-slate-50 p-3 lg:grid-cols-[1fr_140px_120px_auto]">
+                  <input type="hidden" name="categoryId" value={category.id} />
+                  <input type="hidden" name="parentId" value="" />
+                  <label className="grid gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Service group name
+                    </span>
+                    <input
+                      name="name"
+                      defaultValue={category.name}
+                      required
+                      className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                    />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Icon
+                    </span>
+                    <select
+                      name="icon"
+                      defaultValue={category.icon ?? "wrench"}
+                      className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                    >
+                      {iconOptions.map((icon) => (
+                        <option key={icon} value={icon}>{icon}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Sort
+                    </span>
+                    <input
+                      name="sortOrder"
+                      type="number"
+                      defaultValue={category.sort_order}
+                      className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                    />
+                  </label>
+                  <Button
+                    className="h-10 self-end"
+                    disabled={!adminAuthenticated || !isSupabaseConfigured}
+                    variant="outline"
+                  >
+                    Save
+                  </Button>
+                  <label className="grid gap-1 lg:col-span-4">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Description
+                    </span>
+                    <textarea
+                      name="description"
+                      defaultValue={category.description ?? ""}
+                      className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                    />
+                  </label>
+                </form>
+                {(childrenByParent.get(category.id) ?? []).length > 0 ? (
+                  <div className="mt-4 grid gap-3">
+                    {(childrenByParent.get(category.id) ?? []).map((child) => (
+                      <form
+                        key={child.id}
+                        action={updateAdminCategory}
+                        className="grid gap-2 rounded-lg border bg-white p-3 lg:grid-cols-[1fr_180px_140px_120px_auto]"
+                      >
+                        <input type="hidden" name="categoryId" value={child.id} />
+                        <label className="grid gap-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Subcategory
+                          </span>
+                          <input
+                            name="name"
+                            defaultValue={child.name}
+                            required
+                            className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                          />
+                        </label>
+                        <label className="grid gap-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Parent
+                          </span>
+                          <select
+                            name="parentId"
+                            defaultValue={child.parent_id ?? ""}
+                            required
+                            className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                          >
+                            {parentCategories.map((parentCategory) => (
+                              <option key={parentCategory.id} value={parentCategory.id}>
+                                {parentCategory.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="grid gap-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Icon
+                          </span>
+                          <select
+                            name="icon"
+                            defaultValue={child.icon ?? "wrench"}
+                            className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                          >
+                            {iconOptions.map((icon) => (
+                              <option key={icon} value={icon}>{icon}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="grid gap-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Sort
+                          </span>
+                          <input
+                            name="sortOrder"
+                            type="number"
+                            defaultValue={child.sort_order}
+                            className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                          />
+                        </label>
+                        <Button
+                          className="h-10 self-end"
+                          disabled={!adminAuthenticated || !isSupabaseConfigured}
+                          variant="outline"
+                        >
+                          Save
+                        </Button>
+                        <label className="grid gap-1 lg:col-span-5">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Description
+                          </span>
+                          <textarea
+                            name="description"
+                            defaultValue={child.description ?? ""}
+                            className="min-h-16 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                          />
+                        </label>
+                      </form>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ))
           ) : (

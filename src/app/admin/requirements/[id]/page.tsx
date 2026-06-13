@@ -2,9 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShieldAlert, Sparkles } from "lucide-react";
 
+import { updateRequirementStatus } from "@/app/admin/actions";
 import { DismissibleCard } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   isAdminAuthenticated,
@@ -24,8 +26,13 @@ type Requirement = {
   area: string | null;
   availability: string | null;
   details: string;
+  budget: string | null;
+  phone_number: string;
+  whatsapp_number: string | null;
   urgency: string;
   status: string;
+  broadcast_status: string;
+  payment_status: string;
   cities: { name: string } | null;
 };
 
@@ -35,10 +42,24 @@ type RequirementMatch = {
   professionals: {
     id: string;
     full_name: string;
+    phone_number: string;
+    whatsapp_number: string | null;
     availability: string | null;
     expected_rate: string | null;
     cities: { name: string } | null;
     categories: { name: string } | null;
+  } | null;
+  company_listings: {
+    id: string;
+    title: string;
+    category: string | null;
+    city: string | null;
+    availability: string | null;
+    hourly_rate: number | null;
+    monthly_rate: number | null;
+    phone: string | null;
+    whatsapp: string | null;
+    companies: { company_name: string } | null;
   } | null;
 };
 
@@ -55,7 +76,7 @@ async function getRequirement(id: string) {
 
   const { data, error } = await supabase
     .from("requirements")
-    .select("id, required_service, area, availability, details, urgency, status, cities(name)")
+    .select("id, required_service, area, availability, details, budget, phone_number, whatsapp_number, urgency, status, broadcast_status, payment_status, cities(name)")
     .eq("id", id)
     .maybeSingle();
 
@@ -75,7 +96,7 @@ async function getRequirementMatches(id: string) {
   const { data, error } = await supabase
     .from("requirement_matches")
     .select(
-      "id, match_score, professionals(id, full_name, availability, expected_rate, cities(name), categories(name))",
+      "id, match_score, professionals(id, full_name, phone_number, whatsapp_number, availability, expected_rate, cities(name), categories(name)), company_listings(id, title, category, city, availability, hourly_rate, monthly_rate, phone, whatsapp, companies(company_name))",
     )
     .eq("requirement_id", id)
     .order("match_score", { ascending: false });
@@ -103,11 +124,17 @@ export default async function RequirementDetailPage({
     getRequirement(id),
     getRequirementMatches(id),
   ]);
+  const statusActions = [
+    { label: "Mark Open", status: "open" },
+    { label: "Mark Contacted", status: "contacted" },
+    { label: "Mark Completed", status: "completed" },
+    { label: "Mark Spam", status: "spam" },
+  ];
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-5xl">
-        <PageNavigation backHref="/admin" backLabel="Admin" />
+        <PageNavigation backHref="/admin/requirements" backLabel="Requirements" />
 
         {!adminPasswordConfigured ? (
           <DismissibleCard
@@ -143,17 +170,59 @@ export default async function RequirementDetailPage({
               Requirement not found or Supabase is not configured.
             </p>
           )}
+          {requirement ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Badge variant="outline">Status: {requirement.status}</Badge>
+              <Badge variant="outline">Payment: {requirement.payment_status}</Badge>
+              <Badge variant="outline">Broadcast: {requirement.broadcast_status}</Badge>
+              {statusActions.map((action) => (
+                <form key={action.status} action={updateRequirementStatus}>
+                  <input type="hidden" name="requirementId" value={requirement.id} />
+                  <input type="hidden" name="status" value={action.status} />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant={requirement.status === action.status ? "default" : "outline"}
+                    disabled={!adminAuthenticated || requirement.status === action.status}
+                  >
+                    {action.label}
+                  </Button>
+                </form>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         {requirement?.details ? (
           <Card className="mt-6 bg-white shadow-sm">
             <CardContent className="p-5">
-              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-                Details
-              </p>
-              <p className="mt-2 leading-7 text-muted-foreground">
-                {requirement.details}
-              </p>
+              <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                    Details
+                  </p>
+                  <p className="mt-2 leading-7 text-muted-foreground">
+                    {requirement.details}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-4 text-sm">
+                  <p className="font-semibold">Customer contact</p>
+                  <div className="mt-3 grid gap-2 text-muted-foreground">
+                    <p>
+                      <span className="font-medium text-foreground">Phone:</span>{" "}
+                      {requirement.phone_number}
+                    </p>
+                    <p>
+                      <span className="font-medium text-foreground">WhatsApp:</span>{" "}
+                      {requirement.whatsapp_number ?? "Not provided"}
+                    </p>
+                    <p>
+                      <span className="font-medium text-foreground">Budget:</span>{" "}
+                      {requirement.budget ?? "Not provided"}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ) : null}
@@ -179,6 +248,38 @@ export default async function RequirementDetailPage({
               <div className="mt-5 grid gap-3">
                 {matches.map((match) => {
                   const professional = match.professionals;
+                  const companyListing = match.company_listings;
+                  const displayName =
+                    professional?.full_name ??
+                    companyListing?.title ??
+                    "Unknown professional";
+                  const category =
+                    professional?.categories?.name ??
+                    companyListing?.category ??
+                    "Not provided";
+                  const city =
+                    professional?.cities?.name ??
+                    companyListing?.city ??
+                    "Not provided";
+                  const availability =
+                    professional?.availability ??
+                    companyListing?.availability ??
+                    "Not provided";
+                  const contactPhone =
+                    professional?.phone_number ??
+                    companyListing?.phone ??
+                    "Not provided";
+                  const contactWhatsapp =
+                    professional?.whatsapp_number ??
+                    companyListing?.whatsapp ??
+                    "Not provided";
+                  const hourlyRate =
+                    professional?.expected_rate ??
+                    (companyListing?.hourly_rate
+                      ? `Rs ${companyListing.hourly_rate.toLocaleString("en-PK")}/hour`
+                      : companyListing?.monthly_rate
+                        ? `Rs ${companyListing.monthly_rate.toLocaleString("en-PK")}/month`
+                        : "Not provided");
 
                   return (
                     <div
@@ -187,23 +288,34 @@ export default async function RequirementDetailPage({
                     >
                       <div>
                         <p className="font-semibold">
-                          {professional?.full_name ?? "Unknown professional"}
+                          {displayName}
                         </p>
+                        {companyListing ? (
+                          <p className="mt-1 text-xs font-medium text-primary">
+                            Company staff
+                            {companyListing.companies?.company_name
+                              ? ` - ${companyListing.companies.company_name}`
+                              : ""}
+                          </p>
+                        ) : null}
                         <div className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
                           <span>
-                            Category:{" "}
-                            {professional?.categories?.name ?? "Not provided"}
+                            Category: {category}
                           </span>
                           <span>
-                            City: {professional?.cities?.name ?? "Not provided"}
+                            City: {city}
                           </span>
                           <span>
-                            Availability:{" "}
-                            {professional?.availability ?? "Not provided"}
+                            Availability: {availability}
                           </span>
                           <span>
-                            Hourly Rate:{" "}
-                            {professional?.expected_rate ?? "Not provided"}
+                            Hourly Rate: {hourlyRate}
+                          </span>
+                          <span>
+                            Phone: {contactPhone}
+                          </span>
+                          <span>
+                            WhatsApp: {contactWhatsapp}
                           </span>
                         </div>
                       </div>
@@ -217,6 +329,13 @@ export default async function RequirementDetailPage({
                             className="text-sm font-medium text-primary hover:underline"
                           >
                             View Profile
+                          </Link>
+                        ) : companyListing?.id ? (
+                          <Link
+                            href={`/company-listings/${companyListing.id}`}
+                            className="text-sm font-medium text-primary hover:underline"
+                          >
+                            View Staff Profile
                           </Link>
                         ) : null}
                       </div>

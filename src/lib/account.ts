@@ -24,6 +24,7 @@ export type AccountProfessional = {
   is_cnic_verified: boolean;
   is_phone_verified: boolean;
   is_active: boolean;
+  is_banned?: boolean | null;
   is_featured: boolean;
   featured_until: string | null;
   cities: { name: string } | null;
@@ -35,6 +36,7 @@ export type DemoAccountProfessional = Professional & {
   whatsapp_number: string;
   is_cnic_verified: boolean;
   is_active: boolean;
+  is_banned?: boolean | null;
 };
 
 export function isAccountFeatured(professional: AccountProfessional) {
@@ -54,6 +56,7 @@ export function getDemoAccountProfessional(): DemoAccountProfessional {
     whatsapp_number: "+92 300 0000000",
     is_cnic_verified: true,
     is_active: true,
+    is_banned: false,
     is_featured: isActiveFeaturedProfessional(professional),
   };
 }

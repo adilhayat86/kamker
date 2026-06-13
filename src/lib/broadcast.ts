@@ -1,4 +1,15 @@
-import { categories, categoryCountValue } from "@/lib/marketplace-data";
+import {
+  categories,
+  categoryCountValue,
+  recentProfessionals,
+  searchTermsForCategory,
+  serviceGroups,
+} from "@/lib/marketplace-data";
+import { getApprovedCompanyListingCards } from "@/lib/company-listing-cards";
+import {
+  getCategoryIdsByNames,
+  getCityIdByName,
+} from "@/lib/public-directory-lookups";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type BroadcastCountInput = {
@@ -6,12 +17,8 @@ type BroadcastCountInput = {
   subcategory?: string;
   city?: string;
   area?: string;
-};
-
-type CountableProfessional = {
-  area: string | null;
-  cities: { name: string } | null;
-  categories: { name: string } | null;
+  scope?: "category" | "serviceGroup";
+  estimate?: number;
 };
 
 function locationLabel(city?: string, area?: string) {
@@ -40,36 +47,157 @@ function demoCountFor(input: BroadcastCountInput) {
   return baseCount;
 }
 
+function normalizeMatchValue(value?: string | null) {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function serviceMatchesCategory(serviceName: string, categoryName: string) {
+  const service = normalizeMatchValue(serviceName);
+  const categoryTerms = searchTermsForCategory(categoryName).map(normalizeMatchValue);
+
+  return categoryTerms.some((category) => {
+    const singularCategory = category.replace(/s$/, "");
+
+    return (
+      service.includes(category) ||
+      service.includes(singularCategory) ||
+      category.includes(service)
+    );
+  });
+}
+
+function fallbackProfessionalsCount(input: BroadcastCountInput, targets: string[]) {
+  return recentProfessionals.filter((professional) => {
+    const categoryMatch = targets.length
+      ? targets.some((target) => serviceMatchesCategory(professional.role, target))
+      : true;
+    const cityMatch = input.city ? professional.city === input.city : true;
+    const areaMatch = input.area
+      ? normalizeMatchValue(professional.area).includes(normalizeMatchValue(input.area))
+      : true;
+
+    return categoryMatch && cityMatch && areaMatch;
+  }).length;
+}
+
+function targetServicesFor(input: BroadcastCountInput) {
+  if (input.subcategory) {
+    return [input.subcategory];
+  }
+
+  if (!input.category) {
+    return [];
+  }
+
+  const serviceGroup = serviceGroups.find(
+    (group) => normalizeMatchValue(group.name) === normalizeMatchValue(input.category),
+  );
+
+  return serviceGroup ? serviceGroup.subcategories : [input.category];
+}
+
 export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
   if (!isSupabaseConfigured || !supabase) {
     return demoCountFor(input);
   }
 
-  const { data, error } = await supabase
-    .from("professionals")
-    .select("area, cities(name), categories(name)")
-    .eq("is_active", true)
-    .limit(1000);
+  const targets = targetServicesFor(input);
+  const [cityId, categoryIds] = await Promise.all([
+    input.city ? getCityIdByName(input.city) : Promise.resolve(null),
+    getCategoryIdsByNames(targets),
+  ]);
 
-  if (error) {
-    console.error("Failed to count broadcast recipients", error);
+  if (input.city && cityId === null) {
+    return 0;
+  }
+
+  let professionalsQuery = supabase
+    .from("professionals")
+    .select("id", { count: "exact", head: true })
+    .eq("is_active", true)
+    .eq("is_banned", false);
+
+  if (cityId !== null) {
+    professionalsQuery = professionalsQuery.eq("city_id", cityId);
+  }
+
+  if (categoryIds.length > 0) {
+    professionalsQuery = professionalsQuery.in("category_id", categoryIds);
+  } else if (targets.length > 0) {
+    return 0;
+  }
+
+  if (input.area) {
+    professionalsQuery = professionalsQuery.ilike("area", `%${input.area}%`);
+  }
+
+  const serviceGroup = input.category
+    ? serviceGroups.find(
+        (group) => normalizeMatchValue(group.name) === normalizeMatchValue(input.category),
+      )
+    : null;
+  let companyListingsQuery = supabase
+    .from("company_listings")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "approved");
+
+  if (input.city) {
+    companyListingsQuery = companyListingsQuery.eq("city", input.city);
+  }
+
+  if (input.area) {
+    companyListingsQuery = companyListingsQuery.ilike("area", `%${input.area}%`);
+  }
+
+  if (input.subcategory) {
+    companyListingsQuery = companyListingsQuery.eq("category", input.subcategory);
+  } else if (serviceGroup) {
+    companyListingsQuery = companyListingsQuery.in("category", serviceGroup.subcategories);
+  } else if (input.category) {
+    companyListingsQuery = companyListingsQuery.eq("category", input.category);
+  }
+
+  const [professionalsResult, companyListingsResult] = await Promise.all([
+    professionalsQuery,
+    companyListingsQuery,
+  ]);
+
+  if (professionalsResult.error || companyListingsResult.error) {
+    console.error(
+      "Failed to count broadcast recipients",
+      professionalsResult.error ?? companyListingsResult.error,
+    );
     return demoCountFor(input);
   }
 
-  const serviceName = input.subcategory || input.category;
-  const professionals = (data ?? []) as unknown as CountableProfessional[];
+  const recipientCount =
+    (professionalsResult.count ?? 0) + (companyListingsResult.count ?? 0);
 
-  return professionals.filter((professional) => {
-    const categoryMatch = serviceName
-      ? professional.categories?.name === serviceName
-      : true;
-    const cityMatch = input.city ? professional.cities?.name === input.city : true;
-    const areaMatch = input.area
-      ? professional.area?.toLowerCase() === input.area.toLowerCase()
-      : true;
+  if (recipientCount === 0) {
+    const shouldUseSubcategoryFallback = Boolean(input.subcategory);
+    const fallbackCompanyCards = await getApprovedCompanyListingCards({
+      categories: shouldUseSubcategoryFallback || !serviceGroup ? targets : undefined,
+      serviceGroup: shouldUseSubcategoryFallback ? undefined : serviceGroup?.name,
+      city: input.city,
+      area: input.area,
+    });
+    const fallbackCount =
+      fallbackProfessionalsCount(input, targets) + fallbackCompanyCards.length;
 
-    return categoryMatch && cityMatch && areaMatch;
-  }).length;
+    if (fallbackCount > 0) {
+      return fallbackCount;
+    }
+  }
+
+  if (recipientCount === 0 && targets.length === 0 && !input.city && !input.area) {
+    return demoCountFor(input);
+  }
+
+  return recipientCount;
 }
 
 export function buildSendRequirementHref(input: BroadcastCountInput) {
@@ -91,6 +219,10 @@ export function buildSendRequirementHref(input: BroadcastCountInput) {
     params.set("area", input.area);
   }
 
+  if (typeof input.estimate === "number" && Number.isFinite(input.estimate)) {
+    params.set("estimate", String(Math.max(0, Math.floor(input.estimate))));
+  }
+
   const query = params.toString();
 
   return query ? `/send-requirement?${query}` : "/send-requirement";
@@ -102,20 +234,27 @@ export function broadcastButtonText({
   subcategory,
   city,
   area,
+  scope = "category",
 }: BroadcastCountInput & {
   count: number;
 }) {
   const place = locationLabel(city, area);
+  const countLabel = count > 0 ? `${count.toLocaleString()} ` : "";
+  const professionalLabel = count === 1 ? "professional" : "professionals";
 
   if (subcategory) {
-    return `Send Requirement to ${count.toLocaleString()} ${subcategory}${place ? ` in ${place}` : ""}`;
+    return `Send Requirement to ${countLabel}${subcategory}${place ? ` in ${place}` : ""}`;
+  }
+
+  if (scope === "serviceGroup" && category) {
+    return `Send Requirement to ${countLabel}${category} ${professionalLabel}${place ? ` in ${place}` : ""}`;
   }
 
   if (category) {
-    return `Send Requirement to ${count.toLocaleString()} ${category} Professionals${place ? ` in ${place}` : ""}`;
+    return `Send Requirement to ${countLabel}${category} ${professionalLabel}${place ? ` in ${place}` : ""}`;
   }
 
-  return `Send Requirement to ${count.toLocaleString()} Kamker Professionals${place ? ` in ${place}` : ""}`;
+  return `Send Requirement to ${countLabel}Kamker ${professionalLabel}${place ? ` in ${place}` : ""}`;
 }
 
 export function serviceFromBroadcastQuery({

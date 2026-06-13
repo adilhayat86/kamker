@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 
-import { getAutoApproveProfessionals } from "@/lib/admin-settings";
 import {
   isWorkerDayAvailability,
   isWorkerTimeAvailability,
@@ -10,14 +9,24 @@ import {
   type WorkerTimeAvailability,
   workerAvailabilitySummary,
 } from "@/lib/worker-availability";
-import { createProfessionalSession, hashSecret } from "@/lib/auth";
+import {
+  createProfessionalSession,
+  findProfessionalsByPhone,
+  hashSecret,
+} from "@/lib/auth";
+import { trackAnalyticsEvent } from "@/lib/analytics";
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import {
   isLocalDemoStoreEnabled,
   saveLocalProfessional,
 } from "@/lib/local-demo-store";
+import {
+  normalizePakistanMobilePhone,
+  validatePhoneFieldWithCountry,
+} from "@/lib/phone";
 import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { findOrCreateCategoryId, findOrCreateCityId } from "@/lib/taxonomy";
 
 function field(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -76,8 +85,11 @@ async function saveProfessionalDraft(input: {
 
 export async function registerProfessional(formData: FormData) {
   const fullName = field(formData, "fullName");
-  const phoneNumber = field(formData, "phone");
-  const whatsappNumber = field(formData, "whatsapp");
+  const phoneInput = field(formData, "phone");
+  const phoneValidation = normalizePakistanMobilePhone(phoneInput);
+  const phoneNumber = phoneValidation.normalized || phoneInput;
+  const whatsappValidation = validatePhoneFieldWithCountry(formData, "whatsapp");
+  const whatsappNumber = whatsappValidation.normalized;
   const cityName = field(formData, "city");
   const area = field(formData, "area");
   const categoryName = field(formData, "category");
@@ -94,6 +106,7 @@ export async function registerProfessional(formData: FormData) {
   const password = field(formData, "password");
   const secretQuestion = field(formData, "secretQuestion");
   const secretAnswer = field(formData, "secretAnswer");
+  const source = field(formData, "source") || "unknown";
   const draftInput = {
     fullName,
     phoneNumber,
@@ -115,7 +128,9 @@ export async function registerProfessional(formData: FormData) {
 
   const errors = [
     !fullName ? "fullName" : null,
-    !phoneNumber ? "phone" : null,
+    !phoneInput ? "phone" : null,
+    phoneInput && !phoneValidation.ok ? "phoneInvalid" : null,
+    !whatsappValidation.ok ? "whatsappInvalid" : null,
     !cityName ? "city" : null,
     !categoryName ? "category" : null,
     !gender ? "gender" : null,
@@ -131,6 +146,13 @@ export async function registerProfessional(formData: FormData) {
 
   if (errors.length > 0) {
     await saveProfessionalDraft({ ...draftInput, errors });
+    redirect("/register/professional?status=missing");
+  }
+
+  const duplicateProfessionals = await findProfessionalsByPhone(phoneNumber);
+
+  if (duplicateProfessionals.length > 0) {
+    await saveProfessionalDraft({ ...draftInput, errors: ["phoneDuplicate"] });
     redirect("/register/professional?status=missing");
   }
 
@@ -176,66 +198,88 @@ export async function registerProfessional(formData: FormData) {
     redirect("/register/professional?status=not-configured");
   }
 
-  const { data: city } = await supabase
-    .from("cities")
-    .select("id")
-    .eq("name", cityName)
-    .maybeSingle();
+  const [cityId, categoryId] = await Promise.all([
+    findOrCreateCityId(cityName),
+    findOrCreateCategoryId(categoryName),
+  ]);
 
-  const { data: category } = await supabase
-    .from("categories")
-    .select("id")
-    .eq("name", categoryName)
-    .maybeSingle();
-
-  const autoApprove = await getAutoApproveProfessionals();
   let profilePhotoUrl: string | null = null;
+  let photoSkipped = false;
   const availability = workerAvailabilitySummary(
     validatedAvailabilityTime,
     validatedAvailabilityDays,
   );
+  const browserUploadedPhotoUrl = field(formData, "profilePhotoUrl");
+  const submittedPhoto = formData.get("photo");
+  const hasSubmittedPhoto =
+    submittedPhoto instanceof File && submittedPhoto.size > 0;
 
-  try {
-    profilePhotoUrl = await uploadProfessionalPhoto(formData);
-  } catch (error) {
-    await saveProfessionalDraft(draftInput);
-    redirect(
-      error instanceof Error && error.message === "invalid-photo"
-        ? "/register/professional?status=invalid-photo"
-        : "/register/professional?status=photo-error",
-    );
+  if (browserUploadedPhotoUrl) {
+    profilePhotoUrl = browserUploadedPhotoUrl;
+  } else {
+    try {
+      profilePhotoUrl = await uploadProfessionalPhoto(formData);
+      if (!profilePhotoUrl && hasSubmittedPhoto) {
+        photoSkipped = true;
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message === "invalid-photo") {
+        await saveProfessionalDraft(draftInput);
+        redirect("/register/professional?status=invalid-photo");
+      }
+
+      photoSkipped = true;
+      console.error("Professional photo upload failed; continuing registration without photo", error);
+    }
   }
 
-  const { data: professional, error } = await supabase
+  const insertPayload = {
+    full_name: fullName,
+    phone_number: phoneNumber,
+    whatsapp_number: whatsappNumber || null,
+    city_id: cityId,
+    area: area || null,
+    category_id: categoryId,
+    gender,
+    age: validatedAge,
+    availability,
+    availability_time: validatedAvailabilityTime,
+    availability_days: validatedAvailabilityDays,
+    years_experience: yearsExperience,
+    experience: experience || null,
+    expected_rate: expectedRate || null,
+    tagline,
+    short_bio: shortBio || null,
+    cnic: cnic || null,
+    profile_photo_url: profilePhotoUrl,
+    password_hash: passwordHash,
+    secret_question: secretQuestion,
+    secret_answer_hash: secretAnswerHash,
+    is_phone_verified: false,
+    is_cnic_verified: false,
+    is_active: false,
+    is_banned: false,
+  };
+
+  let { data: professional, error } = await supabase
     .from("professionals")
-    .insert({
-      full_name: fullName,
-      phone_number: phoneNumber,
-      whatsapp_number: whatsappNumber || null,
-      city_id: city?.id ?? null,
-      area: area || null,
-      category_id: category?.id ?? null,
-      gender,
-      age: validatedAge,
-      availability,
-      availability_time: validatedAvailabilityTime,
-      availability_days: validatedAvailabilityDays,
-      years_experience: yearsExperience,
-      experience: experience || null,
-      expected_rate: expectedRate || null,
-      tagline,
-      short_bio: shortBio || null,
-      cnic: cnic || null,
-      profile_photo_url: profilePhotoUrl,
-      password_hash: passwordHash,
-      secret_question: secretQuestion,
-      secret_answer_hash: secretAnswerHash,
-      is_phone_verified: false,
-      is_cnic_verified: false,
-      is_active: autoApprove,
-    })
+    .insert(insertPayload)
     .select("id")
     .single();
+
+  if (error?.code === "PGRST204") {
+    const legacyInsertPayload = Object.fromEntries(
+      Object.entries(insertPayload).filter(([key]) => key !== "is_banned"),
+    );
+    const fallbackInsert = await supabase
+      .from("professionals")
+      .insert(legacyInsertPayload)
+      .select("id")
+      .single();
+
+    professional = fallbackInsert.data;
+    error = fallbackInsert.error;
+  }
 
   if (error || !professional) {
     console.error("Failed to register professional", error);
@@ -243,7 +287,19 @@ export async function registerProfessional(formData: FormData) {
     redirect("/register/professional?status=error");
   }
 
+  await trackAnalyticsEvent({
+    eventType: "worker_registration",
+    targetType: "professional",
+    targetId: professional.id as string,
+    metadata: {
+      category: categoryName,
+      city: cityName,
+      source,
+      path: "/register/professional",
+    },
+  });
+
   await createProfessionalSession(professional.id as string);
   await clearFormDraft("professional");
-  redirect("/account?status=registered");
+  redirect(photoSkipped ? "/account?status=registered-photo-skipped" : "/account?status=registered");
 }

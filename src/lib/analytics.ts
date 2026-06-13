@@ -1,8 +1,22 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type TrackEventInput = {
-  eventType: "view" | "call_click" | "whatsapp_click" | "requirement_match" | "broadcast_sent";
-  targetType: "professional" | "company" | "company_listing" | "requirement";
+  eventType:
+    | "search"
+    | "view"
+    | "worker_registration"
+    | "company_staff_registration"
+    | "requirement_submission"
+    | "call_click"
+    | "whatsapp_click"
+    | "requirement_match"
+    | "broadcast_sent";
+  targetType:
+    | "professional"
+    | "company"
+    | "company_listing"
+    | "requirement"
+    | "page";
   targetId?: string | null;
   metadata?: Record<string, string | number | boolean | null>;
 };

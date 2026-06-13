@@ -31,6 +31,7 @@ export type LocalProfessionalRecord = {
   is_cnic_verified: boolean;
   is_phone_verified: boolean;
   is_active: boolean;
+  is_banned?: boolean | null;
   is_featured: boolean;
   featured_until: string | null;
   rating: number | null;
@@ -183,6 +184,22 @@ export async function getLocalProfessionalRecordById(id: string) {
   return records.find((professional) => professional.id === id) ?? null;
 }
 
+export async function deleteLocalProfessionalRecordById(id: string) {
+  if (!isLocalDemoStoreEnabled) {
+    return false;
+  }
+
+  const records = await readLocalProfessionals();
+  const nextRecords = records.filter((professional) => professional.id !== id);
+
+  if (nextRecords.length === records.length) {
+    return false;
+  }
+
+  await writeLocalJsonFile(localProfessionalsPath, nextRecords);
+  return true;
+}
+
 export async function getLocalCompanyRecords() {
   if (!isLocalDemoStoreEnabled) {
     return [];
@@ -243,7 +260,8 @@ export async function saveLocalProfessional(input: SaveLocalProfessionalInput) {
     secret_answer_hash: input.secretAnswerHash ?? null,
     is_cnic_verified: false,
     is_phone_verified: false,
-    is_active: true,
+    is_active: false,
+    is_banned: false,
     is_featured: false,
     featured_until: null,
     rating: null,
@@ -385,5 +403,7 @@ export function localRecordToProfessional(
 export async function getLocalProfessionalCards() {
   const records = await getLocalProfessionalRecords();
 
-  return records.map(localRecordToProfessional);
+  return records
+    .filter((record) => record.is_active && !record.is_banned)
+    .map(localRecordToProfessional);
 }

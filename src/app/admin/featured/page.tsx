@@ -28,6 +28,7 @@ export const metadata = {
 };
 
 export const dynamic = "force-dynamic";
+const FEATURED_PREVIEW_LIMIT = 20;
 
 type FeaturedWorker = {
   id: string;
@@ -57,9 +58,10 @@ async function getFeaturedWorkers() {
     .from("professionals")
     .select("id, full_name, is_featured, featured_until, cities(name), categories(name)")
     .eq("is_active", true)
+    .eq("is_banned", false)
     .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(60);
+    .limit(FEATURED_PREVIEW_LIMIT);
 
   if (error) {
     console.error("Failed to load featured workers", error);
@@ -79,7 +81,7 @@ async function getFeaturedCompanyStaff() {
     .select("id, title, category, city, status, is_featured, companies(id, company_name)")
     .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(60);
+    .limit(FEATURED_PREVIEW_LIMIT);
 
   if (error) {
     console.error("Failed to load featured company staff", error);
@@ -125,7 +127,10 @@ export default async function AdminFeaturedPage() {
         <AdminStatCard label="Total Featured" value={summary.activeFeaturedWorkers + summary.activeFeaturedCompanyStaff} />
       </div>
 
-      <AdminSection title="Worker Featured Profiles" description="Set featured_until for individual workers.">
+      <AdminSection
+        title="Worker Featured Profiles"
+        description={`Showing the latest ${FEATURED_PREVIEW_LIMIT} workers for quick action. Use Workers for deeper filtering.`}
+      >
         <div className="grid gap-3">
           {workers.length > 0 ? (
             workers.map((worker) => (
@@ -164,7 +169,10 @@ export default async function AdminFeaturedPage() {
         </div>
       </AdminSection>
 
-      <AdminSection title="Company Staff Featured Profiles" description="Feature company-managed staff while respecting package limits in the existing server action.">
+      <AdminSection
+        title="Company Staff Featured Profiles"
+        description={`Showing the latest ${FEATURED_PREVIEW_LIMIT} company-managed staff profiles while package limits remain enforced by server actions.`}
+      >
         <div className="grid gap-3">
           {staff.length > 0 ? (
             staff.map((listing) => (

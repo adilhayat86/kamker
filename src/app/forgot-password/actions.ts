@@ -6,6 +6,7 @@ import {
   clearPasswordRecoverySession,
   createPasswordRecoverySession,
   findProfessionalByPhone,
+  findProfessionalsByPhone,
   getRecoveryProfessionalId,
   hashSecret,
   normalizePhoneNumber,
@@ -31,6 +32,11 @@ export async function startForgotPassword(formData: FormData) {
   }
 
   const professional = await findProfessionalByPhone(phoneNumber);
+  const matches = await findProfessionalsByPhone(phoneNumber);
+
+  if (matches.length > 1) {
+    redirect("/forgot-password?status=phone-review");
+  }
 
   if (!professional?.secret_question || !professional.secret_answer_hash) {
     redirect("/forgot-password?status=not-found");
@@ -51,7 +57,13 @@ export async function verifySecretAnswer(formData: FormData) {
     redirect("/forgot-password?status=not-configured");
   }
 
-  const professional = await findProfessionalByPhone(phoneNumber);
+  const matches = await findProfessionalsByPhone(phoneNumber);
+
+  if (matches.length > 1) {
+    redirect("/forgot-password?status=phone-review");
+  }
+
+  const professional = matches[0] ?? null;
   const isAnswerValid = await verifySecret(
     secretAnswer.toLowerCase(),
     professional?.secret_answer_hash ?? null,
@@ -80,7 +92,13 @@ export async function resetPasswordWithSecretAnswer(formData: FormData) {
     redirect("/forgot-password?status=not-configured");
   }
 
-  const professional = await findProfessionalByPhone(phoneNumber);
+  const matches = await findProfessionalsByPhone(phoneNumber);
+
+  if (matches.length > 1) {
+    redirect("/forgot-password?status=phone-review");
+  }
+
+  const professional = matches[0] ?? null;
 
   if (!professional || professional.id !== professionalId) {
     redirect("/forgot-password?status=recovery-expired");

@@ -23,6 +23,7 @@ const statusMessages = {
   "missing-answer": "Enter your secret answer.",
   "not-configured": "Supabase is not configured yet.",
   "not-found": "No professional account with recovery details was found.",
+  "phone-review": "This phone number needs admin review before password reset. Contact Kamker support.",
   "wrong-answer": "Secret answer is incorrect.",
   "recovery-expired": "Recovery session expired. Start again.",
   error: "Could not reset password. Please try again.",
@@ -91,8 +92,9 @@ export default async function ForgotPasswordPage({
                     <input
                       name="phone"
                       type="tel"
+                      maxLength={16}
                       className="h-11 w-full rounded-md border border-input bg-background px-3 pl-9 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      placeholder="+92 300 0000000"
+                      placeholder="Phone number"
                     />
                   </div>
                 </label>

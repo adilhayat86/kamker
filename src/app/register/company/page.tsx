@@ -1,24 +1,27 @@
 import Link from "next/link";
 import { Building2, ShieldCheck } from "lucide-react";
 
+import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getCityOptions } from "@/lib/city-options";
 import { getFormDraft } from "@/lib/form-draft";
-import { categories, cities } from "@/lib/marketplace-data";
+import { categories } from "@/lib/marketplace-data";
 
 import { registerCompany } from "./actions";
 
 export const metadata = {
   title: "Register Company | Kamker",
-  description: "Register a company account to add multiple staff profiles on Kamker.",
+  description:
+    "Register a company account to add multiple company-managed professionals on Kamker.",
 };
 
 const statusMessages = {
   success:
-    "Company details saved. Next step is choosing a package for company-managed staff profiles.",
+    "Company details saved. Next step is choosing a package for company-managed professionals and staff profiles.",
   missing:
     "Fix the highlighted fields. Your entered company details are kept so you can correct them easily.",
   "not-configured": "Supabase is not configured yet.",
@@ -69,9 +72,13 @@ export default async function CompanyRegisterPage({
   const companyId = params?.companyId;
   const statusMessage = status ? statusMessages[status] : null;
   const draft = await getFormDraft<CompanyDraft>("company");
+  const cityOptions = await getCityOptions();
   const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
   const errorFor = (field: string) => {
-    if (!failedFields.has(field)) {
+    const phoneError = field === "phone" && failedFields.has("phoneInvalid");
+    const whatsappError = field === "whatsapp" && failedFields.has("whatsappInvalid");
+
+    if (!failedFields.has(field) && !phoneError && !whatsappError) {
       return undefined;
     }
 
@@ -81,8 +88,18 @@ export default async function CompanyRegisterPage({
       city: "Choose a city.",
       contactPerson: "Contact person is required.",
       phone: "Phone number is required.",
+      phoneInvalid: "Enter a valid Pakistan mobile number, for example 03001234567.",
+      whatsappInvalid: "Enter a valid WhatsApp number or leave it blank.",
       description: "Company description is required.",
     };
+
+    if (field === "phone" && failedFields.has("phoneInvalid")) {
+      return messages.phoneInvalid;
+    }
+
+    if (field === "whatsapp" && failedFields.has("whatsappInvalid")) {
+      return messages.whatsappInvalid;
+    }
 
     return messages[field] ?? "This field needs attention.";
   };
@@ -105,7 +122,7 @@ export default async function CompanyRegisterPage({
         </div>
 
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Register your agency or business as one company account. After package activation, your company can add multiple staff profiles in any category and city according to the selected package limit.
+          Register your agency or business as one company account. After package activation, your company can add multiple company-managed professionals and staff profiles in any category and city according to the selected package limit.
         </p>
 
         <DismissibleNotice className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950" contentClassName="flex gap-3" closeLabel="Close directory warning">
@@ -161,7 +178,7 @@ export default async function CompanyRegisterPage({
                 <SelectField
                   label="City"
                   name="city"
-                  options={cities}
+                  options={cityOptions}
                   defaultValue={draft.city}
                   error={errorFor("city")}
                   required
@@ -185,11 +202,18 @@ export default async function CompanyRegisterPage({
                   label="Phone number"
                   name="phone"
                   type="tel"
+                  placeholder="0300 1234567"
                   defaultValue={draft.phone}
                   error={errorFor("phone")}
+                  maxLength={16}
                   required
                 />
-                <FormField label="WhatsApp number" name="whatsapp" type="tel" defaultValue={draft.whatsapp} />
+                <CountryPhoneField
+                  label="WhatsApp number"
+                  name="whatsapp"
+                  defaultValue={draft.whatsapp}
+                  error={errorFor("whatsapp")}
+                />
                 <FormField
                   label="License number optional"
                   name="licenseNumber"

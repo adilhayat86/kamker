@@ -91,6 +91,16 @@ function categoryHref(categoryName: string, city?: string, area?: string) {
   return `/categories/${categorySlug(categoryName)}${query ? `?${query}` : ""}`;
 }
 
+function categoryCountText(count: string) {
+  const value = count.trim();
+
+  if (!value || value === "0") {
+    return "Browse professionals";
+  }
+
+  return `${value} available`;
+}
+
 export function CategoryGrid({ categories, city, area }: CategoryGridProps) {
   return (
     <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-7 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -115,7 +125,7 @@ export function CategoryGrid({ categories, city, area }: CategoryGridProps) {
                   </h3>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground sm:mt-3 sm:text-sm">
-                  {category.count} available
+                  {categoryCountText(category.count)}
                 </p>
               </CardContent>
             </Card>

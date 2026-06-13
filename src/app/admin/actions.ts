@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { recordAdminAudit } from "@/lib/admin-audit";
 import { requireAdmin } from "@/lib/admin-auth";
@@ -10,6 +11,7 @@ import {
   getPublishedCompanyListingUsage,
 } from "@/lib/company-packages";
 import { categorySlug } from "@/lib/marketplace-data";
+import { pakistanMobileNormalizedDigits } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 async function canMutateAdmin() {
@@ -68,6 +70,152 @@ export async function createAdminCategory(formData: FormData) {
   revalidatePath("/categories");
 }
 
+export async function updateAdminCategory(formData: FormData) {
+  const id = formData.get("categoryId");
+  const name = textField(formData, "name");
+  const icon = textField(formData, "icon") || "wrench";
+  const description = textField(formData, "description");
+  const parentId = textField(formData, "parentId");
+  const sortOrder = numberField(formData, "sortOrder");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !name ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("categories")
+    .update({
+      name,
+      slug: categorySlug(name),
+      icon,
+      description: description || null,
+      parent_id: parentId ? Number(parentId) : null,
+      sort_order: sortOrder,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to update admin category", error);
+    return;
+  }
+
+  await recordAdminAudit({
+    action: parentId ? "update_subcategory" : "update_category",
+    targetType: "category",
+    targetId: id,
+    metadata: { name, parentId: parentId || null },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/categories");
+  revalidatePath("/categories");
+  revalidatePath(`/categories/${categorySlug(name)}`);
+  revalidatePath("/professionals");
+  revalidatePath("/register/professional");
+  revalidatePath("/register/company");
+  revalidatePath("/send-requirement");
+}
+
+export async function createAdminCity(formData: FormData) {
+  const name = textField(formData, "name").replace(/\s+/g, " ");
+
+  if (!name || !isSupabaseConfigured || !supabase || !(await canMutateAdmin())) {
+    return;
+  }
+
+  const { data: existingCity, error: existingError } = await supabase
+    .from("cities")
+    .select("id")
+    .ilike("name", name)
+    .maybeSingle();
+
+  if (existingError) {
+    console.error("Failed to check admin city", existingError);
+    return;
+  }
+
+  if (existingCity) {
+    revalidatePath("/admin/cities");
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("cities")
+    .insert({ name })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("Failed to create admin city", error);
+    return;
+  }
+
+  await recordAdminAudit({
+    action: "create_city",
+    targetType: "city",
+    targetId: String(data.id),
+    metadata: { name },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/cities");
+  revalidatePath("/categories");
+  revalidatePath("/professionals");
+  revalidatePath("/register/professional");
+  revalidatePath("/register/company");
+  revalidatePath("/register/customer");
+  revalidatePath("/send-requirement");
+}
+
+export async function updateAdminCity(formData: FormData) {
+  const id = formData.get("cityId");
+  const name = textField(formData, "name").replace(/\s+/g, " ");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !name ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("cities")
+    .update({ name })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to update admin city", error);
+    return;
+  }
+
+  await recordAdminAudit({
+    action: "update_city",
+    targetType: "city",
+    targetId: id,
+    metadata: { name },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/cities");
+  revalidatePath("/categories");
+  revalidatePath("/professionals");
+  revalidatePath("/register/professional");
+  revalidatePath("/register/company");
+  revalidatePath("/register/customer");
+  revalidatePath("/send-requirement");
+}
+
 export async function approveProfessional(formData: FormData) {
   const id = formData.get("professionalId");
 
@@ -83,7 +231,7 @@ export async function approveProfessional(formData: FormData) {
 
   const { error } = await supabase
     .from("professionals")
-    .update({ is_active: true })
+    .update({ is_active: true, is_banned: false })
     .eq("id", id);
 
   if (error) {
@@ -99,6 +247,7 @@ export async function approveProfessional(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/workers");
   revalidatePath("/professionals");
+  redirect("/admin/workers?notice=worker-approved");
 }
 
 export async function rejectProfessional(formData: FormData) {
@@ -116,7 +265,7 @@ export async function rejectProfessional(formData: FormData) {
 
   const { error } = await supabase
     .from("professionals")
-    .update({ is_active: false })
+    .update({ is_active: false, is_banned: false })
     .eq("id", id);
 
   if (error) {
@@ -132,6 +281,7 @@ export async function rejectProfessional(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/workers");
   revalidatePath("/professionals");
+  redirect("/admin/workers?notice=worker-pending");
 }
 
 export async function verifyCnic(formData: FormData) {
@@ -183,6 +333,17 @@ export async function makeProfessionalFeatured(formData: FormData) {
 
   const fallbackDate = new Date();
   fallbackDate.setDate(fallbackDate.getDate() + 30);
+
+  const { data: professional, error: professionalError } = await supabase
+    .from("professionals")
+    .select("is_active, is_banned")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (professionalError || !professional || !professional.is_active || professional.is_banned) {
+    console.error("Cannot feature a pending or banned professional", professionalError);
+    return;
+  }
 
   const featuredUntilValue =
     typeof featuredUntil === "string" && featuredUntil
@@ -250,6 +411,241 @@ export async function removeProfessionalFeatured(formData: FormData) {
   revalidatePath("/professionals");
 }
 
+export async function banProfessional(formData: FormData) {
+  const id = formData.get("professionalId");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("professionals")
+    .update({
+      is_active: false,
+      is_banned: true,
+      is_featured: false,
+      featured_until: null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to ban professional", error);
+  }
+
+  await recordAdminAudit({
+    action: "ban_professional",
+    targetType: "professional",
+    targetId: id,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/workers");
+  revalidatePath("/admin/featured");
+  revalidatePath("/professionals");
+  revalidatePath(`/professionals/${id}`);
+  redirect("/admin/workers?notice=worker-banned");
+}
+
+export async function unbanProfessional(formData: FormData) {
+  const id = formData.get("professionalId");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("professionals")
+    .update({
+      is_active: false,
+      is_banned: false,
+      is_featured: false,
+      featured_until: null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to unban professional", error);
+  }
+
+  await recordAdminAudit({
+    action: "unban_professional",
+    targetType: "professional",
+    targetId: id,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/workers");
+  revalidatePath("/admin/featured");
+  revalidatePath("/professionals");
+  revalidatePath(`/professionals/${id}`);
+  redirect("/admin/workers?notice=worker-unbanned");
+}
+
+function featuredDurationFromAmount(amountPkr: number) {
+  return amountPkr >= 2500 ? 365 : 30;
+}
+
+function extendFeaturedUntil(currentValue: string | null, durationDays: number) {
+  const now = new Date();
+  const currentExpiry = currentValue ? new Date(currentValue) : null;
+  const startsAt =
+    currentExpiry && currentExpiry > now ? currentExpiry.getTime() : now.getTime();
+
+  return new Date(startsAt + durationDays * 24 * 60 * 60 * 1000).toISOString();
+}
+
+export async function activateFeaturedProfileProof(formData: FormData) {
+  const proofReviewId = formData.get("proofReviewId");
+
+  if (
+    typeof proofReviewId !== "string" ||
+    !proofReviewId ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data: proofReview, error: proofError } = await supabase
+    .from("proof_reviews")
+    .select("id, review_type, related_id, expected_amount_pkr")
+    .eq("id", proofReviewId)
+    .maybeSingle();
+
+  if (
+    proofError ||
+    !proofReview ||
+    proofReview.review_type !== "featured_profile" ||
+    !proofReview.related_id
+  ) {
+    console.error("Failed to load featured profile proof for activation", proofError);
+    return;
+  }
+
+  const professionalId = String(proofReview.related_id);
+  const { data: professional, error: professionalError } = await supabase
+    .from("professionals")
+    .select("featured_until")
+    .eq("id", professionalId)
+    .maybeSingle();
+
+  if (professionalError || !professional) {
+    console.error("Failed to load professional for featured activation", professionalError);
+    return;
+  }
+
+  const durationDays = featuredDurationFromAmount(
+    Number(proofReview.expected_amount_pkr ?? 0),
+  );
+  const nextFeaturedUntil = extendFeaturedUntil(
+    (professional.featured_until as string | null) ?? null,
+    durationDays,
+  );
+
+  const { error: updateError } = await supabase
+    .from("professionals")
+    .update({
+      is_featured: true,
+      featured_until: nextFeaturedUntil,
+    })
+    .eq("id", professionalId);
+
+  if (updateError) {
+    console.error("Failed to activate featured profile proof", updateError);
+    return;
+  }
+
+  const { error: proofUpdateError } = await supabase
+    .from("proof_reviews")
+    .update({ audit_status: "approved" })
+    .eq("id", proofReviewId);
+
+  if (proofUpdateError) {
+    console.error("Failed to approve featured profile proof review", proofUpdateError);
+  }
+
+  await recordAdminAudit({
+    action: "activate_featured_profile_proof",
+    targetType: "professional",
+    targetId: professionalId,
+    metadata: {
+      proofReviewId,
+      durationDays,
+      featuredUntil: nextFeaturedUntil,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/payments");
+  revalidatePath("/admin/featured");
+  revalidatePath("/admin/workers");
+  revalidatePath("/professionals");
+  revalidatePath(`/professionals/${professionalId}`);
+}
+
+export async function rejectProofReview(formData: FormData) {
+  const proofReviewId = formData.get("proofReviewId");
+
+  if (
+    typeof proofReviewId !== "string" ||
+    !proofReviewId ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data: proofReview, error: loadError } = await supabase
+    .from("proof_reviews")
+    .select("id, review_type, related_id")
+    .eq("id", proofReviewId)
+    .maybeSingle();
+
+  if (loadError || !proofReview) {
+    console.error("Failed to load proof review before rejection", loadError);
+    return;
+  }
+
+  const { error } = await supabase
+    .from("proof_reviews")
+    .update({ audit_status: "rejected" })
+    .eq("id", proofReviewId);
+
+  if (error) {
+    console.error("Failed to reject proof review", error);
+    return;
+  }
+
+  await recordAdminAudit({
+    action: "reject_proof_review",
+    targetType: "proof_review",
+    targetId: proofReviewId,
+    metadata: {
+      reviewType: proofReview.review_type,
+      relatedId: proofReview.related_id,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/payments");
+}
+
 export async function deleteProfessional(formData: FormData) {
   const id = formData.get("professionalId");
   const confirmation = formData.get("confirmDelete");
@@ -281,6 +677,76 @@ export async function deleteProfessional(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/workers");
   revalidatePath("/professionals");
+}
+
+export async function removeDisputedProfessionalNumber(formData: FormData) {
+  const id = formData.get("professionalId");
+  const confirmation = formData.get("confirmRemoveNumber");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    confirmation !== "REMOVE NUMBER" ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data: professional, error: loadError } = await supabase
+    .from("professionals")
+    .select("id, phone_number, whatsapp_number")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (loadError || !professional) {
+    console.error("Failed to load professional before disputed phone removal", loadError);
+    return;
+  }
+
+  const phoneDigits = pakistanMobileNormalizedDigits(professional.phone_number);
+  const whatsappDigits = pakistanMobileNormalizedDigits(professional.whatsapp_number);
+  const clearWhatsapp = Boolean(phoneDigits && phoneDigits === whatsappDigits);
+
+  const { error } = await supabase
+    .from("professionals")
+    .update({
+      phone_number: null,
+      whatsapp_number: clearWhatsapp ? null : professional.whatsapp_number,
+      is_phone_verified: false,
+      is_active: false,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to remove disputed professional phone number", error);
+    return;
+  }
+
+  const { error: sessionError } = await supabase
+    .from("professional_sessions")
+    .delete()
+    .eq("professional_id", id);
+
+  if (sessionError) {
+    console.error("Failed to clear sessions after disputed phone removal", sessionError);
+  }
+
+  await recordAdminAudit({
+    action: "remove_disputed_phone",
+    targetType: "professional",
+    targetId: id,
+    metadata: {
+      clearedWhatsapp: clearWhatsapp,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/workers");
+  revalidatePath("/professionals");
+  revalidatePath(`/professionals/${id}`);
 }
 
 export async function approveCompanyVerification(formData: FormData) {
@@ -350,6 +816,7 @@ export async function rejectCompanyVerification(formData: FormData) {
 export async function activateCompanyPackage(formData: FormData) {
   const companyId = formData.get("companyId");
   const packageKey = formData.get("packageKey");
+  const manualPaymentId = formData.get("manualPaymentId");
 
   if (
     typeof companyId !== "string" ||
@@ -394,6 +861,10 @@ export async function activateCompanyPackage(formData: FormData) {
     .insert({
       company_id: companyId,
       package_id: companyPackage.id,
+      manual_payment_id:
+        typeof manualPaymentId === "string" && manualPaymentId
+          ? manualPaymentId
+          : null,
       package_key: companyPackage.package_key,
       listings_limit: companyPackage.listings_limit,
       featured_limit: companyPackage.featured_limit,
@@ -416,16 +887,126 @@ export async function activateCompanyPackage(formData: FormData) {
     console.error("Failed to update company payment status", companyError);
   }
 
+  if (typeof manualPaymentId === "string" && manualPaymentId) {
+    const reviewedAt = new Date().toISOString();
+
+    const { error: paymentError } = await supabase
+      .from("manual_payments")
+      .update({
+        status: "approved",
+        reviewed_at: reviewedAt,
+        admin_notes: "Approved by admin package activation.",
+      })
+      .eq("id", manualPaymentId);
+
+    if (paymentError) {
+      console.error("Failed to approve manual payment during package activation", paymentError);
+    }
+
+    const { error: proofError } = await supabase
+      .from("proof_reviews")
+      .update({
+        audit_status: "approved",
+      })
+      .eq("related_id", manualPaymentId);
+
+    if (proofError) {
+      console.error("Failed to mark linked proof review approved", proofError);
+    }
+  }
+
   await recordAdminAudit({
     action: "activate_company_package",
     targetType: "company",
     targetId: companyId,
-    metadata: { packageKey },
+    metadata: {
+      packageKey,
+      manualPaymentId:
+        typeof manualPaymentId === "string" && manualPaymentId
+          ? manualPaymentId
+          : null,
+    },
   });
 
   revalidatePath("/admin/companies");
+  revalidatePath("/admin/payments");
   revalidatePath(`/companies/${companyId}/dashboard`);
   revalidatePath(`/companies/${companyId}/packages`);
+}
+
+export async function rejectManualPayment(formData: FormData) {
+  const manualPaymentId = formData.get("manualPaymentId");
+
+  if (
+    typeof manualPaymentId !== "string" ||
+    !manualPaymentId ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data: payment, error: loadError } = await supabase
+    .from("manual_payments")
+    .select("id, company_id, package_key, status")
+    .eq("id", manualPaymentId)
+    .maybeSingle();
+
+  if (loadError || !payment) {
+    console.error("Failed to load manual payment before rejection", loadError);
+    return;
+  }
+
+  const reviewedAt = new Date().toISOString();
+  const { error: paymentError } = await supabase
+    .from("manual_payments")
+    .update({
+      status: "rejected",
+      reviewed_at: reviewedAt,
+      admin_notes: "Rejected by admin payment review.",
+    })
+    .eq("id", manualPaymentId);
+
+  if (paymentError) {
+    console.error("Failed to reject manual payment", paymentError);
+    return;
+  }
+
+  const { error: companyError } = await supabase
+    .from("companies")
+    .update({ payment_status: "rejected" })
+    .eq("id", payment.company_id);
+
+  if (companyError) {
+    console.error("Failed to mark company payment rejected", companyError);
+  }
+
+  const { error: proofError } = await supabase
+    .from("proof_reviews")
+    .update({ audit_status: "rejected" })
+    .eq("related_id", manualPaymentId)
+    .eq("review_type", "company_package");
+
+  if (proofError) {
+    console.error("Failed to reject linked company proof review", proofError);
+  }
+
+  await recordAdminAudit({
+    action: "reject_manual_payment",
+    targetType: "manual_payment",
+    targetId: manualPaymentId,
+    metadata: {
+      companyId: payment.company_id,
+      packageKey: payment.package_key,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/payments");
+  revalidatePath("/admin/companies");
+  revalidatePath(`/companies/${payment.company_id}/dashboard`);
+  revalidatePath(`/companies/${payment.company_id}/packages`);
 }
 
 export async function approveCompanyListing(formData: FormData) {
@@ -467,9 +1048,14 @@ export async function approveCompanyListing(formData: FormData) {
     return;
   }
 
+  const updatePayload =
+    existingListing.status === "approved"
+      ? { status: "approved" }
+      : { status: "approved", is_featured: false };
+
   const { data, error } = await supabase
     .from("company_listings")
-    .update({ status: "approved" })
+    .update(updatePayload)
     .eq("id", id)
     .select("company_id")
     .maybeSingle();
@@ -628,18 +1214,59 @@ export async function rejectCompanyListing(formData: FormData) {
   }
 }
 
+export async function updateRequirementStatus(formData: FormData) {
+  const id = formData.get("requirementId");
+  const status = formData.get("status");
+  const allowedStatuses = new Set(["open", "contacted", "completed", "spam"]);
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    typeof status !== "string" ||
+    !allowedStatuses.has(status) ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("requirements")
+    .update({ status })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to update requirement status", error);
+    return;
+  }
+
+  await recordAdminAudit({
+    action: "update_requirement_status",
+    targetType: "requirement",
+    targetId: id,
+    metadata: { status },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath(`/admin/requirements/${id}`);
+}
+
 export async function updateAutoApprovalMode(formData: FormData) {
   if (!(await canMutateAdmin())) {
     return;
   }
 
-  await setAutoApproveProfessionals(formData.get("autoApprove") === "on");
+  const enabled = formData.get("autoApprove") === "on";
+
+  await setAutoApproveProfessionals(enabled);
   await recordAdminAudit({
     action: "update_auto_approval",
     targetType: "admin_setting",
     targetId: "auto_approve_professionals",
-    metadata: { enabled: formData.get("autoApprove") === "on" },
+    metadata: { enabled },
   });
   revalidatePath("/admin");
   revalidatePath("/admin/settings");
+  redirect(`/admin/settings?status=${enabled ? "auto-approval-on" : "auto-approval-off"}`);
 }

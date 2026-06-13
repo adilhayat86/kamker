@@ -16,11 +16,14 @@ export function GlobalMenuShell({ children }: GlobalMenuShellProps) {
       return;
     }
 
-    function handlePointerDown(event: PointerEvent) {
+    function handleOutsidePress(event: MouseEvent | TouchEvent | PointerEvent) {
+      const target = event.target;
+
       if (
         panelRef.current &&
-        event.target instanceof Node &&
-        !panelRef.current.contains(event.target)
+        target &&
+        "nodeType" in Object(target) &&
+        !panelRef.current.contains(target as Node)
       ) {
         setOpen(false);
       }
@@ -32,11 +35,18 @@ export function GlobalMenuShell({ children }: GlobalMenuShellProps) {
       }
     }
 
-    document.addEventListener("pointerdown", handlePointerDown);
+    if (typeof window !== "undefined" && "PointerEvent" in window) {
+      document.addEventListener("pointerdown", handleOutsidePress);
+    } else {
+      document.addEventListener("mousedown", handleOutsidePress);
+      document.addEventListener("touchstart", handleOutsidePress);
+    }
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("pointerdown", handleOutsidePress);
+      document.removeEventListener("mousedown", handleOutsidePress);
+      document.removeEventListener("touchstart", handleOutsidePress);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [open]);
@@ -59,12 +69,12 @@ export function GlobalMenuShell({ children }: GlobalMenuShellProps) {
 
       {open ? (
         <div
+          data-testid="global-menu-panel"
           className="absolute right-0 mt-2 w-[min(17.5rem,calc(100vw-1.5rem))] rounded-lg border bg-white p-2.5 shadow-2xl"
           onClick={(event) => {
-            if (
-              event.target instanceof Element &&
-              event.target.closest("a")
-            ) {
+            const target = event.target;
+
+            if (target && "closest" in Object(target) && (target as Element).closest("a")) {
               setOpen(false);
             }
           }}
