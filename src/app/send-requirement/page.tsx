@@ -15,7 +15,10 @@ import {
 import { getCityOptions } from "@/lib/city-options";
 import { getFormDraft } from "@/lib/form-draft";
 import { categories, serviceGroups } from "@/lib/marketplace-data";
-import { REQUIREMENT_BROADCAST_AMOUNT_PKR } from "@/lib/requirement-broadcast";
+import {
+  calculateRequirementBroadcastAmountPkr,
+  REQUIREMENT_BROADCAST_AMOUNT_PKR,
+} from "@/lib/requirement-broadcast";
 import { workerPostingBlockedStatus } from "@/lib/worker-status";
 
 import { submitRequirement } from "./actions";
@@ -163,6 +166,10 @@ export default async function SendRequirementPage({
         area: queryArea || undefined,
       })
     : null;
+  const estimatedBroadcastTotal =
+    typeof recipientCount === "number"
+      ? calculateRequirementBroadcastAmountPkr(recipientCount)
+      : null;
   const missingRequired = status === "missing";
   const requiredError = (field: string, message: string) =>
     missingRequired && (failedFields.size === 0 || failedFields.has(field))
@@ -271,9 +278,23 @@ export default async function SendRequirementPage({
         <Card className="mt-5 border-sky-200 bg-sky-50 shadow-sm">
           <CardContent className="p-5 text-sm">
             <p className="font-semibold text-foreground">
-              Paid broadcast: Rs {REQUIREMENT_BROADCAST_AMOUNT_PKR}
+              Paid broadcast: Rs {REQUIREMENT_BROADCAST_AMOUNT_PKR} per professional
             </p>
-            <p className="mt-1 text-muted-foreground">
+            {estimatedBroadcastTotal !== null ? (
+              <div className="mt-3 rounded-lg border border-primary/20 bg-white px-4 py-3">
+                <p className="font-semibold text-foreground">
+                  Rs {REQUIREMENT_BROADCAST_AMOUNT_PKR} x{" "}
+                  {recipientCount?.toLocaleString("en-PK")} recipient
+                  {recipientCount === 1 ? "" : "s"} = Rs{" "}
+                  {estimatedBroadcastTotal.toLocaleString("en-PK")} total cost
+                </p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Final payable amount is confirmed again after Kamker creates
+                  the exact recipient match list.
+                </p>
+              </div>
+            ) : null}
+            <p className="mt-3 text-muted-foreground">
               Matching professionals are contacted after payment proof is
               approved. Clear receipts can be approved automatically.
             </p>

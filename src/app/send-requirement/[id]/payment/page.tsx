@@ -9,7 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getSessionCustomer, getSessionProfessional } from "@/lib/auth";
 import { getPaymentWhatsappLink, manualPaymentConfig } from "@/lib/payment-config";
-import { REQUIREMENT_BROADCAST_AMOUNT_PKR } from "@/lib/requirement-broadcast";
+import {
+  calculateRequirementBroadcastAmountPkr,
+  REQUIREMENT_BROADCAST_AMOUNT_PKR,
+} from "@/lib/requirement-broadcast";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 import { submitRequirementBroadcastPayment } from "./actions";
@@ -64,7 +67,7 @@ const statusMessages = {
   sent: "Payment approved. Matching professionals have been messaged.",
   partial: "Payment approved. Some professionals were messaged, but a few sends failed.",
   failed: "Payment approved, but WhatsApp sending failed. Kamker admin can retry from the requirement detail.",
-  no_matches: "Payment approved, but no matching professionals were available yet. Kamker admin can follow up.",
+  no_matches: "No matching professionals are available for this requirement yet. Do not pay until matches are available.",
 } as const;
 
 function formatPrice(value: number) {
@@ -90,16 +93,35 @@ async function getRequirement(id: string) {
   return data as unknown as Requirement | null;
 }
 
+async function getRecipientCount(requirementId: string) {
+  if (!isSupabaseConfigured || !supabase) {
+    return null;
+  }
+
+  const { count, error } = await supabase
+    .from("requirement_matches")
+    .select("id", { count: "exact", head: true })
+    .eq("requirement_id", requirementId);
+
+  if (error) {
+    console.error("Failed to load requirement recipient count", error);
+    return null;
+  }
+
+  return count ?? 0;
+}
+
 export default async function RequirementPaymentPage({
   params,
   searchParams,
 }: RequirementPaymentPageProps) {
   const { id } = await params;
   const query = await searchParams;
-  const [professional, customer, requirement] = await Promise.all([
+  const [professional, customer, requirement, recipientCount] = await Promise.all([
     getSessionProfessional(),
     getSessionCustomer(),
     getRequirement(id),
+    getRecipientCount(id),
   ]);
 
   if (!professional && !customer) {
@@ -109,12 +131,17 @@ export default async function RequirementPaymentPage({
   }
 
   const statusMessage = query?.status ? statusMessages[query.status] : null;
+  const payableRecipientCount = recipientCount ?? 0;
+  const payableAmount = calculateRequirementBroadcastAmountPkr(payableRecipientCount);
+  const payableAmountLabel =
+    recipientCount === null ? "Calculated after matching" : formatPrice(payableAmount);
   const message = requirement
-    ? `Hello Kamker, I paid ${formatPrice(REQUIREMENT_BROADCAST_AMOUNT_PKR)} for requirement broadcast. Service: ${requirement.required_service}. Requirement ID: ${requirement.id}`
-    : `Hello Kamker, I want to pay ${formatPrice(REQUIREMENT_BROADCAST_AMOUNT_PKR)} for requirement broadcast.`;
+    ? `Hello Kamker, I paid ${payableAmountLabel} for requirement broadcast. Service: ${requirement.required_service}. Requirement ID: ${requirement.id}`
+    : `Hello Kamker, I want to pay for requirement broadcast.`;
   const isCompleted =
     requirement?.payment_status === "paid" &&
     ["sent", "partial", "no_matches"].includes(requirement.broadcast_status);
+  const canUploadProof = Boolean(requirement && payableAmount > 0 && !isCompleted);
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -130,9 +157,9 @@ export default async function RequirementPaymentPage({
             Upload payment proof
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Pay {formatPrice(REQUIREMENT_BROADCAST_AMOUNT_PKR)} and upload the
-            receipt. Clear matching receipts can approve automatically and send
-            WhatsApp messages to matching professionals.
+            Pay {payableAmountLabel} and upload the receipt. Clear matching
+            receipts can approve automatically and send WhatsApp messages to
+            matching professionals.
           </p>
         </div>
 
@@ -168,6 +195,14 @@ export default async function RequirementPaymentPage({
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted-foreground">Broadcast</span>
                       <span className="font-semibold">{requirement.broadcast_status}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">Recipients</span>
+                      <span className="font-semibold">
+                        {recipientCount === null
+                          ? "Checking"
+                          : `${recipientCount.toLocaleString("en-PK")} matched`}
+                      </span>
                     </div>
                   </div>
                   <p className="mt-4 rounded-lg border bg-slate-50 p-3 text-sm leading-6 text-muted-foreground">
@@ -207,8 +242,24 @@ export default async function RequirementPaymentPage({
                     <dd className="font-semibold tracking-wide">{manualPaymentConfig.accountNumber}</dd>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground">Amount</dt>
-                    <dd className="font-semibold">{formatPrice(REQUIREMENT_BROADCAST_AMOUNT_PKR)}</dd>
+                    <dt className="text-muted-foreground">Rate</dt>
+                    <dd className="font-semibold">
+                      {formatPrice(REQUIREMENT_BROADCAST_AMOUNT_PKR)} / recipient
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-muted-foreground">Recipients</dt>
+                    <dd className="font-semibold">
+                      {recipientCount === null ? "Checking" : recipientCount.toLocaleString("en-PK")}
+                    </dd>
+                  </div>
+                  <div className="rounded-lg border border-primary/20 bg-white px-3 py-2">
+                    <dt className="text-muted-foreground">Total amount</dt>
+                    <dd className="mt-1 text-lg font-bold text-primary">
+                      {recipientCount === null
+                        ? "Calculated after matching"
+                        : `${formatPrice(REQUIREMENT_BROADCAST_AMOUNT_PKR)} x ${recipientCount.toLocaleString("en-PK")} = ${formatPrice(payableAmount)}`}
+                    </dd>
                   </div>
                 </dl>
               </div>
@@ -217,6 +268,11 @@ export default async function RequirementPaymentPage({
                 <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
                   This requirement is already paid. Broadcast status:{" "}
                   <span className="font-semibold">{requirement?.broadcast_status}</span>.
+                </div>
+              ) : !canUploadProof ? (
+                <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                  No payable recipient list is available yet. Do not upload a
+                  receipt until Kamker shows a matched-recipient count above.
                 </div>
               ) : (
                 <form action={submitRequirementBroadcastPayment} className="mt-5 grid gap-4">

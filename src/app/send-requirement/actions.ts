@@ -10,6 +10,7 @@ import {
   validatePhoneFieldWithCountry,
 } from "@/lib/phone";
 import { createRequirementMatches } from "@/lib/requirement-matching";
+import { REQUIREMENT_BROADCAST_AMOUNT_PKR } from "@/lib/requirement-broadcast";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { findOrCreateCityId } from "@/lib/taxonomy";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
@@ -153,7 +154,7 @@ export async function submitRequirement(formData: FormData) {
       `City: ${cityName}`,
       "Broadcast: pending payment",
       `Phone: ${phoneNumber}`,
-      "Customer should upload Rs 35 payment proof.",
+      `Customer should upload Rs ${REQUIREMENT_BROADCAST_AMOUNT_PKR} per matched recipient.`,
     ].join("\n"),
     "requirement",
     requirement.id as string,

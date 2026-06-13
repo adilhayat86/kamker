@@ -7,6 +7,10 @@ import { sendRequirementWhatsappAlert } from "@/lib/whatsapp";
 
 export const REQUIREMENT_BROADCAST_AMOUNT_PKR = 35;
 
+export function calculateRequirementBroadcastAmountPkr(recipientCount: number) {
+  return REQUIREMENT_BROADCAST_AMOUNT_PKR * Math.max(0, Math.floor(recipientCount));
+}
+
 type RequirementForBroadcast = {
   id: string;
   required_service: string;

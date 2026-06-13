@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { canAutoApproveProof, reviewProofWithAi } from "@/lib/ai-proof-review";
 import { getSessionCustomer, getSessionProfessional } from "@/lib/auth";
 import {
-  REQUIREMENT_BROADCAST_AMOUNT_PKR,
+  calculateRequirementBroadcastAmountPkr,
   sendRequirementBroadcast,
 } from "@/lib/requirement-broadcast";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -22,6 +22,24 @@ function field(formData: FormData, key: string) {
 
 function redirectToPayment(requirementId: string, status: string): never {
   redirect(`/send-requirement/${requirementId}/payment?status=${status}`);
+}
+
+async function getRecipientCount(requirementId: string) {
+  if (!supabase) {
+    return 0;
+  }
+
+  const { count, error } = await supabase
+    .from("requirement_matches")
+    .select("id", { count: "exact", head: true })
+    .eq("requirement_id", requirementId);
+
+  if (error) {
+    console.error("Failed to count requirement broadcast recipients", error);
+    return 0;
+  }
+
+  return count ?? 0;
 }
 
 export async function submitRequirementBroadcastPayment(formData: FormData) {
@@ -79,11 +97,18 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
     redirectToPayment(requirementId, "not-found");
   }
 
+  const recipientCount = await getRecipientCount(requirementId);
+  const expectedAmountPkr = calculateRequirementBroadcastAmountPkr(recipientCount);
+
+  if (expectedAmountPkr <= 0) {
+    redirectToPayment(requirementId, "no_matches");
+  }
+
   const { data: payment, error: paymentError } = await db
     .from("requirement_broadcast_payments")
     .insert({
       requirement_id: requirementId,
-      amount_pkr: REQUIREMENT_BROADCAST_AMOUNT_PKR,
+      amount_pkr: expectedAmountPkr,
       payment_method: paymentMethod,
       payer_name: payerName,
       sender_phone: senderPhone,
@@ -122,16 +147,16 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
   const imageUrl = publicUrlData.publicUrl;
   const review = await reviewProofWithAi({
     imageUrl,
-    expectedAmountPkr: REQUIREMENT_BROADCAST_AMOUNT_PKR,
+    expectedAmountPkr,
   });
-  const autoApproved = canAutoApproveProof(review, REQUIREMENT_BROADCAST_AMOUNT_PKR);
+  const autoApproved = canAutoApproveProof(review, expectedAmountPkr);
 
   const { data: proofReview, error: proofError } = await db
     .from("proof_reviews")
     .insert({
       review_type: "requirement_broadcast",
       related_id: payment.id,
-      expected_amount_pkr: REQUIREMENT_BROADCAST_AMOUNT_PKR,
+      expected_amount_pkr: expectedAmountPkr,
       image_url: imageUrl,
       ai_readable: review.readable,
       ai_detected_amount_pkr: review.detectedAmountPkr,
@@ -175,7 +200,8 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
       [
         "Requirement payment proof uploaded:",
         `Service: ${requirement.required_service}`,
-        `Expected amount: Rs ${REQUIREMENT_BROADCAST_AMOUNT_PKR}`,
+        `Recipients: ${recipientCount}`,
+        `Expected amount: Rs ${expectedAmountPkr}`,
         "AI decision: needs_review",
         "Admin: /admin/payments",
       ].join("\n"),
@@ -208,7 +234,8 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
     [
       "Requirement payment auto-approved:",
       `Service: ${requirement.required_service}`,
-      `Expected amount: Rs ${REQUIREMENT_BROADCAST_AMOUNT_PKR}`,
+      `Recipients: ${recipientCount}`,
+      `Expected amount: Rs ${expectedAmountPkr}`,
       `Broadcast status: ${broadcastResult.status}`,
       `Sent: ${broadcastResult.sent}`,
       `Failed: ${broadcastResult.failed}`,
