@@ -316,12 +316,13 @@ export async function sendRequirementWhatsappAlert(
   relatedId?: string,
 ) {
   const config = whatsappConfig();
+  const templateBody = body.replace(/\s+/g, " ").trim();
 
   try {
     if (config.requirementTemplateName) {
       const templateResult = await sendWhatsappTemplate({
         to,
-        body,
+        body: templateBody,
         templateName: config.requirementTemplateName,
         languageCode: config.requirementTemplateLanguage,
         relatedType: "requirement_broadcast",
