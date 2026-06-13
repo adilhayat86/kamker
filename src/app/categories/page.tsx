@@ -2,11 +2,9 @@ import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { ArrowLeft, Search } from "lucide-react";
 
-import { BroadcastRequirementCta } from "@/components/broadcast-requirement-cta";
 import { CategoryGrid } from "@/components/category-grid";
 import { KamkerLogo } from "@/components/kamker-logo";
 import { Button } from "@/components/ui/button";
-import { getBroadcastRecipientCount } from "@/lib/broadcast";
 import { countForCategory, getLiveCategoryCountMap } from "@/lib/category-counts";
 import { getCityOptions } from "@/lib/city-options";
 import {
@@ -135,7 +133,6 @@ export default async function CategoriesPage({
   }));
   const dbParentCategories = countedDbCategories.filter((category) => category.parent_id === null);
   const dbSubcategories = countedDbCategories.filter((category) => category.parent_id !== null);
-  const recipientCount = await getBroadcastRecipientCount({ city, area });
   const normalizedQuery = q.toLowerCase();
   const searchableCategories = q
     ? uniqueCategoryCards([...dbSubcategories, ...dbParentCategories, ...countedLocalCategories, ...countedParentCategories])
@@ -169,12 +166,6 @@ export default async function CategoriesPage({
           Start with a broad group like Healthcare, Education, or Home Repairs,
           then choose a specific professional type such as Nurses or Electricians.
         </p>
-
-        <BroadcastRequirementCta
-          count={recipientCount}
-          city={city}
-          area={area}
-        />
 
         <form className="mt-6 rounded-lg border bg-white p-3 shadow-sm">
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]">

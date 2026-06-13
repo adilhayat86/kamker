@@ -12,8 +12,8 @@ type CountCategory = {
 };
 
 type ProfessionalCategoryRow = {
-  categories: { name: string } | null;
-  cities: { name: string } | null;
+  categories: { name: string } | { name: string }[] | null;
+  cities: { name: string } | { name: string }[] | null;
   area: string | null;
 };
 
@@ -49,6 +49,16 @@ function increment(map: Map<string, number>, name: string | null | undefined) {
 
 function countFor(map: Map<string, number>, name: string | null | undefined) {
   return map.get(normalize(name)) ?? 0;
+}
+
+function relationName(
+  relation: { name: string | null } | { name: string | null }[] | null | undefined,
+) {
+  if (Array.isArray(relation)) {
+    return relation[0]?.name ?? null;
+  }
+
+  return relation?.name ?? null;
 }
 
 function matchesLocation(
@@ -149,10 +159,10 @@ async function loadLiveCategoryCountEntries(
 
   ((professionalsResult.data ?? []) as unknown as ProfessionalCategoryRow[]).forEach(
     (row) => {
-      const cityName = row.cities?.name ?? null;
+      const cityName = relationName(row.cities);
 
       if (matchesLocation({ city: cityName, area: row.area }, filters)) {
-        increment(professionalCounts, row.categories?.name);
+        increment(professionalCounts, relationName(row.categories));
       }
     },
   );
