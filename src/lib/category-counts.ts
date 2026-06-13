@@ -240,7 +240,7 @@ async function loadLiveCategoryCountEntries(
 
 const getCachedLiveCategoryCountEntries = unstable_cache(
   loadLiveCategoryCountEntries,
-  ["live-category-counts"],
+  ["live-category-counts-v2"],
   { revalidate: 120 },
 );
 
