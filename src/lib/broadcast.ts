@@ -174,10 +174,15 @@ export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
     return demoCountFor(input);
   }
 
-  const recipientCount =
-    (professionalsResult.count ?? 0) + (companyListingsResult.count ?? 0);
+  const professionalDbCount = professionalsResult.count ?? 0;
+  const companyListingDbCount = companyListingsResult.count ?? 0;
+  let fallbackCount = 0;
 
-  if (recipientCount === 0) {
+  if (targets.length > 0 && professionalDbCount === 0) {
+    fallbackCount += fallbackProfessionalsCount(input, targets);
+  }
+
+  if (targets.length > 0 && companyListingDbCount === 0) {
     const shouldUseSubcategoryFallback = Boolean(input.subcategory);
     const fallbackCompanyCards = await getApprovedCompanyListingCards({
       categories: shouldUseSubcategoryFallback || !serviceGroup ? targets : undefined,
@@ -185,13 +190,10 @@ export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
       city: input.city,
       area: input.area,
     });
-    const fallbackCount =
-      fallbackProfessionalsCount(input, targets) + fallbackCompanyCards.length;
-
-    if (fallbackCount > 0) {
-      return fallbackCount;
-    }
+    fallbackCount += fallbackCompanyCards.length;
   }
+
+  const recipientCount = professionalDbCount + companyListingDbCount + fallbackCount;
 
   if (recipientCount === 0 && targets.length === 0 && !input.city && !input.area) {
     return demoCountFor(input);
