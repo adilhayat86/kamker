@@ -242,6 +242,7 @@ async function getCategoryProfessionals(
       "id, full_name, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_featured, featured_until, rating, cities(name), categories(name)",
     )
     .eq("is_active", true)
+    .or("is_banned.eq.false,is_banned.is.null")
     .in("category_id", categoryIds)
     .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false })

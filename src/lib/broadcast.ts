@@ -119,7 +119,7 @@ export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
     .from("professionals")
     .select("id", { count: "exact", head: true })
     .eq("is_active", true)
-    .eq("is_banned", false);
+    .or("is_banned.eq.false,is_banned.is.null");
 
   if (cityId !== null) {
     professionalsQuery = professionalsQuery.eq("city_id", cityId);

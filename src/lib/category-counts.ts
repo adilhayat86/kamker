@@ -142,7 +142,7 @@ async function loadLiveCategoryCountEntries(
       .from("professionals")
       .select("area, cities(name), categories(name)")
       .eq("is_active", true)
-      .eq("is_banned", false)
+      .or("is_banned.eq.false,is_banned.is.null")
       .limit(5000),
     supabase
       .from("company_listings")

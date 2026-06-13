@@ -435,6 +435,8 @@ async function getDbProfessionals({
     )
     .eq("is_active", true);
 
+  query = query.or("is_banned.eq.false,is_banned.is.null");
+
   if (city) {
     if (cityId === null) {
       return [] as DbProfessional[];
