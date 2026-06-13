@@ -92,11 +92,26 @@ async function loadBroadcastMatches(requirementId: string) {
   }
 
   const db = supabase;
-  const { data: matchRows, error: matchesError } = await db
+  let { data: matchRows, error: matchesError } = await db
     .from("requirement_matches")
     .select("id, match_score, professional_id, company_listing_id")
     .eq("requirement_id", requirementId)
     .order("match_score", { ascending: false });
+
+  if (matchesError?.message.includes("company_listing_id")) {
+    const fallbackResult = await db
+      .from("requirement_matches")
+      .select("id, match_score, professional_id")
+      .eq("requirement_id", requirementId)
+      .order("match_score", { ascending: false });
+
+    matchRows =
+      fallbackResult.data?.map((match) => ({
+        ...match,
+        company_listing_id: null,
+      })) ?? null;
+    matchesError = fallbackResult.error;
+  }
 
   if (matchesError) {
     return { matches: [], error: matchesError.message };
