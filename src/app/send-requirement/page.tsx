@@ -107,8 +107,10 @@ export default async function SendRequirementPage({
   const accountWhatsapp = professional?.whatsapp_number ?? "";
   const accountCity = professional?.cities?.name ?? customer?.cities?.name ?? "";
   const accountArea = professional?.area ?? customer?.area ?? "";
-  const city = params?.city?.trim() || draft.city || accountCity;
-  const area = params?.area?.trim() || draft.area || accountArea;
+  const queryCity = params?.city?.trim() || "";
+  const queryArea = params?.area?.trim() || "";
+  const city = queryCity || draft.city || accountCity;
+  const area = queryArea || draft.area || accountArea;
   const source = params?.source?.trim() ?? "";
   const estimate = params?.estimate?.trim() ?? "";
   const sourceEstimate = /^\d+$/.test(estimate) ? Number(estimate) : null;
@@ -137,21 +139,28 @@ export default async function SendRequirementPage({
         ...categories.map((category) => category.name),
       ]
     : categories.map((category) => category.name);
-  const hasBroadcastContext = Boolean(category || subcategory || city || area);
-  const contextLocation = [area, city].filter(Boolean).join(", ");
-  const contextServiceLabel = selectedServiceName || "matching professionals";
+  const hasUrlServiceContext = Boolean(category || subcategory || service);
+  const hasUrlLocationContext = Boolean(queryCity || queryArea);
+  const hasBroadcastContext = hasUrlServiceContext || hasUrlLocationContext;
+  const contextLocation = [queryArea, queryCity].filter(Boolean).join(", ");
+  const contextServiceLabel = selectedServiceName || "";
+  const contextTitle = contextServiceLabel
+    ? `${contextServiceLabel}${contextLocation ? ` in ${contextLocation}` : ""}`
+    : contextLocation
+      ? `Professionals in ${contextLocation}`
+      : "Matching professionals";
   const defaultDetails =
     draft.details ||
     (hasBroadcastContext
-      ? `I need ${contextServiceLabel}${contextLocation ? ` in ${contextLocation}` : ""}. Please contact me with availability and rate.`
+      ? `I need ${contextServiceLabel || "a professional"}${contextLocation ? ` in ${contextLocation}` : ""}. Please contact me with availability and rate.`
       : "");
   const recipientCount = hasBroadcastContext
     ? sourceEstimate ??
       await getBroadcastRecipientCount({
         category,
         subcategory,
-        city: selectedCity || undefined,
-        area: area || undefined,
+        city: queryCity || undefined,
+        area: queryArea || undefined,
       })
     : null;
   const missingRequired = status === "missing";
@@ -230,19 +239,18 @@ export default async function SendRequirementPage({
               <p className="text-xs font-semibold uppercase tracking-normal text-primary">
                 Requirement context
               </p>
-              <h2 className="mt-1 text-xl font-bold">
-                {contextServiceLabel}
-                {contextLocation ? ` in ${contextLocation}` : ""}
-              </h2>
+              <h2 className="mt-1 text-xl font-bold">{contextTitle}</h2>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 This form was opened from the matching category page. The service,
                 city, and area have been filled from that page where available.
               </p>
               <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-                <div className="rounded-md border bg-white px-3 py-2">
-                  <span className="font-semibold">Service:</span>{" "}
-                  {contextServiceLabel}
-                </div>
+                {contextServiceLabel ? (
+                  <div className="rounded-md border bg-white px-3 py-2">
+                    <span className="font-semibold">Service:</span>{" "}
+                    {contextServiceLabel}
+                  </div>
+                ) : null}
                 <div className="rounded-md border bg-white px-3 py-2">
                   <span className="font-semibold">Estimated recipients:</span>{" "}
                   {recipientCount !== null

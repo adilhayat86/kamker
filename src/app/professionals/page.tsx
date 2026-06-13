@@ -209,7 +209,7 @@ function buildSearchRequirementHref({
 
   if (category) {
     params.set("category", category);
-  } else if (q && !city) {
+  } else if (q) {
     params.set("service", q);
   }
 
@@ -967,7 +967,7 @@ export default async function ProfessionalsPage({
     category: inferredCategory,
   });
   const sendRequirementHref = buildSearchRequirementHref({
-    q,
+    q: effectiveSearchQuery,
     city: inferredCity,
     category: inferredCategory,
     estimate: totalVisibleProfessionals,
