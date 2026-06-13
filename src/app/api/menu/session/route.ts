@@ -1,19 +1,21 @@
 import { NextResponse } from "next/server";
 
 import { isAdminAuthenticated, isAdminPasswordConfigured } from "@/lib/admin-auth";
-import { getSessionProfessional } from "@/lib/auth";
+import { getSessionCustomer, getSessionProfessional } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const [professional, adminAuthenticated] = await Promise.all([
+  const [professional, customer, adminAuthenticated] = await Promise.all([
     getSessionProfessional(),
+    getSessionCustomer(),
     isAdminAuthenticated(),
   ]);
 
   return NextResponse.json(
     {
       professionalLoggedIn: Boolean(professional),
+      customerLoggedIn: Boolean(customer),
       adminAuthenticated,
       adminConfigured: isAdminPasswordConfigured(),
     },

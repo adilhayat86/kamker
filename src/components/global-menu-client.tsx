@@ -30,12 +30,14 @@ type MenuLink = {
 
 type MenuSession = {
   professionalLoggedIn: boolean;
+  customerLoggedIn: boolean;
   adminAuthenticated: boolean;
   adminConfigured: boolean;
 };
 
 const guestSession: MenuSession = {
   professionalLoggedIn: false,
+  customerLoggedIn: false,
   adminAuthenticated: false,
   adminConfigured: true,
 };
@@ -112,6 +114,7 @@ export function GlobalMenuClient() {
 
       setSession({
         professionalLoggedIn: Boolean(nextSession.professionalLoggedIn),
+        customerLoggedIn: Boolean(nextSession.customerLoggedIn),
         adminAuthenticated: Boolean(nextSession.adminAuthenticated),
         adminConfigured: Boolean(nextSession.adminConfigured),
       });
@@ -170,7 +173,7 @@ export function GlobalMenuClient() {
             Browse, register, or manage account.
           </p>
         </div>
-        {session.professionalLoggedIn ? (
+        {session.professionalLoggedIn || session.customerLoggedIn ? (
           <Badge variant="secondary">Logged in</Badge>
         ) : (
           <Badge variant="outline">Guest</Badge>
@@ -183,6 +186,12 @@ export function GlobalMenuClient() {
             <>
               <MenuItem href="/account" label="My Account" icon={User} />
               <MenuItem href="/account/edit" label="Edit Profile" icon={UserCog} />
+              <LogoutLink href="/api/logout/professional" label="Logout" />
+            </>
+          ) : session.customerLoggedIn ? (
+            <>
+              <MenuItem href="/send-requirement" label="Send Requirement" icon={Send} />
+              <MenuItem href="/categories" label="Browse Categories" icon={ClipboardList} />
               <LogoutLink href="/api/logout/professional" label="Logout" />
             </>
           ) : (

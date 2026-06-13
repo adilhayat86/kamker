@@ -31,7 +31,6 @@ type Requirement = {
   budget: string | null;
   phone_number: string;
   whatsapp_number: string | null;
-  urgency: string;
   status: string;
   broadcast_status: string;
   payment_status: string;
@@ -48,12 +47,10 @@ type RequirementsPageProps = {
   searchParams?: Promise<{
     q?: string;
     status?: string;
-    urgency?: string;
   }>;
 };
 
 const statusOptions = ["open", "new", "contacted", "completed", "spam"];
-const urgencyOptions = ["Today", "This week", "Flexible", "Emergency"];
 
 async function countMatches(requirements: Requirement[]) {
   const requirementIds = requirements.map((requirement) => requirement.id);
@@ -89,7 +86,7 @@ async function getLatestWhatsappAlerts(requirements: Requirement[]) {
   const { data, error } = await supabase
     .from("whatsapp_messages")
     .select("related_id, status, message_type, error_message, created_at")
-    .eq("related_type", "requirement")
+    .in("related_type", ["requirement", "requirement_broadcast"])
     .in("related_id", requirementIds)
     .order("created_at", { ascending: false })
     .limit(requirementIds.length * 3);
@@ -122,11 +119,9 @@ async function getLatestWhatsappAlerts(requirements: Requirement[]) {
 async function getRequirements({
   q,
   status,
-  urgency,
 }: {
   q?: string;
   status?: string;
-  urgency?: string;
 }) {
   if (!isSupabaseConfigured || !supabase) {
     return [] as Requirement[];
@@ -135,17 +130,13 @@ async function getRequirements({
   let query = supabase
     .from("requirements")
     .select(
-      "id, required_service, area, availability, details, budget, phone_number, whatsapp_number, urgency, status, broadcast_status, payment_status, created_at, cities(name)",
+      "id, required_service, area, availability, details, budget, phone_number, whatsapp_number, status, broadcast_status, payment_status, created_at, cities(name)",
     )
     .order("created_at", { ascending: false })
     .limit(150);
 
   if (status && status !== "all") {
     query = query.eq("status", status);
-  }
-
-  if (urgency && urgency !== "all") {
-    query = query.eq("urgency", urgency);
   }
 
   const { data, error } = await query;
@@ -170,7 +161,6 @@ async function getRequirements({
       requirement.budget,
       requirement.phone_number,
       requirement.whatsapp_number,
-      requirement.urgency,
       requirement.status,
       requirement.broadcast_status,
       requirement.payment_status,
@@ -209,7 +199,6 @@ export default async function AdminRequirementsPage({
   const requirements = await getRequirements({
     q: params?.q,
     status: params?.status,
-    urgency: params?.urgency,
   });
   const openRequirements = requirements.filter((requirement) =>
     ["open", "new"].includes(requirement.status),
@@ -261,9 +250,9 @@ export default async function AdminRequirementsPage({
 
       <AdminSection
         title="Search & Filters"
-        description="Filter requirements by service, city, contact number, status, or urgency."
+        description="Filter requirements by service, city, contact number, status, payment, or broadcast state."
       >
-        <form className="grid gap-3 lg:grid-cols-[1fr_180px_180px_auto]">
+        <form className="grid gap-3 lg:grid-cols-[1fr_180px_auto]">
           <div className="grid gap-2">
             <label htmlFor="q" className="text-sm font-medium">
               Search
@@ -272,7 +261,7 @@ export default async function AdminRequirementsPage({
               id="q"
               name="q"
               defaultValue={params?.q ?? ""}
-              placeholder="Nurse, Lahore, phone, urgent..."
+              placeholder="Nurse, Lahore, phone, paid..."
             />
           </div>
           <div className="grid gap-2">
@@ -289,24 +278,6 @@ export default async function AdminRequirementsPage({
               {statusOptions.map((status) => (
                 <option key={status} value={status}>
                   {status}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="grid gap-2">
-            <label htmlFor="urgency" className="text-sm font-medium">
-              Urgency
-            </label>
-            <select
-              id="urgency"
-              name="urgency"
-              defaultValue={fieldValue(params?.urgency, "all")}
-              className={selectClassName}
-            >
-              <option value="all">All urgency</option>
-              {urgencyOptions.map((urgency) => (
-                <option key={urgency} value={urgency}>
-                  {urgency}
                 </option>
               ))}
             </select>
@@ -353,7 +324,7 @@ export default async function AdminRequirementsPage({
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {requirement.cities?.name ?? "Unknown city"}
-                      {requirement.area ? ` - ${requirement.area}` : ""} - {requirement.urgency}
+                      {requirement.area ? ` - ${requirement.area}` : ""}
                     </p>
                     <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">
                       {requirement.details}

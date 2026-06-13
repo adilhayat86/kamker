@@ -12,6 +12,7 @@ import {
 } from "@/lib/company-packages";
 import { categorySlug } from "@/lib/marketplace-data";
 import { pakistanMobileNormalizedDigits } from "@/lib/phone";
+import { sendRequirementBroadcast } from "@/lib/requirement-broadcast";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
@@ -647,6 +648,133 @@ export async function rejectProofReview(formData: FormData) {
   revalidatePath("/admin/payments");
 }
 
+export async function approveRequirementBroadcastPayment(formData: FormData) {
+  const paymentId = formData.get("paymentId");
+
+  if (
+    typeof paymentId !== "string" ||
+    !paymentId ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data: payment, error: paymentError } = await supabase
+    .from("requirement_broadcast_payments")
+    .select("id, requirement_id, status")
+    .eq("id", paymentId)
+    .maybeSingle();
+
+  if (paymentError || !payment) {
+    console.error("Failed to load requirement payment before approval", paymentError);
+    return;
+  }
+
+  await supabase
+    .from("requirement_broadcast_payments")
+    .update({
+      status: "approved",
+      reviewed_at: new Date().toISOString(),
+      admin_notes: "Approved by admin payment review.",
+    })
+    .eq("id", paymentId);
+
+  await supabase
+    .from("proof_reviews")
+    .update({ audit_status: "approved" })
+    .eq("related_id", paymentId)
+    .eq("review_type", "requirement_broadcast");
+
+  await supabase
+    .from("requirements")
+    .update({ payment_status: "paid", broadcast_status: "paid" })
+    .eq("id", payment.requirement_id);
+
+  const broadcastResult = await sendRequirementBroadcast(String(payment.requirement_id));
+
+  await supabase
+    .from("requirement_broadcast_payments")
+    .update({ broadcast_status: broadcastResult.status })
+    .eq("id", paymentId);
+
+  await recordAdminAudit({
+    action: "approve_requirement_broadcast_payment",
+    targetType: "requirement",
+    targetId: String(payment.requirement_id),
+    metadata: {
+      paymentId,
+      broadcastStatus: broadcastResult.status,
+      sent: broadcastResult.sent,
+      failed: broadcastResult.failed,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/payments");
+  revalidatePath("/admin/requirements");
+  revalidatePath(`/admin/requirements/${payment.requirement_id}`);
+}
+
+export async function rejectRequirementBroadcastPayment(formData: FormData) {
+  const paymentId = formData.get("paymentId");
+
+  if (
+    typeof paymentId !== "string" ||
+    !paymentId ||
+    !isSupabaseConfigured ||
+    !supabase ||
+    !(await canMutateAdmin())
+  ) {
+    return;
+  }
+
+  const { data: payment, error: paymentError } = await supabase
+    .from("requirement_broadcast_payments")
+    .select("id, requirement_id")
+    .eq("id", paymentId)
+    .maybeSingle();
+
+  if (paymentError || !payment) {
+    console.error("Failed to load requirement payment before rejection", paymentError);
+    return;
+  }
+
+  await supabase
+    .from("requirement_broadcast_payments")
+    .update({
+      status: "rejected",
+      reviewed_at: new Date().toISOString(),
+      admin_notes: "Rejected by admin payment review.",
+      broadcast_status: "rejected",
+    })
+    .eq("id", paymentId);
+
+  await supabase
+    .from("proof_reviews")
+    .update({ audit_status: "rejected" })
+    .eq("related_id", paymentId)
+    .eq("review_type", "requirement_broadcast");
+
+  await supabase
+    .from("requirements")
+    .update({ payment_status: "rejected", broadcast_status: "payment_rejected" })
+    .eq("id", payment.requirement_id);
+
+  await recordAdminAudit({
+    action: "reject_requirement_broadcast_payment",
+    targetType: "requirement",
+    targetId: String(payment.requirement_id),
+    metadata: { paymentId },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/payments");
+  revalidatePath("/admin/requirements");
+  revalidatePath(`/admin/requirements/${payment.requirement_id}`);
+}
+
 export async function deleteProfessional(formData: FormData) {
   const id = formData.get("professionalId");
   const confirmation = formData.get("confirmDelete");
@@ -1268,7 +1396,7 @@ export async function retryRequirementAdminAlert(formData: FormData) {
 
   const { data: requirement, error } = await supabase
     .from("requirements")
-    .select("id, required_service, phone_number, urgency, cities(name)")
+    .select("id, required_service, phone_number, payment_status, broadcast_status, cities(name)")
     .eq("id", id)
     .maybeSingle();
 
@@ -1290,7 +1418,8 @@ export async function retryRequirementAdminAlert(formData: FormData) {
       "New requirement submitted:",
       `Service: ${requirement.required_service}`,
       `City: ${cityName ?? "Not provided"}`,
-      `Urgency: ${requirement.urgency ?? "Not provided"}`,
+      `Payment: ${requirement.payment_status ?? "Not provided"}`,
+      `Broadcast: ${requirement.broadcast_status ?? "Not provided"}`,
       `Phone: ${requirement.phone_number ?? "Not provided"}`,
       "Admin review needed.",
     ].join("\n"),

@@ -18,12 +18,15 @@ const statusMessages = {
   success: "Customer profile submitted successfully. You can now browse categories and contact workers directly.",
   missing: "Fix the highlighted fields. Your entered customer details are kept so you can correct them easily.",
   "not-configured": "Supabase is not configured yet.",
+  duplicate: "This phone number already has a customer account. Please log in instead.",
+  "customer-registered": "Customer account created. You can now send your requirement.",
   error: "Could not register customer. Please try again.",
 } as const;
 
 type CustomerRegisterPageProps = {
   searchParams?: Promise<{
     status?: keyof typeof statusMessages;
+    next?: string;
   }>;
 };
 
@@ -41,6 +44,9 @@ export default async function CustomerRegisterPage({
   const params = await searchParams;
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
+  const next = params?.next?.startsWith("/") && !params.next.startsWith("//")
+    ? params.next
+    : "";
   const draft = await getFormDraft<CustomerDraft>("customer");
   const cityOptions = await getCityOptions();
   const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
@@ -56,6 +62,7 @@ export default async function CustomerRegisterPage({
       phone: "Phone number is required.",
       phoneInvalid: "Enter a valid Pakistan mobile number, for example 03001234567.",
       city: "Choose a city.",
+      password: "Password must be at least 6 characters.",
     };
 
     if (field === "phone" && failedFields.has("phoneInvalid")) {
@@ -73,7 +80,8 @@ export default async function CustomerRegisterPage({
           Register as Customer
         </h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Save your basic contact details for future requirement requests. Browsing workers and categories remains public.
+          Save your contact details once, then send paid requirements faster.
+          Browsing workers and categories remains public.
         </p>
         {statusMessage ? (
           <DismissibleNotice className="mt-5 rounded-lg border bg-white p-4 text-sm font-medium" closeLabel="Close registration message">
@@ -93,6 +101,7 @@ export default async function CustomerRegisterPage({
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
             <form action={registerCustomer} className="grid gap-4 sm:grid-cols-2">
+              <input type="hidden" name="next" value={next} />
               <FormField
                 label="Full name"
                 name="fullName"
@@ -119,6 +128,15 @@ export default async function CustomerRegisterPage({
                 required
               />
               <FormField label="Area" name="area" defaultValue={draft.area} />
+              <FormField
+                label="Password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                error={errorFor("password")}
+                helperText="Use at least 6 characters. You will use this to send future requirements."
+                required
+              />
               <Button className="h-12 sm:col-span-2">Register</Button>
             </form>
           </CardContent>

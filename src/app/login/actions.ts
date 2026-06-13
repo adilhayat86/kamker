@@ -3,7 +3,10 @@
 import { redirect } from "next/navigation";
 
 import {
+  createCustomerSession,
   createProfessionalSession,
+  findCustomerByPhone,
+  findCustomersByPhone,
   findProfessionalByPhone,
   findProfessionalsByPhone,
   verifySecret,
@@ -17,9 +20,14 @@ function field(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function safeNextPath(value: string) {
+  return value.startsWith("/") && !value.startsWith("//") ? value : "/account";
+}
+
 export async function loginProfessional(formData: FormData) {
   const phoneNumber = field(formData, "phone");
   const password = field(formData, "password");
+  const next = safeNextPath(field(formData, "next"));
   const rememberPassword = formData.get("rememberPassword") === "on";
 
   if (!phoneNumber || !password) {
@@ -45,9 +53,28 @@ export async function loginProfessional(formData: FormData) {
   );
 
   if (!professional || !isPasswordValid) {
-    redirect("/login?status=invalid");
+    const customerMatches = await findCustomersByPhone(phoneNumber);
+
+    if (customerMatches.length > 1) {
+      redirect("/login?status=phone-review");
+    }
+
+    const customer = customerMatches.length === 1
+      ? customerMatches[0]
+      : await findCustomerByPhone(phoneNumber);
+    const isCustomerPasswordValid = await verifySecret(
+      password,
+      customer?.password_hash ?? null,
+    );
+
+    if (!customer || !isCustomerPasswordValid) {
+      redirect("/login?status=invalid");
+    }
+
+    await createCustomerSession(customer.id, rememberPassword);
+    redirect(next);
   }
 
   await createProfessionalSession(professional.id, rememberPassword);
-  redirect("/account");
+  redirect(next === "/account" ? "/account" : next);
 }

@@ -116,8 +116,35 @@ create table if not exists customers (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
   phone_number text not null,
+  phone_normalized text,
+  password_hash text,
   city_id bigint references cities(id),
   area text,
+  created_at timestamptz not null default now()
+);
+
+create or replace function customers_set_phone_normalized()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.phone_normalized := kamker_normalize_pk_mobile(new.phone_number);
+  return new;
+end;
+$$;
+
+drop trigger if exists customers_set_phone_normalized on customers;
+
+create trigger customers_set_phone_normalized
+before insert or update of phone_number on customers
+for each row
+execute function customers_set_phone_normalized();
+
+create table if not exists customer_sessions (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references customers(id) on delete cascade,
+  session_token_hash text not null unique,
+  expires_at timestamptz not null,
   created_at timestamptz not null default now()
 );
 
@@ -134,9 +161,31 @@ create table if not exists requirements (
   whatsapp_number text,
   urgency text not null,
   status text not null default 'open',
-  broadcast_status text not null default 'free',
+  broadcast_status text not null default 'pending_payment',
   payment_status text not null default 'unpaid',
   created_at timestamptz not null default now()
+);
+
+create table if not exists requirement_broadcast_payments (
+  id uuid primary key default gen_random_uuid(),
+  requirement_id uuid not null references requirements(id) on delete cascade,
+  amount_pkr integer not null default 35 check (amount_pkr > 0),
+  payment_method text not null default 'easypaisa',
+  payer_name text,
+  sender_phone text,
+  transaction_reference text,
+  proof_review_id uuid,
+  proof_image_url text,
+  proof_storage_path text,
+  status text not null default 'pending_review' check (status in ('pending_review', 'approved', 'rejected')),
+  broadcast_status text not null default 'pending_payment',
+  ai_decision text,
+  ai_detected_amount_pkr integer,
+  ai_confidence numeric,
+  admin_notes text,
+  reviewed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists requirement_notifications (
@@ -217,6 +266,9 @@ alter table professionals add column if not exists availability_days text;
 alter table professionals add column if not exists years_experience integer;
 alter table professionals add column if not exists tagline text;
 alter table requirements add column if not exists availability text;
+alter table customers add column if not exists phone_normalized text;
+alter table customers add column if not exists password_hash text;
+alter table requirements alter column broadcast_status set default 'pending_payment';
 
 do $$
 begin
@@ -270,12 +322,18 @@ create index if not exists professionals_phone_number_idx on professionals(phone
 create unique index if not exists professionals_phone_normalized_unique_idx
   on professionals(phone_normalized)
   where phone_normalized is not null;
+create index if not exists customers_phone_normalized_idx on customers(phone_normalized);
+create index if not exists customer_sessions_customer_idx on customer_sessions(customer_id);
+create index if not exists customer_sessions_expires_idx on customer_sessions(expires_at);
 create index if not exists professionals_availability_time_idx on professionals(availability_time);
 create index if not exists professionals_availability_days_idx on professionals(availability_days);
 create index if not exists professionals_age_idx on professionals(age);
 create index if not exists requirements_city_status_idx on requirements(city_id, status);
 create index if not exists requirement_matches_requirement_idx on requirement_matches(requirement_id);
 create index if not exists requirement_matches_professional_idx on requirement_matches(professional_id);
+create index if not exists requirement_broadcast_payments_requirement_idx on requirement_broadcast_payments(requirement_id);
+create index if not exists requirement_broadcast_payments_status_idx on requirement_broadcast_payments(status);
+create index if not exists requirement_broadcast_payments_created_at_idx on requirement_broadcast_payments(created_at);
 create index if not exists requirement_notifications_requirement_idx on requirement_notifications(requirement_id);
 create index if not exists professional_sessions_professional_idx on professional_sessions(professional_id);
 create index if not exists professional_sessions_expires_idx on professional_sessions(expires_at);
@@ -536,5 +594,12 @@ execute function set_updated_at();
 
 create trigger company_listings_set_updated_at
 before update on company_listings
+for each row
+execute function set_updated_at();
+
+drop trigger if exists requirement_broadcast_payments_set_updated_at on requirement_broadcast_payments;
+
+create trigger requirement_broadcast_payments_set_updated_at
+before update on requirement_broadcast_payments
 for each row
 execute function set_updated_at();

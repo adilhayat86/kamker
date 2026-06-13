@@ -20,6 +20,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 const scrypt = promisify(scryptCallback);
 
 const SESSION_COOKIE = "kamker_professional_session";
+const CUSTOMER_SESSION_COOKIE = "kamker_customer_session";
 const RECOVERY_COOKIE = "kamker_password_recovery";
 const SESSION_STANDARD_MAX_AGE_SECONDS = 60 * 60 * 8;
 const SESSION_REMEMBER_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
@@ -31,6 +32,16 @@ type AuthProfessional = {
   password_hash: string | null;
   secret_question: string | null;
   secret_answer_hash: string | null;
+};
+
+export type AuthCustomer = {
+  id: string;
+  full_name: string;
+  phone_number: string | null;
+  phone_normalized: string | null;
+  password_hash: string | null;
+  area: string | null;
+  cities: { name: string } | null;
 };
 
 export function normalizePhoneNumber(phoneNumber: string) {
@@ -146,6 +157,54 @@ export async function findProfessionalByPhone(phoneNumber: string) {
   return matches.length === 1 ? matches[0] : null;
 }
 
+export async function findCustomerByPhone(phoneNumber: string) {
+  const matches = await findCustomersByPhone(phoneNumber);
+
+  return matches.length === 1 ? matches[0] : null;
+}
+
+export async function findCustomersByPhone(phoneNumber: string) {
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
+
+  if (!normalizedPhone || !isSupabaseConfigured || !supabase) {
+    return [] as AuthCustomer[];
+  }
+
+  const selectColumns =
+    "id, full_name, phone_number, phone_normalized, password_hash, area, cities(name)";
+  const normalizedE164 = `+${normalizedPhone}`;
+  const normalizedLookup = await supabase
+    .from("customers")
+    .select(selectColumns)
+    .eq("phone_normalized", normalizedE164)
+    .limit(10);
+
+  if (!normalizedLookup.error) {
+    return (normalizedLookup.data ?? []) as unknown as AuthCustomer[];
+  }
+
+  if (normalizedLookup.error.code !== "42703") {
+    console.error("Failed to find customer by normalized phone", normalizedLookup.error);
+  }
+
+  const variants = phoneLookupVariants(normalizedPhone, phoneNumber);
+  const { data, error } = await supabase
+    .from("customers")
+    .select(selectColumns)
+    .in("phone_number", variants)
+    .limit(20);
+
+  if (error) {
+    console.error("Failed to find customer by phone", error);
+    return [] as AuthCustomer[];
+  }
+
+  return ((data ?? []) as unknown as AuthCustomer[]).filter(
+    (customer) =>
+      normalizePhoneNumber(customer.phone_number ?? "") === normalizedPhone,
+  );
+}
+
 export async function findProfessionalsByPhone(phoneNumber: string) {
   const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
@@ -246,6 +305,42 @@ export async function createProfessionalSession(
   });
 }
 
+export async function createCustomerSession(
+  customerId: string,
+  rememberPassword = false,
+) {
+  if (!isSupabaseConfigured || !supabase) {
+    return;
+  }
+
+  const maxAge = rememberPassword
+    ? SESSION_REMEMBER_MAX_AGE_SECONDS
+    : SESSION_STANDARD_MAX_AGE_SECONDS;
+  const token = randomBytes(32).toString("base64url");
+  const tokenHash = hashToken(token);
+  const expiresAt = new Date(Date.now() + maxAge * 1000);
+
+  const { error } = await supabase.from("customer_sessions").insert({
+    customer_id: customerId,
+    session_token_hash: tokenHash,
+    expires_at: expiresAt.toISOString(),
+  });
+
+  if (error) {
+    console.error("Failed to create customer session", error);
+    return;
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set(CUSTOMER_SESSION_COOKIE, token, {
+    httpOnly: true,
+    maxAge,
+    path: "/",
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+}
+
 export async function clearProfessionalSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
@@ -262,6 +357,24 @@ export async function clearProfessionalSession() {
   }
 
   cookieStore.delete(SESSION_COOKIE);
+}
+
+export async function clearCustomerSession() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(CUSTOMER_SESSION_COOKIE)?.value;
+
+  if (token && isSupabaseConfigured && supabase) {
+    const { error } = await supabase
+      .from("customer_sessions")
+      .delete()
+      .eq("session_token_hash", hashToken(token));
+
+    if (error) {
+      console.error("Failed to clear customer session", error);
+    }
+  }
+
+  cookieStore.delete(CUSTOMER_SESSION_COOKIE);
 }
 
 export async function getSessionProfessional() {
@@ -340,6 +453,48 @@ export async function getSessionProfessional() {
   }
 
   return professional as unknown as AccountProfessional | null;
+}
+
+export async function getSessionCustomer() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(CUSTOMER_SESSION_COOKIE)?.value;
+
+  if (!token || !isSupabaseConfigured || !supabase) {
+    return null;
+  }
+
+  const { data: session, error: sessionError } = await supabase
+    .from("customer_sessions")
+    .select("customer_id, expires_at")
+    .eq("session_token_hash", hashToken(token))
+    .maybeSingle();
+
+  if (sessionError || !session) {
+    if (sessionError) {
+      console.error("Failed to load customer session", sessionError);
+    }
+
+    cookieStore.delete(CUSTOMER_SESSION_COOKIE);
+    return null;
+  }
+
+  if (new Date(session.expires_at as string) <= new Date()) {
+    await clearCustomerSession();
+    return null;
+  }
+
+  const { data: customer, error: customerError } = await supabase
+    .from("customers")
+    .select("id, full_name, phone_number, phone_normalized, password_hash, area, cities(name)")
+    .eq("id", session.customer_id as string)
+    .maybeSingle();
+
+  if (customerError) {
+    console.error("Failed to load session customer", customerError);
+    return null;
+  }
+
+  return customer as unknown as AuthCustomer | null;
 }
 
 export async function createPasswordRecoverySession(professionalId: string) {

@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import {
   activateCompanyPackage,
   activateFeaturedProfileProof,
+  approveRequirementBroadcastPayment,
   rejectManualPayment,
   rejectProofReview,
+  rejectRequirementBroadcastPayment,
 } from "@/app/admin/actions";
 import {
   AdminEmptyState,
@@ -55,6 +57,27 @@ type ManualPayment = {
   status: string;
   created_at: string;
   companies: { company_name: string } | null;
+};
+
+type RequirementBroadcastPayment = {
+  id: string;
+  requirement_id: string;
+  amount_pkr: number;
+  payment_method: string;
+  payer_name: string | null;
+  sender_phone: string | null;
+  transaction_reference: string | null;
+  status: string;
+  broadcast_status: string;
+  ai_decision: string | null;
+  ai_detected_amount_pkr: number | null;
+  ai_confidence: number | null;
+  created_at: string;
+  requirements: {
+    required_service: string;
+    phone_number: string;
+    cities: { name: string } | null;
+  } | null;
 };
 
 type PaymentsPageProps = {
@@ -143,6 +166,55 @@ async function getManualPayments({
   });
 }
 
+async function getRequirementPayments({
+  paymentStatus,
+  q,
+}: {
+  paymentStatus?: string;
+  q?: string;
+}) {
+  if (!isSupabaseConfigured || !supabase) {
+    return [] as RequirementBroadcastPayment[];
+  }
+
+  let query = supabase
+    .from("requirement_broadcast_payments")
+    .select(
+      "id, requirement_id, amount_pkr, payment_method, payer_name, sender_phone, transaction_reference, status, broadcast_status, ai_decision, ai_detected_amount_pkr, ai_confidence, created_at, requirements(required_service, phone_number, cities(name))",
+    )
+    .order("created_at", { ascending: false });
+
+  if (paymentStatus) {
+    query = query.eq("status", paymentStatus);
+  }
+
+  const { data, error } = await query.limit(40);
+
+  if (error) {
+    console.error("Failed to load requirement broadcast payments", error);
+    return [] as RequirementBroadcastPayment[];
+  }
+
+  return ((data ?? []) as unknown as RequirementBroadcastPayment[]).filter((payment) => {
+    const search = q?.trim().toLowerCase();
+    const matchesSearch = search
+      ? [
+          payment.requirements?.required_service,
+          payment.requirements?.cities?.name,
+          payment.requirements?.phone_number,
+          payment.payment_method,
+          payment.payer_name,
+          payment.sender_phone,
+          payment.transaction_reference,
+          payment.status,
+          payment.broadcast_status,
+        ].some((value) => value?.toLowerCase().includes(search))
+      : true;
+
+    return matchesSearch;
+  });
+}
+
 export default async function AdminPaymentsPage({
   searchParams,
 }: PaymentsPageProps) {
@@ -154,7 +226,7 @@ export default async function AdminPaymentsPage({
   }
 
   const params = await searchParams;
-  const [summary, proofs, payments] = await Promise.all([
+  const [summary, proofs, payments, requirementPayments] = await Promise.all([
     getAdminCountSummary(),
     getProofReviews({
       proofType: params?.proofType,
@@ -164,10 +236,15 @@ export default async function AdminPaymentsPage({
       paymentStatus: params?.paymentStatus,
       q: params?.q,
     }),
+    getRequirementPayments({
+      paymentStatus: params?.paymentStatus,
+      q: params?.q,
+    }),
   ]);
   const needsActionCount =
     proofs.filter((proof) => proof.audit_status === "unchecked").length +
-    payments.filter((payment) => payment.status === "pending_review").length;
+    payments.filter((payment) => payment.status === "pending_review").length +
+    requirementPayments.filter((payment) => payment.status === "pending_review").length;
 
   return (
     <AdminShell
@@ -210,7 +287,8 @@ export default async function AdminPaymentsPage({
           >
             <option value="">All proof types</option>
             <option value="company_package">Company packages</option>
-            <option value="featured_profile">Featured profiles</option>
+          <option value="featured_profile">Featured profiles</option>
+          <option value="requirement_broadcast">Requirement broadcasts</option>
           </select>
           <select
             name="proofStatus"
@@ -262,6 +340,11 @@ export default async function AdminPaymentsPage({
                         Worker featured payment proof
                       </p>
                     ) : null}
+                    {proof.review_type === "requirement_broadcast" ? (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Requirement broadcast payment proof
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     {proof.review_type === "featured_profile" && proof.related_id ? (
@@ -272,6 +355,13 @@ export default async function AdminPaymentsPage({
                     {proof.review_type === "company_package" && proof.related_id ? (
                       <Button asChild variant="outline">
                         <Link href={`#payment-${proof.related_id}`}>Review Payment</Link>
+                      </Button>
+                    ) : null}
+                    {proof.review_type === "requirement_broadcast" && proof.related_id ? (
+                      <Button asChild variant="outline">
+                        <Link href={`#requirement-payment-${proof.related_id}`}>
+                          Review Broadcast
+                        </Link>
                       </Button>
                     ) : null}
                     <Button asChild variant="outline">
@@ -312,7 +402,7 @@ export default async function AdminPaymentsPage({
                     </form>
                   </div>
                 ) : null}
-                {proof.review_type !== "featured_profile" &&
+                {proof.review_type === "company_package" &&
                 proof.audit_status !== "approved" &&
                 proof.audit_status !== "auto_approved" &&
                 proof.audit_status !== "rejected" ? (
@@ -322,7 +412,9 @@ export default async function AdminPaymentsPage({
                   >
                     <input type="hidden" name="proofReviewId" value={proof.id} />
                     <p className="text-sm text-muted-foreground">
-                      Review the linked manual payment below to activate the package, or reject this proof if the screenshot is invalid or unrelated.
+                      Review the linked payment below to activate the package or
+                      broadcast, or reject this proof if the screenshot is invalid
+                      or unrelated.
                     </p>
                     <Button type="submit" variant="outline" disabled={!adminAuthenticated}>
                       Reject Proof
@@ -333,6 +425,82 @@ export default async function AdminPaymentsPage({
             ))
           ) : (
             <AdminEmptyState>No proof reviews found.</AdminEmptyState>
+          )}
+        </div>
+      </AdminSection>
+
+      <AdminSection title="Requirement Broadcast Payments" description="Rs 35 paid broadcast receipts awaiting AI or admin approval.">
+        <div className="grid gap-3">
+          {requirementPayments.length > 0 ? (
+            requirementPayments.map((payment) => (
+              <div
+                key={payment.id}
+                id={`requirement-payment-${payment.id}`}
+                className="scroll-mt-24 rounded-lg border p-4"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold">
+                        {payment.requirements?.required_service ?? "Requirement broadcast"}
+                      </p>
+                      <AdminStatusBadge>{payment.status}</AdminStatusBadge>
+                      <AdminStatusBadge>{payment.broadcast_status}</AdminStatusBadge>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Rs {payment.amount_pkr} - {payment.payment_method}
+                      {payment.requirements?.cities?.name
+                        ? ` - ${payment.requirements.cities.name}`
+                        : ""}
+                    </p>
+                  </div>
+                  <Button asChild variant="outline">
+                    <Link href={`/admin/requirements/${payment.requirement_id}`}>
+                      Requirement Detail
+                    </Link>
+                  </Button>
+                </div>
+                <div className="mt-4">
+                  <AdminMetaGrid
+                    items={[
+                      { label: "Payer", value: payment.payer_name ?? "Not provided" },
+                      { label: "Sender phone", value: payment.sender_phone ?? "Not provided" },
+                      { label: "Reference", value: payment.transaction_reference ?? "Not provided" },
+                      { label: "AI decision", value: payment.ai_decision ?? "Not reviewed" },
+                      {
+                        label: "AI amount",
+                        value: payment.ai_detected_amount_pkr
+                          ? `Rs ${payment.ai_detected_amount_pkr}`
+                          : "Not detected",
+                      },
+                      { label: "AI confidence", value: payment.ai_confidence ?? "Not scored" },
+                      { label: "Created", value: new Date(payment.created_at).toLocaleString("en-PK") },
+                    ]}
+                  />
+                </div>
+                {payment.status === "pending_review" ? (
+                  <div className="mt-4 grid gap-2 rounded-lg border bg-slate-50 p-3 sm:grid-cols-[1fr_auto_auto]">
+                    <p className="text-sm text-muted-foreground">
+                      Approve this Rs 35 receipt to start the WhatsApp broadcast, or reject it if the proof is invalid.
+                    </p>
+                    <form action={approveRequirementBroadcastPayment}>
+                      <input type="hidden" name="paymentId" value={payment.id} />
+                      <Button type="submit" disabled={!adminAuthenticated}>
+                        Approve & Broadcast
+                      </Button>
+                    </form>
+                    <form action={rejectRequirementBroadcastPayment}>
+                      <input type="hidden" name="paymentId" value={payment.id} />
+                      <Button type="submit" variant="outline" disabled={!adminAuthenticated}>
+                        Reject Payment
+                      </Button>
+                    </form>
+                  </div>
+                ) : null}
+              </div>
+            ))
+          ) : (
+            <AdminEmptyState>No requirement broadcast payments found.</AdminEmptyState>
           )}
         </div>
       </AdminSection>

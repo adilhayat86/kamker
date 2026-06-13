@@ -2,9 +2,15 @@
 
 import { redirect } from "next/navigation";
 
+import {
+  createCustomerSession,
+  findCustomersByPhone,
+  hashSecret,
+} from "@/lib/auth";
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import { normalizePakistanMobilePhone } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { findOrCreateCityId } from "@/lib/taxonomy";
 
 function field(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -18,6 +24,9 @@ export async function registerCustomer(formData: FormData) {
   const phoneNumber = phoneValidation.normalized || phoneInput;
   const cityName = field(formData, "city");
   const area = field(formData, "area");
+  const password = field(formData, "password");
+  const next = field(formData, "next");
+  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "";
   const draft = {
     fullName,
     phone: phoneInput,
@@ -30,6 +39,7 @@ export async function registerCustomer(formData: FormData) {
     !phoneInput ? "phone" : null,
     phoneInput && !phoneValidation.ok ? "phoneInvalid" : null,
     !cityName ? "city" : null,
+    password.length < 6 ? "password" : null,
   ].filter((error): error is string => Boolean(error));
 
   if (errors.length > 0) {
@@ -45,25 +55,34 @@ export async function registerCustomer(formData: FormData) {
     redirect("/register/customer?status=not-configured");
   }
 
-  const { data: city } = await supabase
-    .from("cities")
-    .select("id")
-    .eq("name", cityName)
-    .maybeSingle();
+  const existingCustomers = await findCustomersByPhone(phoneNumber);
 
-  const { error } = await supabase.from("customers").insert({
+  if (existingCustomers.length > 0) {
+    await saveFormDraft("customer", draft);
+    redirect("/register/customer?status=duplicate");
+  }
+
+  const [cityId, passwordHash] = await Promise.all([
+    findOrCreateCityId(cityName),
+    hashSecret(password),
+  ]);
+
+  const { data: customer, error } = await supabase.from("customers").insert({
     full_name: fullName,
     phone_number: phoneNumber,
-    city_id: city?.id ?? null,
+    phone_normalized: phoneValidation.normalized || null,
+    password_hash: passwordHash,
+    city_id: cityId,
     area: area || null,
-  });
+  }).select("id").single();
 
-  if (error) {
+  if (error || !customer) {
     console.error("Failed to register customer", error);
     await saveFormDraft("customer", draft);
     redirect("/register/customer?status=error");
   }
 
+  await createCustomerSession(customer.id as string);
   await clearFormDraft("customer");
-  redirect("/register/customer?status=success");
+  redirect(safeNext || "/send-requirement?status=customer-registered");
 }

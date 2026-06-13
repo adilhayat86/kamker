@@ -256,7 +256,7 @@ export default async function AdminPage() {
                       </p>
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">
                         {requirement.cities?.name ?? "Unknown city"}
-                        {requirement.area ? ` - ${requirement.area}` : ""} - {requirement.urgency}
+                        {requirement.area ? ` - ${requirement.area}` : ""}
                       </p>
                     </div>
                     <div className="flex shrink-0 gap-1">

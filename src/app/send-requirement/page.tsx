@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
@@ -6,7 +7,7 @@ import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getSessionProfessional } from "@/lib/auth";
+import { getSessionCustomer, getSessionProfessional } from "@/lib/auth";
 import {
   getBroadcastRecipientCount,
   serviceFromBroadcastQuery,
@@ -14,24 +15,23 @@ import {
 import { getCityOptions } from "@/lib/city-options";
 import { getFormDraft } from "@/lib/form-draft";
 import { categories, serviceGroups } from "@/lib/marketplace-data";
+import { REQUIREMENT_BROADCAST_AMOUNT_PKR } from "@/lib/requirement-broadcast";
 import { workerPostingBlockedStatus } from "@/lib/worker-status";
 
 import { submitRequirement } from "./actions";
 
 export const metadata = {
   title: "Send Requirement | Kamker",
-  description: "Submit your service requirement for Kamker matching and reviewed outreach.",
+  description: "Submit a paid Kamker requirement broadcast to matching professionals.",
 };
 
-const urgencyOptions = ["Today", "Within 2 days", "This week", "Flexible"];
 const availabilityOptions = ["Full Time", "Part Time Morning", "Part Time Evening"];
 
 const statusMessages = {
-  success: "Your requirement has been submitted for review.",
-  missing: "Please fill service, city, phone number, urgency, and details.",
+  success: "Your requirement has been saved.",
+  missing: "Please fill service, city, phone number, and details.",
   "not-configured": "Supabase is not configured yet.",
-  "pending-worker":
-    "Your profile is waiting for admin approval. You can edit your profile, but posting is disabled until approval.",
+  "customer-registered": "Customer account created. You can now send your requirement.",
   "banned-worker":
     "Your profile has been banned. Posting is disabled. Contact Kamker support.",
   error: "Could not save requirement. Please try again.",
@@ -45,7 +45,6 @@ type RequirementDraft = {
   budget: string;
   phone: string;
   whatsapp: string;
-  urgency: string;
   details: string;
   errors: string;
 };
@@ -71,15 +70,45 @@ export default async function SendRequirementPage({
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
   const draft = await getFormDraft<RequirementDraft>("send_requirement");
-  const professional = await getSessionProfessional();
+  const [professional, customer] = await Promise.all([
+    getSessionProfessional(),
+    getSessionCustomer(),
+  ]);
+
+  if (!professional && !customer) {
+    const nextParams = new URLSearchParams();
+    (
+      [
+        "category",
+        "subcategory",
+        "service",
+        "city",
+        "area",
+        "source",
+        "estimate",
+      ] as const
+    ).forEach((key) => {
+      const value = params?.[key];
+      if (value) {
+        nextParams.set(key, value);
+      }
+    });
+    const nextPath = `/send-requirement${nextParams.size ? `?${nextParams.toString()}` : ""}`;
+    redirect(`/login?status=login-required&next=${encodeURIComponent(nextPath)}`);
+  }
+
   const blockedWorkerStatus = workerPostingBlockedStatus(professional);
   const cityOptions = await getCityOptions();
   const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
   const category = params?.category?.trim() || undefined;
   const subcategory = params?.subcategory?.trim() || undefined;
   const service = params?.service?.trim() || undefined;
-  const city = params?.city?.trim() || draft.city;
-  const area = params?.area?.trim() || draft.area;
+  const accountPhone = professional?.phone_number ?? customer?.phone_number ?? "";
+  const accountWhatsapp = professional?.whatsapp_number ?? "";
+  const accountCity = professional?.cities?.name ?? customer?.cities?.name ?? "";
+  const accountArea = professional?.area ?? customer?.area ?? "";
+  const city = params?.city?.trim() || draft.city || accountCity;
+  const area = params?.area?.trim() || draft.area || accountArea;
   const source = params?.source?.trim() ?? "";
   const estimate = params?.estimate?.trim() ?? "";
   const sourceEstimate = /^\d+$/.test(estimate) ? Number(estimate) : null;
@@ -97,7 +126,6 @@ export default async function SendRequirementPage({
     : null;
   const selectedServiceName =
     subcategory ?? selectedService?.name ?? service ?? category ?? draft.service;
-  const hasSelectedService = Boolean(selectedServiceName);
   const serviceOptions = selectedServiceName && !categories.some((item) => item.name === selectedServiceName)
     ? [
         {
@@ -154,10 +182,9 @@ export default async function SendRequirementPage({
                 Your requirement has been submitted
               </h1>
               <p className="mt-3 leading-7 text-muted-foreground">
-                Kamker has saved your requirement for review. Professionals are
-                not messaged for free automatically. If you want broadcast
-                outreach, Kamker will confirm the paid option before sending it
-                to matching professionals.
+                Kamker saved your requirement. Continue to the payment proof
+                step from the latest requirement link to start broadcast
+                messaging.
               </p>
               {params?.ref ? (
                 <div className="mt-5 rounded-lg border bg-sky-50 px-4 py-3 text-sm">
@@ -192,9 +219,8 @@ export default async function SendRequirementPage({
             Send Requirement
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
-            Describe your need once. Kamker will match it with relevant
-            professionals by service, city, area, and availability. Outreach is
-            a paid option after review.
+            Describe your need once. Kamker matches it with relevant
+            professionals by service, city, area, and availability.
           </p>
         </div>
 
@@ -234,13 +260,14 @@ export default async function SendRequirementPage({
           </Card>
         ) : null}
 
-        <Card className="mt-5 border-amber-200 bg-amber-50 shadow-sm">
+        <Card className="mt-5 border-sky-200 bg-sky-50 shadow-sm">
           <CardContent className="p-5 text-sm">
-            <p className="font-semibold text-amber-950">Paid broadcast notice</p>
+            <p className="font-semibold text-foreground">
+              Paid broadcast: Rs {REQUIREMENT_BROADCAST_AMOUNT_PKR}
+            </p>
             <p className="mt-1 text-muted-foreground">
-              Submitting this form saves your requirement for Kamker review.
-              Professionals are not contacted for free automatically. Broadcast
-              messaging is a paid option after review and confirmation.
+              Matching professionals are contacted after payment proof is
+              approved. Clear receipts can be approved automatically.
             </p>
           </CardContent>
         </Card>
@@ -276,30 +303,22 @@ export default async function SendRequirementPage({
                       only what Kamker needs to contact you and review the request.
                     </p>
                   </div>
-                  {hasSelectedService ? (
-                    <input type="hidden" name="service" value={selectedServiceName} />
-                  ) : (
-                    <SelectField
-                      label="Required service"
-                      name="service"
-                      options={serviceOptions}
-                      defaultValue={selectedServiceName}
-                      required
-                      error={requiredError("service", "Choose a required service.")}
-                    />
-                  )}
-                  {selectedCity ? (
-                    <input type="hidden" name="city" value={selectedCity} />
-                  ) : (
-                    <SelectField
-                      label="City"
-                      name="city"
-                      options={cityOptionsWithSelected}
-                      defaultValue={selectedCity}
-                      required
-                      error={requiredError("city", "Choose a city.")}
-                    />
-                  )}
+                  <SelectField
+                    label="Required service"
+                    name="service"
+                    options={serviceOptions}
+                    defaultValue={selectedServiceName}
+                    required
+                    error={requiredError("service", "Choose a required service.")}
+                  />
+                  <SelectField
+                    label="City"
+                    name="city"
+                    options={cityOptionsWithSelected}
+                    defaultValue={selectedCity}
+                    required
+                    error={requiredError("city", "Choose a city.")}
+                  />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <FormField
                       label="Area optional"
@@ -308,14 +327,7 @@ export default async function SendRequirementPage({
                       placeholder="Model Town, Gulshan, DHA"
                       autoComplete="address-level3"
                     />
-                    <SelectField
-                      label="Urgency"
-                      name="urgency"
-                      options={urgencyOptions}
-                      defaultValue={draft.urgency}
-                      required
-                      error={requiredError("urgency", "Choose urgency.")}
-                    />
+                    <FormField label="Budget optional" name="budget" placeholder="Rs. 5,000" defaultValue={draft.budget} />
                   </div>
                   <TextAreaField
                     label="What do you need?"
@@ -335,12 +347,6 @@ export default async function SendRequirementPage({
                         name="availability"
                         options={availabilityOptions}
                         defaultValue={draft.availability}
-                      />
-                      <FormField
-                        label="Budget optional"
-                        name="budget"
-                        placeholder="Rs. 5,000"
-                        defaultValue={draft.budget}
                       />
                     </div>
                   </details>
@@ -381,14 +387,6 @@ export default async function SendRequirementPage({
                     defaultValue={draft.availability}
                   />
                   <FormField label="Budget optional" name="budget" placeholder="Rs. 5,000" defaultValue={draft.budget} />
-                  <SelectField
-                    label="Urgency"
-                    name="urgency"
-                    options={urgencyOptions}
-                    defaultValue={draft.urgency}
-                    required
-                    error={requiredError("urgency", "Choose urgency.")}
-                  />
                 </div>
               )}
 
@@ -402,12 +400,12 @@ export default async function SendRequirementPage({
                   name="phone"
                   type="tel"
                   placeholder="0300 1234567"
-                  defaultValue={draft.phone}
+                  defaultValue={draft.phone || accountPhone}
                   maxLength={16}
                   required
                   error={phoneError}
                 />
-                <CountryPhoneField label="WhatsApp number" name="whatsapp" defaultValue={draft.whatsapp} error={whatsappError} />
+                <CountryPhoneField label="WhatsApp number" name="whatsapp" defaultValue={draft.whatsapp || accountWhatsapp} error={whatsappError} />
               </div>
 
               {!hasBroadcastContext ? (
@@ -426,8 +424,8 @@ export default async function SendRequirementPage({
                   />
                 </div>
               ) : null}
-              <Button className="h-12 text-base sm:col-span-2" disabled={Boolean(blockedWorkerStatus)}>
-                {blockedWorkerStatus ? "Posting Disabled" : "Send Requirement"}
+              <Button className="h-12 text-base sm:col-span-2" disabled={blockedWorkerStatus === "banned"}>
+                {blockedWorkerStatus === "banned" ? "Requirement Disabled" : "Continue to Payment"}
               </Button>
             </form>
           </CardContent>

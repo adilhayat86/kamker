@@ -22,7 +22,6 @@ export type AdminRequirementRow = {
   id: string;
   required_service: string;
   area: string | null;
-  urgency: string;
   status: string;
   created_at: string;
   cities: { name: string } | null;
@@ -185,7 +184,7 @@ export async function getRecentRequirements(limit = 8) {
 
   const { data, error } = await supabase
     .from("requirements")
-    .select("id, required_service, area, urgency, status, created_at, cities(name)")
+    .select("id, required_service, area, status, created_at, cities(name)")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -341,10 +340,12 @@ async function getDatabaseSchemaReadiness() {
   const requiredTables = [
     "professionals",
     "customers",
+    "customer_sessions",
     "categories",
     "cities",
     "requirements",
     "requirement_matches",
+    "requirement_broadcast_payments",
     "companies",
     "company_packages",
     "manual_payments",
@@ -365,6 +366,22 @@ async function getDatabaseSchemaReadiness() {
     })),
   );
   const columnChecks = await Promise.all([
+    {
+      column: "customers.password_hash",
+      ready: await hasReadableColumn("customers", "password_hash"),
+    },
+    {
+      column: "customers.phone_normalized",
+      ready: await hasReadableColumn("customers", "phone_normalized"),
+    },
+    {
+      column: "requirements.payment_status",
+      ready: await hasReadableColumn("requirements", "payment_status"),
+    },
+    {
+      column: "requirements.broadcast_status",
+      ready: await hasReadableColumn("requirements", "broadcast_status"),
+    },
     {
       column: "requirement_matches.company_listing_id",
       ready: await hasCompanyStaffRequirementMatchColumn(),

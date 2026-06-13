@@ -9,8 +9,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { loginProfessional } from "./actions";
 
 export const metadata = {
-  title: "Professional Login | Kamker",
-  description: "Log in to your Kamker professional account.",
+  title: "Login | Kamker",
+  description: "Log in to your Kamker account.",
 };
 
 const statusMessages = {
@@ -21,11 +21,13 @@ const statusMessages = {
   reset: "Password updated. You can log in now.",
   registered: "Registration submitted. Log in after your profile is ready.",
   "profile-deleted": "Your professional profile has been deleted.",
+  "login-required": "Log in first. Kamker will return you to the requirement form after login.",
 } as const;
 
 type LoginPageProps = {
   searchParams?: Promise<{
     status?: keyof typeof statusMessages;
+    next?: string;
   }>;
 };
 
@@ -44,6 +46,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
+  const next = params?.next?.startsWith("/") && !params.next.startsWith("//")
+    ? params.next
+    : "";
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
@@ -55,13 +60,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
           <div>
             <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-              Professional account
+              Kamker account
             </p>
             <h1 className="text-3xl font-bold tracking-normal">Login</h1>
           </div>
         </div>
         <p className="mt-3 text-muted-foreground">
-          Use your registered phone number and password to manage your Kamker profile.
+          Use your registered phone number and password. Customers can continue
+          requirement requests after login.
         </p>
 
         {statusMessage ? (
@@ -73,6 +79,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
             <form action={loginProfessional} className="grid gap-4">
+              <input type="hidden" name="next" value={next} />
               <label className="grid gap-2">
                 <span className="text-sm font-medium">Phone Number<RequiredMark /></span>
                 <div className="relative">
@@ -130,9 +137,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Forgot password?
           </Link>
           <p className="text-muted-foreground">
-            New professional?{" "}
+            New user?{" "}
             <Link href="/register/professional" className="font-medium text-primary">
-              Register here
+              Register as worker
+            </Link>
+            {" "}or{" "}
+            <Link
+              href={`/register/customer${next ? `?next=${encodeURIComponent(next)}` : ""}`}
+              className="font-medium text-primary"
+            >
+              register as customer
             </Link>
           </p>
         </div>

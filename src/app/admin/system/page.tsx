@@ -108,6 +108,8 @@ export default async function AdminSystemPage() {
             <li>sql/20260608_phone_ownership_rules.sql</li>
             <li>sql/20260608_canonical_categories.sql</li>
             <li>sql/20260608_public_browse_performance.sql</li>
+            <li>sql/20260613_worker_status_ban.sql</li>
+            <li>sql/20260613_logged_in_paid_requirements.sql</li>
           </ol>
           <p className="mt-3 text-xs leading-5 text-muted-foreground">
             This check covers core marketplace tables, company packages/payments,

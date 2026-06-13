@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { trackAnalyticsEvent } from "@/lib/analytics";
-import { getSessionProfessional } from "@/lib/auth";
+import { getSessionCustomer, getSessionProfessional } from "@/lib/auth";
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import {
   normalizePakistanMobilePhone,
@@ -47,7 +47,6 @@ export async function submitRequirement(formData: FormData) {
   const phoneNumber = phoneValidation.normalized || phoneInput;
   const whatsappValidation = validatePhoneFieldWithCountry(formData, "whatsapp");
   const whatsappNumber = whatsappValidation.normalized;
-  const urgency = requiredValue(formData, "urgency");
   const details = requiredValue(formData, "details");
   const source = requiredValue(formData, "source") || "unknown";
   const draft = {
@@ -58,7 +57,6 @@ export async function submitRequirement(formData: FormData) {
     budget,
     phone: phoneInput,
     whatsapp: whatsappNumber,
-    urgency,
     details,
   };
   const errors = [
@@ -67,7 +65,6 @@ export async function submitRequirement(formData: FormData) {
     !phoneInput ? "phone" : null,
     phoneInput && !phoneValidation.ok ? "phoneInvalid" : null,
     !whatsappValidation.ok ? "whatsappInvalid" : null,
-    !urgency ? "urgency" : null,
     !details ? "details" : null,
   ].filter((error): error is string => Boolean(error));
 
@@ -79,13 +76,17 @@ export async function submitRequirement(formData: FormData) {
     redirect("/send-requirement?status=missing");
   }
 
-  const professional = await getSessionProfessional();
-  const blockedStatus = workerPostingBlockedStatus(professional);
+  const [professional, customer] = await Promise.all([
+    getSessionProfessional(),
+    getSessionCustomer(),
+  ]);
 
-  if (blockedStatus === "pending") {
+  if (!professional && !customer) {
     await saveRequirementDraft(draft);
-    redirect("/send-requirement?status=pending-worker");
+    redirect(`/login?status=login-required&next=${encodeURIComponent("/send-requirement")}`);
   }
+
+  const blockedStatus = workerPostingBlockedStatus(professional);
 
   if (blockedStatus === "banned") {
     await saveRequirementDraft(draft);
@@ -102,6 +103,7 @@ export async function submitRequirement(formData: FormData) {
   const { data: requirement, error } = await supabase
     .from("requirements")
     .insert({
+      customer_id: customer?.id ?? null,
       required_service: requiredService,
       city_id: cityId,
       area: area || null,
@@ -110,8 +112,9 @@ export async function submitRequirement(formData: FormData) {
       budget: budget || null,
       phone_number: phoneNumber,
       whatsapp_number: whatsappNumber || null,
-      urgency,
+      urgency: "Immediate",
       broadcast_status: "pending_payment",
+      payment_status: "unpaid",
       status: "open",
     })
     .select("id")
@@ -148,14 +151,14 @@ export async function submitRequirement(formData: FormData) {
       "New requirement submitted:",
       `Service: ${requiredService}`,
       `City: ${cityName}`,
-      `Urgency: ${urgency}`,
+      "Broadcast: pending payment",
       `Phone: ${phoneNumber}`,
-      "Admin review needed.",
+      "Customer should upload Rs 35 payment proof.",
     ].join("\n"),
     "requirement",
     requirement.id as string,
   );
 
   await clearRequirementDraft();
-  redirect(`/send-requirement?status=success&ref=${requirement.id as string}`);
+  redirect(`/send-requirement/${requirement.id as string}/payment`);
 }

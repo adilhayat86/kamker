@@ -26,6 +26,10 @@ function whatsappConfig() {
       process.env.WHATSAPP_ADMIN_ALERT_TEMPLATE_NAME || "kamker_admin_alerts",
     adminAlertTemplateLanguage:
       process.env.WHATSAPP_ADMIN_ALERT_TEMPLATE_LANGUAGE || "en",
+    requirementTemplateName:
+      process.env.WHATSAPP_REQUIREMENT_TEMPLATE_NAME || "kamker_requirement_broadcast",
+    requirementTemplateLanguage:
+      process.env.WHATSAPP_REQUIREMENT_TEMPLATE_LANGUAGE || "en",
   };
 }
 
@@ -302,6 +306,46 @@ export async function sendAdminWhatsappAlert(body: string, relatedType?: string,
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Unknown WhatsApp alert error.",
+    };
+  }
+}
+
+export async function sendRequirementWhatsappAlert(
+  to: string,
+  body: string,
+  relatedId?: string,
+) {
+  const config = whatsappConfig();
+
+  try {
+    if (config.requirementTemplateName) {
+      const templateResult = await sendWhatsappTemplate({
+        to,
+        body,
+        templateName: config.requirementTemplateName,
+        languageCode: config.requirementTemplateLanguage,
+        relatedType: "requirement_broadcast",
+        relatedId,
+      });
+
+      if (templateResult.ok) {
+        return templateResult;
+      }
+
+      console.warn("WhatsApp requirement template failed; trying text fallback.");
+    }
+
+    return await sendWhatsappText({
+      to,
+      body: `New paid Kamker requirement:\n${body}\nReply directly if you are available.`,
+      relatedType: "requirement_broadcast",
+      relatedId,
+    });
+  } catch (error) {
+    console.error("Failed to send WhatsApp requirement alert", error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Unknown WhatsApp requirement error.",
     };
   }
 }

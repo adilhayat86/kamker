@@ -34,7 +34,6 @@ type Requirement = {
   budget: string | null;
   phone_number: string;
   whatsapp_number: string | null;
-  urgency: string;
   status: string;
   broadcast_status: string;
   payment_status: string;
@@ -74,6 +73,8 @@ type RequirementWhatsappAlert = {
   message_type: string | null;
   provider_message_id: string | null;
   error_message: string | null;
+  recipient_phone: string | null;
+  related_type: string | null;
   created_at: string;
 };
 
@@ -93,7 +94,7 @@ async function getRequirement(id: string) {
 
   const { data, error } = await supabase
     .from("requirements")
-    .select("id, required_service, area, availability, details, budget, phone_number, whatsapp_number, urgency, status, broadcast_status, payment_status, cities(name)")
+    .select("id, required_service, area, availability, details, budget, phone_number, whatsapp_number, status, broadcast_status, payment_status, cities(name)")
     .eq("id", id)
     .maybeSingle();
 
@@ -133,11 +134,11 @@ async function getRequirementWhatsappAlerts(id: string) {
 
   const { data, error } = await supabase
     .from("whatsapp_messages")
-    .select("id, status, message_type, provider_message_id, error_message, created_at")
-    .eq("related_type", "requirement")
+    .select("id, status, message_type, provider_message_id, error_message, recipient_phone, related_type, created_at")
+    .in("related_type", ["requirement", "requirement_broadcast"])
     .eq("related_id", id)
     .order("created_at", { ascending: false })
-    .limit(5);
+    .limit(40);
 
   if (error) {
     console.error("Failed to load requirement WhatsApp alerts", error);
@@ -221,8 +222,7 @@ export default async function RequirementDetailPage({
             <p className="mt-2 text-muted-foreground">
               {requirement.cities?.name ?? "Unknown city"}
               {requirement.area ? ` - ${requirement.area}` : ""} -{" "}
-              {requirement.availability ?? "Any availability"} -{" "}
-              {requirement.urgency}
+              {requirement.availability ?? "Any availability"}
             </p>
           ) : (
             <p className="mt-2 text-muted-foreground">
@@ -316,7 +316,7 @@ export default async function RequirementDetailPage({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-                  Admin WhatsApp Alert
+                  WhatsApp Activity
                 </p>
                 <h2 className="mt-1 text-2xl font-bold tracking-normal">
                   {whatsappAlerts[0]?.status ?? "Not sent"}
@@ -326,7 +326,9 @@ export default async function RequirementDetailPage({
                 <Badge
                   variant={whatsappAlerts[0].status === "sent" ? "default" : "outline"}
                 >
-                  {whatsappAlerts[0].message_type ?? "message"}
+                  {whatsappAlerts[0].related_type === "requirement_broadcast"
+                    ? "Requirement broadcast"
+                    : "Admin alert"}
                 </Badge>
               ) : null}
             </div>
@@ -339,12 +341,20 @@ export default async function RequirementDetailPage({
                         {alert.status}
                       </Badge>
                       <span className="font-medium">
-                        {alert.message_type ?? "message"}
+                        {alert.related_type === "requirement_broadcast"
+                          ? "Requirement broadcast"
+                          : "Admin alert"}
+                        {alert.message_type ? ` - ${alert.message_type}` : ""}
                       </span>
                       <span className="text-muted-foreground">
                         {new Date(alert.created_at).toLocaleString("en-PK")}
                       </span>
                     </div>
+                    {alert.recipient_phone ? (
+                      <p className="mt-2 text-muted-foreground">
+                        Recipient: {alert.recipient_phone}
+                      </p>
+                    ) : null}
                     {alert.provider_message_id ? (
                       <p className="mt-2 text-muted-foreground">
                         Provider ID: {alert.provider_message_id}
