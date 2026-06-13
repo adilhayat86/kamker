@@ -1,7 +1,12 @@
 import { unstable_cache } from "next/cache";
 
 import { getMockCompanyListingCount } from "@/lib/company-listing-cards";
-import { categoryCountValue, serviceGroups } from "@/lib/marketplace-data";
+import {
+  categoryCountValue,
+  recentProfessionals,
+  searchTermsForCategory,
+  serviceGroups,
+} from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type CountCategory = {
@@ -49,6 +54,41 @@ function increment(map: Map<string, number>, name: string | null | undefined) {
 
 function countFor(map: Map<string, number>, name: string | null | undefined) {
   return map.get(normalize(name)) ?? 0;
+}
+
+function serviceMatchesCategory(serviceName: string, categoryName: string) {
+  const service = normalize(serviceName);
+  const categoryTerms = searchTermsForCategory(categoryName).map(normalize);
+
+  return categoryTerms.some((category) => {
+    const singularCategory = category.replace(/s$/, "");
+
+    return (
+      service.includes(category) ||
+      service.includes(singularCategory) ||
+      category.includes(service)
+    );
+  });
+}
+
+function fallbackProfessionalCountForCategory(
+  categoryName: string,
+  professionalCount: number,
+  filters?: CountFilters,
+) {
+  if (professionalCount > 0) {
+    return 0;
+  }
+
+  return recentProfessionals.filter((professional) => {
+    const categoryMatch = serviceMatchesCategory(professional.role, categoryName);
+    const locationMatch = matchesLocation(
+      { city: professional.city, area: professional.area },
+      filters,
+    );
+
+    return categoryMatch && locationMatch;
+  }).length;
 }
 
 function relationName(
@@ -203,6 +243,18 @@ async function loadLiveCategoryCountEntries(
         (total, childName) => total + countFor(professionalCounts, childName),
         0,
       );
+      const childFallbackProfessionalTotal = childNames.reduce((total, childName) => {
+        const childLiveProfessionalCount = countFor(professionalCounts, childName);
+
+        return (
+          total +
+          fallbackProfessionalCountForCategory(
+            childName,
+            childLiveProfessionalCount,
+            filters,
+          )
+        );
+      }, 0);
       const groupCompanyTotal =
         countFor(companyGroupCounts, category.name) +
         childNames.reduce(
@@ -220,6 +272,7 @@ async function loadLiveCategoryCountEntries(
         ownProfessionalTotal +
           ownCompanyTotal +
           childProfessionalTotal +
+          childFallbackProfessionalTotal +
           groupCompanyTotal +
           fallbackGroupCompanyTotal,
       );
@@ -231,8 +284,19 @@ async function loadLiveCategoryCountEntries(
       ownCompanyTotal,
       filters,
     );
+    const fallbackProfessionalTotal = fallbackProfessionalCountForCategory(
+      category.name,
+      ownProfessionalTotal,
+      filters,
+    );
 
-    result.set(key, ownProfessionalTotal + ownCompanyTotal + fallbackCompanyTotal);
+    result.set(
+      key,
+      ownProfessionalTotal +
+        fallbackProfessionalTotal +
+        ownCompanyTotal +
+        fallbackCompanyTotal,
+    );
   });
 
   return Array.from(result.entries());
@@ -240,7 +304,7 @@ async function loadLiveCategoryCountEntries(
 
 const getCachedLiveCategoryCountEntries = unstable_cache(
   loadLiveCategoryCountEntries,
-  ["live-category-counts-v2"],
+  ["live-category-counts-v4"],
   { revalidate: 120 },
 );
 
