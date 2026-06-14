@@ -270,7 +270,7 @@ export default async function RequirementPaymentPage({
   const sentLogs = whatsappLogs.filter((log) => log.status === "sent");
   const failedLogs = whatsappLogs.filter((log) => log.status === "failed");
   const skippedLogs = whatsappLogs.filter((log) => log.status === "skipped");
-  const reportHref = `/send-requirement/${id}/broadcast-report`;
+  const reportHref = `/send-requirement/${id}/broadcast-report-view`;
   const heading = isCompleted
     ? "Broadcast report"
     : isProofUnderReview
@@ -524,7 +524,7 @@ export default async function RequirementPaymentPage({
                       <Button asChild className="mt-4 h-11 w-full">
                         <a href={reportHref}>
                           <Download className="size-4" aria-hidden="true" />
-                          Download CSV Report
+                          View Delivery Report
                         </a>
                       </Button>
                     </div>

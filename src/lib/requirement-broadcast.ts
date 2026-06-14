@@ -97,7 +97,7 @@ function siteBaseUrl() {
 }
 
 function reportUrl(requirementId: string) {
-  return `${siteBaseUrl()}/send-requirement/${requirementId}/broadcast-report`;
+  return `${siteBaseUrl()}/send-requirement/${requirementId}/broadcast-report-view`;
 }
 
 function matchRecipient(source: BroadcastRecipientSource) {
