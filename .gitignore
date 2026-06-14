@@ -27,5 +27,6 @@ screenshots/fixed-test-worker-visible.png
 screenshots/test-worker-signup-result.png
 playwright-report/
 test-results/
+qa-receipts/
 
 .vercel

@@ -33,7 +33,11 @@
     "qa:build-phone-sql": "node scripts/qa/build-mvp-supabase-sql.mjs --phone-only",
     "qa:copy-phone-sql": "node scripts/qa/build-mvp-supabase-sql.mjs --phone-only --copy",
     "qa:serve-phone-sql": "node scripts/qa/serve-supabase-sql-helper.mjs --phone-only",
-    "qa:list-production": "node scripts/qa/list-production-qa-records.mjs"
+    "qa:list-production": "node scripts/qa/list-production-qa-records.mjs",
+    "sample:cleanup-production": "node scripts/qa/cleanup-production-sample-data.mjs",
+    "sample:reset-production-content": "node scripts/qa/reset-production-marketplace-content.mjs",
+    "sample:seed-production": "node scripts/qa/seed-production-sample-data.mjs",
+    "sample:verify-production": "node scripts/qa/verify-production-sample-data.mjs"
   },
   "keywords": [],
   "author": "",
