@@ -4,6 +4,16 @@ import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 const VISITOR_KEY = "kamker_visitor_id";
+const PAGE_VIEW_DEDUPE_PREFIX = "kamker_pageview_seen:";
+const PAGE_VIEW_DEDUPE_MS = 30 * 60 * 1000;
+const IGNORED_PATH_PREFIXES = [
+  "/admin",
+  "/account",
+  "/api",
+  "/login",
+  "/logout",
+  "/forgot-password",
+];
 
 function getVisitorId() {
   try {
@@ -49,12 +59,39 @@ function referrerHost() {
   }
 }
 
+function shouldSkipRecentPageView(key: string) {
+  try {
+    const storageKey = `${PAGE_VIEW_DEDUPE_PREFIX}${key}`;
+    const previous = Number(window.sessionStorage.getItem(storageKey) ?? "0");
+    const now = Date.now();
+
+    if (previous && now - previous < PAGE_VIEW_DEDUPE_MS) {
+      return true;
+    }
+
+    window.sessionStorage.setItem(storageKey, String(now));
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function AnalyticsPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryString = searchParams.toString();
 
   useEffect(() => {
+    if (IGNORED_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+      return;
+    }
+
+    const dedupeKey = `${pathname}?${queryString}`;
+
+    if (shouldSkipRecentPageView(dedupeKey)) {
+      return;
+    }
+
     const source = searchParams.get("source") || searchParams.get("utm_source") || "";
     const category =
       searchParams.get("category") ||

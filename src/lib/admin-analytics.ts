@@ -323,6 +323,35 @@ function eventPath(event: EventRow) {
   return String(event.metadata?.path ?? "Unknown");
 }
 
+function isProfileViewEvent(event: EventRow) {
+  const path = eventPath(event);
+  return (
+    event.event_type === "view" &&
+    (/^\/professionals\/[^/?#]+/.test(path) ||
+      /^\/company-listings\/[^/?#]+/.test(path) ||
+      /^\/companies\/[^/?#]+$/.test(path))
+  );
+}
+
+function isSearchPageViewEvent(event: EventRow) {
+  if (event.event_type !== "view") {
+    return false;
+  }
+
+  const path = eventPath(event);
+
+  if (!path.startsWith("/professionals")) {
+    return false;
+  }
+
+  const searchTerm = String(event.metadata?.search_term ?? "").trim();
+  const category = String(event.metadata?.category ?? "").trim();
+  const city = String(event.metadata?.city ?? "").trim();
+  const query = String(event.metadata?.query ?? "").trim();
+
+  return Boolean(searchTerm || category || city || query);
+}
+
 function eventVisitorId(event: EventRow) {
   return String(event.metadata?.visitor_id ?? "").trim();
 }
@@ -487,10 +516,9 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
   const byEvent = countBy(events.map((event) => event.event_type ?? "unknown"));
   const searchEvents = events.filter((event) => event.event_type === "search");
   const pageViewEvents = events.filter((event) => event.event_type === "view");
-  const trackedSearchEvents = [
-    ...searchEvents,
-    ...pageViewEvents.filter((event) => eventSearchTerm(event) !== "Filtered search"),
-  ];
+  const searchPageViewEvents = pageViewEvents.filter(isSearchPageViewEvent);
+  const trackedSearchEvents = [...searchEvents, ...searchPageViewEvents];
+  const profileViewEvents = pageViewEvents.filter(isProfileViewEvent);
   const uniqueVisitorCount = new Set(
     events.map(eventVisitorId).filter(Boolean),
   ).size;
@@ -626,10 +654,10 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
         ? sourceCompanyStaffProfiles
         : staff.filter((item) => item.status === "approved").length,
       requirementsSubmitted: requirementCount,
-      profileViews: byEvent.view ?? 0,
+      profileViews: profileViewEvents.length,
       pageViews: pageViewEvents.length,
       uniqueVisitors: uniqueVisitorCount,
-      trackedSearches: searchEvents.length,
+      trackedSearches: trackedSearchEvents.length,
       callClicks,
       whatsappClicks,
       contactClicks,
@@ -641,8 +669,9 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
         : contactClicks,
     },
     funnel: [
-      { label: "Searches / views", value: (byEvent.search ?? 0) + pageViewEvents.length, percent: 100 },
-      { label: "Profile / page views", value: pageViewEvents.length, percent: 0 },
+      { label: "Public page views", value: pageViewEvents.length, percent: 100 },
+      { label: "Search result visits", value: trackedSearchEvents.length, percent: 0 },
+      { label: "Profile views", value: profileViewEvents.length, percent: 0 },
       { label: "Call / WhatsApp clicks", value: contactClicks, percent: 0 },
       { label: "Requirements submitted", value: requirementCount, percent: 0 },
       { label: "Workers registered", value: workerRegistrationCount + companyStaffProfileCount, percent: 0 },

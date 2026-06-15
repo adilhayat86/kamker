@@ -277,6 +277,10 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
                     Sample Data records hidden from worker and staff counts.
                   </p>
                 ) : null}
+                <p className="mt-2 text-xs font-semibold text-cyan-100/50">
+                  Page views are public page loads. Profile views count only worker, staff, and
+                  company profile pages.
+                </p>
                 {report.filters.range === "today" ? (
                   <p className="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-xs leading-5 text-amber-50/80">
                     Today starts at midnight Pakistan time. For late-night testing or recent
@@ -445,16 +449,18 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
               <MetricCard
-                label="Page views"
+                label="Public page views"
                 value={report.stats.pageViews}
-                helper={`${numberFormat(report.stats.uniqueVisitors)} unique browser signals tracked`}
+                helper={`${numberFormat(report.stats.uniqueVisitors)} unique browser signals; ${numberFormat(
+                  report.stats.profileViews,
+                )} actual profile views`}
                 icon={Activity}
                 tone="blue"
               />
               <MetricCard
-                label="Searches"
+                label="Search result visits"
                 value={report.stats.trackedSearches}
-                helper="Search terms captured from search pages and query URLs"
+                helper="Visits to filtered worker search pages and explicit search actions"
                 icon={Search}
                 tone="cyan"
               />
