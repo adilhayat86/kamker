@@ -272,6 +272,12 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
                   {report.filters.category || "All categories"} /{" "}
                   {report.filters.city || "All cities"} / {report.filters.source || "all"}
                 </p>
+                {report.filters.range === "today" ? (
+                  <p className="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-xs leading-5 text-amber-50/80">
+                    Today starts at midnight Pakistan time. For late-night testing or recent
+                    friend/nephew visits, use Last 24 hours.
+                  </p>
+                ) : null}
               </div>
             </div>
 
@@ -284,6 +290,7 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
                     defaultValue={filters.range}
                     className="h-11 rounded-xl border border-cyan-200/20 bg-slate-950 px-3 text-white outline-none ring-cyan-300/0 transition focus:ring-2"
                   >
+                    <option value="24h">Last 24 hours</option>
                     <option value="today">Today</option>
                     <option value="yesterday">Yesterday</option>
                     <option value="7">Last 7 days</option>
@@ -367,6 +374,11 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
             <div className="mt-4 flex flex-wrap gap-2 print:hidden">
               {[
                 {
+                  label: "Launch Pulse",
+                  icon: Activity,
+                  href: presetHref(currentParams, { range: "24h", source: "all" }),
+                },
+                {
                   label: "Today’s Ad Result",
                   icon: Newspaper,
                   href: presetHref(currentParams, { range: "today", source: "all" }),
@@ -388,7 +400,7 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
                 {
                   label: "New Worker Registrations",
                   icon: Users,
-                  href: presetHref(currentParams, { range: "today", source: "all" }),
+                  href: presetHref(currentParams, { range: "24h", source: "all" }),
                 },
               ].map((preset) => {
                 const Icon = preset.icon;
@@ -417,7 +429,7 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
               <MetricCard
                 label="Page views"
                 value={report.stats.pageViews}
-                helper={`${numberFormat(report.stats.uniqueVisitors)} unique visitor signals tracked`}
+                helper={`${numberFormat(report.stats.uniqueVisitors)} unique browser signals tracked`}
                 icon={Activity}
                 tone="blue"
               />

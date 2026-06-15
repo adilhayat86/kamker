@@ -175,6 +175,7 @@ export function SimpleAnalyticsDashboard({ filters, report }: SimpleAnalyticsDas
               defaultValue={filters.range}
               className="h-11 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
+              <option value="24h">Last 24 hours</option>
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
               <option value="7">Last 7 days</option>
@@ -254,6 +255,7 @@ export function SimpleAnalyticsDashboard({ filters, report }: SimpleAnalyticsDas
 
         <div className="mt-4 flex flex-wrap gap-2 print:hidden">
           {[
+            { label: "Last 24 hours", href: presetHref(currentParams, { range: "24h", source: "all" }) },
             { label: "Today", href: presetHref(currentParams, { range: "today", source: "all" }) },
             { label: "Last 7 days", href: presetHref(currentParams, { range: "7", source: "all" }) },
             { label: "Facebook", href: presetHref(currentParams, { range: "7", source: "facebook" }) },
@@ -279,7 +281,7 @@ export function SimpleAnalyticsDashboard({ filters, report }: SimpleAnalyticsDas
       </Panel>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        <MetricCard label="Page views" value={report.stats.pageViews} helper={`${numberFormat(report.stats.uniqueVisitors)} unique visitor records`} icon={Activity} />
+        <MetricCard label="Page views" value={report.stats.pageViews} helper={`${numberFormat(report.stats.uniqueVisitors)} unique browser signals`} icon={Activity} />
         <MetricCard label="Searches" value={report.stats.trackedSearches} helper="Search terms captured from public search pages" icon={Search} />
         <MetricCard label="Worker registrations" value={report.stats.workerRegistrations} helper={`${numberFormat(report.stats.approvedWorkers)} approved workers`} icon={Users} />
         <MetricCard label="Company staff" value={report.stats.companyStaffProfiles} helper={`${numberFormat(report.stats.approvedCompanyStaff)} approved company-managed workers`} icon={Users} />

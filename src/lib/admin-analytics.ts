@@ -2,7 +2,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 const PK_OFFSET_MS = 5 * 60 * 60 * 1000;
 
-export type AnalyticsRange = "today" | "yesterday" | "7" | "30" | "custom" | "all";
+export type AnalyticsRange = "24h" | "today" | "yesterday" | "7" | "30" | "custom" | "all";
 
 export type AnalyticsFilters = {
   range: AnalyticsRange;
@@ -185,8 +185,9 @@ function paramsGet(
 export function parseAnalyticsFilters(
   params?: URLSearchParams | Record<string, string | string[] | undefined>,
 ): AnalyticsFilters {
-  const rawRange = paramsGet(params, "range") || paramsGet(params, "period") || "7";
+  const rawRange = paramsGet(params, "range") || paramsGet(params, "period") || "24h";
   const range: AnalyticsRange =
+    rawRange === "24h" ||
     rawRange === "today" ||
     rawRange === "yesterday" ||
     rawRange === "7" ||
@@ -194,17 +195,25 @@ export function parseAnalyticsFilters(
     rawRange === "custom" ||
     rawRange === "all"
       ? rawRange
-      : "7";
+      : "24h";
   const now = new Date();
   const todayStart = startOfPakistanDay(now);
-  let startDate: Date | null = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  let startDate: Date | null = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   let endDate: Date | null = now;
-  let label = "Last 7 days";
+  let label = "Last 24 hours";
 
-  if (range === "today") {
+  if (range === "24h") {
+    startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    endDate = now;
+    label = "Last 24 hours";
+  } else if (range === "today") {
     startDate = todayStart;
     endDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
     label = "Today";
+  } else if (range === "7") {
+    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    endDate = now;
+    label = "Last 7 days";
   } else if (range === "yesterday") {
     startDate = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
     endDate = todayStart;
