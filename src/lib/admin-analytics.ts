@@ -9,6 +9,7 @@ export type AnalyticsFilters = {
   category: string;
   city: string;
   source: string;
+  includeSampleData: boolean;
   start: string;
   end: string;
   startIso: string | null;
@@ -120,6 +121,10 @@ function matchesFilter(value: string | null | undefined, filter: string) {
     normalizedValue.includes(normalizedFilter) ||
     normalizedFilter.includes(normalizedValue)
   );
+}
+
+function isSampleDataName(value: string | null | undefined) {
+  return normalize(value).startsWith("sample data");
 }
 
 function relationName(value: SupabaseRelation) {
@@ -243,6 +248,7 @@ export function parseAnalyticsFilters(
     category: paramsGet(params, "category").trim(),
     city: paramsGet(params, "city").trim(),
     source: paramsGet(params, "source").trim() || "all",
+    includeSampleData: paramsGet(params, "includeSampleData") === "1",
     start: startDate ? dateInputValue(startDate) : "",
     end: endDate ? dateInputValue(new Date(endDate.getTime() - 1)) : "",
     startIso: startDate?.toISOString() ?? null,
@@ -362,6 +368,10 @@ export function buildAnalyticsSearchParams(filters: AnalyticsFilters) {
     params.set("source", filters.source);
   }
 
+  if (filters.includeSampleData) {
+    params.set("includeSampleData", "1");
+  }
+
   if (filters.range === "custom") {
     if (filters.start) {
       params.set("start", filters.start);
@@ -410,6 +420,7 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
   const workers = applyDateWindow(workersRaw, filters).filter((worker) => {
     const sourceMatches = filters.source === "all" || filters.source === "unknown";
     return (
+      (filters.includeSampleData || !isSampleDataName(worker.full_name)) &&
       sourceMatches &&
       matchesFilter(relationName(worker.categories), filters.category) &&
       matchesFilter(relationName(worker.cities), filters.city)
@@ -419,6 +430,7 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
   const staff = applyDateWindow(staffRaw, filters).filter((item) => {
     const sourceMatches = filters.source === "all" || filters.source === "unknown";
     return (
+      (filters.includeSampleData || !isSampleDataName(item.title)) &&
       sourceMatches &&
       matchesFilter(item.category, filters.category) &&
       matchesFilter(item.city, filters.city)

@@ -272,6 +272,11 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
                   {report.filters.category || "All categories"} /{" "}
                   {report.filters.city || "All cities"} / {report.filters.source || "all"}
                 </p>
+                {!report.filters.includeSampleData ? (
+                  <p className="mt-2 text-xs font-semibold text-cyan-100/50">
+                    Sample Data records hidden from worker and staff counts.
+                  </p>
+                ) : null}
                 {report.filters.range === "today" ? (
                   <p className="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-xs leading-5 text-amber-50/80">
                     Today starts at midnight Pakistan time. For late-night testing or recent
@@ -369,6 +374,19 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
                   />
                 </label>
               </div>
+              <label className="mt-3 flex items-start gap-3 rounded-xl border border-cyan-200/15 bg-white/[0.04] p-3 text-sm text-cyan-50/72">
+                <input
+                  type="checkbox"
+                  name="includeSampleData"
+                  value="1"
+                  defaultChecked={filters.includeSampleData}
+                  className="mt-1 size-4 rounded border-cyan-200/30 bg-slate-950"
+                />
+                <span>
+                  Include Sample Data records in registration/staff counts. Keep this off for
+                  real launch analytics.
+                </span>
+              </label>
             </form>
 
             <div className="mt-4 flex flex-wrap gap-2 print:hidden">
