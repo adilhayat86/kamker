@@ -153,15 +153,16 @@ export default async function SendRequirementPage({
     (hasBroadcastContext
       ? `I need ${contextServiceLabel || "a professional"}${contextLocation ? ` in ${contextLocation}` : ""}.`
       : "");
-  const recipientCount = hasBroadcastContext
-    ? sourceEstimate ??
-      await getBroadcastRecipientCount({
+  const liveRecipientCount = hasBroadcastContext
+    ? await getBroadcastRecipientCount({
         category,
         subcategory,
         city: queryCity || undefined,
         area: queryArea || undefined,
       })
     : null;
+  const recipientCount =
+    typeof liveRecipientCount === "number" ? liveRecipientCount : sourceEstimate;
   const estimatedBroadcastTotal =
     typeof recipientCount === "number"
       ? calculateRequirementBroadcastAmountPkr(recipientCount)

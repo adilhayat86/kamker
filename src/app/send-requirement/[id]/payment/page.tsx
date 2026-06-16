@@ -21,6 +21,7 @@ import { getSessionCustomer, getSessionProfessional } from "@/lib/auth";
 import { getPaymentWhatsappLink, manualPaymentConfig } from "@/lib/payment-config";
 import {
   calculateRequirementBroadcastAmountPkr,
+  getRequirementBroadcastRecipientCount,
   REQUIREMENT_BROADCAST_AMOUNT_PKR,
 } from "@/lib/requirement-broadcast";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -151,17 +152,14 @@ async function getRecipientCount(requirementId: string) {
     return null;
   }
 
-  const { count, error } = await supabase
-    .from("requirement_matches")
-    .select("id", { count: "exact", head: true })
-    .eq("requirement_id", requirementId);
+  const result = await getRequirementBroadcastRecipientCount(requirementId);
 
-  if (error) {
-    console.error("Failed to load requirement recipient count", error);
+  if (result.error) {
+    console.error("Failed to load payable requirement recipient count", result.error);
     return null;
   }
 
-  return count ?? 0;
+  return result.recipientCount;
 }
 
 async function getLatestPayment(requirementId: string) {
@@ -419,7 +417,9 @@ export default async function RequirementPaymentPage({
                       <span className="font-semibold">
                         {recipientCount === null
                           ? "Checking"
-                          : `${recipientCount.toLocaleString("en-PK")} matched`}
+                          : `${recipientCount.toLocaleString("en-PK")} valid recipient${
+                              recipientCount === 1 ? "" : "s"
+                            }`}
                       </span>
                     </div>
                   </div>
@@ -620,7 +620,7 @@ export default async function RequirementPaymentPage({
               ) : !canUploadProof ? (
                 <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
                   No payable recipient list is available yet. Do not upload a
-                  receipt until Kamker shows a matched-recipient count above.
+                  receipt until Kamker shows a valid recipient count above.
                 </div>
               ) : (
                 <form action={submitRequirementBroadcastPayment} className="mt-5 grid gap-4">

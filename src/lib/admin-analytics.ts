@@ -579,9 +579,10 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
       (event) =>
         event.event_type === "call_click" ||
         event.event_type === "whatsapp_click" ||
-        event.event_type === "worker_registration" ||
-        event.event_type === "company_staff_registration" ||
-        event.event_type === "requirement_submission",
+        (sourceSpecific &&
+          (event.event_type === "worker_registration" ||
+            event.event_type === "company_staff_registration" ||
+            event.event_type === "requirement_submission")),
     )
     .forEach((event) => {
       const row = ensureTimeline(pkDateLabel(event.created_at));

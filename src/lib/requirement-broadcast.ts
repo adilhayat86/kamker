@@ -36,6 +36,13 @@ export type RequirementBroadcastResult = {
   error: string | null;
 };
 
+export type RequirementBroadcastRecipientCount = {
+  recipientCount: number;
+  matchCount: number;
+  skipped: number;
+  error: string | null;
+};
+
 type BroadcastMatch = {
   id: string;
   match_score: number;
@@ -234,6 +241,69 @@ async function loadOrRebuildBroadcastMatches(
   }
 
   return { matches, error };
+}
+
+export async function getRequirementBroadcastRecipientCount(
+  requirementId: string,
+): Promise<RequirementBroadcastRecipientCount> {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      recipientCount: 0,
+      matchCount: 0,
+      skipped: 0,
+      error: "Supabase is not configured.",
+    };
+  }
+
+  const db = supabase;
+  const { data: requirement, error: requirementError } = await db
+    .from("requirements")
+    .select("id, required_service, area, details, phone_number, whatsapp_number, cities(name)")
+    .eq("id", requirementId)
+    .maybeSingle();
+
+  if (requirementError || !requirement) {
+    return {
+      recipientCount: 0,
+      matchCount: 0,
+      skipped: 0,
+      error: "Requirement not found.",
+    };
+  }
+
+  const { matches, error } = await loadOrRebuildBroadcastMatches(
+    requirement as unknown as RequirementForBroadcast,
+  );
+
+  if (error) {
+    return {
+      recipientCount: 0,
+      matchCount: 0,
+      skipped: 0,
+      error,
+    };
+  }
+
+  const seen = new Set<string>();
+  let skipped = 0;
+  const recipientCount = matches.reduce((total, match) => {
+    const recipient = matchRecipient(match);
+
+    if (!recipient || seen.has(recipient.digits)) {
+      skipped += 1;
+      return total;
+    }
+
+    seen.add(recipient.digits);
+    return total + 1;
+  }, 0);
+
+  return {
+    recipientCount,
+    matchCount: matches.length,
+    skipped,
+    error: null,
+  };
 }
 
 export async function notifyRequirementSender(

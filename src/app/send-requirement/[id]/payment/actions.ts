@@ -7,10 +7,10 @@ import { canAutoApproveProof, reviewProofWithAi } from "@/lib/ai-proof-review";
 import { getSessionCustomer, getSessionProfessional } from "@/lib/auth";
 import {
   calculateRequirementBroadcastAmountPkr,
+  getRequirementBroadcastRecipientCount,
   notifyRequirementSender,
   sendRequirementBroadcast,
 } from "@/lib/requirement-broadcast";
-import { createRequirementMatches } from "@/lib/requirement-matching";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import {
   isRequirementWhatsappConfigured,
@@ -63,40 +63,14 @@ async function requireLoggedIn(requirementId: string) {
   }
 }
 
-async function getRecipientCount(requirementId: string) {
-  if (!supabase) {
-    return 0;
-  }
-
-  const { count, error } = await supabase
-    .from("requirement_matches")
-    .select("id", { count: "exact", head: true })
-    .eq("requirement_id", requirementId);
-
-  if (error) {
-    console.error("Failed to count requirement broadcast recipients", error);
-    return 0;
-  }
-
-  return count ?? 0;
-}
-
 async function getOrCreateRecipientCount(requirement: RequirementPaymentContext) {
-  const currentCount = await getRecipientCount(requirement.id);
+  const result = await getRequirementBroadcastRecipientCount(requirement.id);
 
-  if (currentCount > 0) {
-    return currentCount;
+  if (result.error) {
+    console.error("Failed to count payable requirement recipients", result.error);
   }
 
-  await createRequirementMatches({
-    id: requirement.id,
-    requiredService: requirement.required_service,
-    cityName: requirement.cities?.name ?? null,
-    area: requirement.area,
-    availability: null,
-  });
-
-  return getRecipientCount(requirement.id);
+  return result.recipientCount;
 }
 
 async function loadRequirement(requirementId: string) {
