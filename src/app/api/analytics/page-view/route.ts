@@ -15,6 +15,48 @@ function clean(value: unknown, maxLength = 120) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
 }
 
+function queryParam(query: string, key: string, maxLength = 120) {
+  try {
+    return clean(new URLSearchParams(query).get(key), maxLength);
+  } catch {
+    return "";
+  }
+}
+
+function hasProfessionalSearchIntent({
+  path,
+  query,
+  searchTerm,
+  category,
+  city,
+}: {
+  path: string;
+  query: string;
+  searchTerm: string;
+  category: string;
+  city: string;
+}) {
+  if (path !== "/professionals") {
+    return false;
+  }
+
+  if (searchTerm || category || city) {
+    return true;
+  }
+
+  return [
+    "q",
+    "category",
+    "city",
+    "gender",
+    "age",
+    "availabilityTime",
+    "availabilityDays",
+    "rate",
+    "verified",
+  ].some((key) => Boolean(queryParam(query, key)));
+}
+
 export async function POST(request: NextRequest) {
   let body: Record<string, unknown>;
 
@@ -25,6 +67,13 @@ export async function POST(request: NextRequest) {
   }
 
   const path = clean(body.path, 220);
+  const query = clean(body.query, 220);
+  const source = clean(body.source) || "direct";
+  const category = clean(body.category);
+  const city = clean(body.city);
+  const searchTerm = clean(body.searchTerm);
+  const visitorId = clean(body.visitorId, 80);
+  const referrerHost = clean(body.referrerHost, 120);
 
   if (!path || ignoredPrefixes.some((prefix) => path.startsWith(prefix))) {
     return NextResponse.json({ ok: true, skipped: true });
@@ -35,15 +84,50 @@ export async function POST(request: NextRequest) {
     targetType: "page",
     metadata: {
       path,
-      query: clean(body.query, 220),
-      source: clean(body.source) || "direct",
-      category: clean(body.category),
-      city: clean(body.city),
-      search_term: clean(body.searchTerm),
-      visitor_id: clean(body.visitorId, 80),
-      referrer_host: clean(body.referrerHost, 120),
+      query,
+      source,
+      category,
+      city,
+      search_term: searchTerm,
+      visitor_id: visitorId,
+      referrer_host: referrerHost,
     },
   });
+
+  if (
+    visitorId &&
+    hasProfessionalSearchIntent({
+      path,
+      query,
+      searchTerm,
+      category,
+      city,
+    })
+  ) {
+    await trackAnalyticsEvent({
+      eventType: "search",
+      targetType: "professional",
+      metadata: {
+        path,
+        query,
+        source,
+        category,
+        selected_category: queryParam(query, "category"),
+        city,
+        selected_city: queryParam(query, "city"),
+        search_term: searchTerm || category || city || "Filtered search",
+        gender: queryParam(query, "gender"),
+        age: queryParam(query, "age"),
+        availability_time: queryParam(query, "availabilityTime"),
+        availability_days: queryParam(query, "availabilityDays"),
+        rate: queryParam(query, "rate"),
+        verified: queryParam(query, "verified"),
+        sort: queryParam(query, "sort"),
+        visitor_id: visitorId,
+        referrer_host: referrerHost,
+      },
+    });
+  }
 
   return NextResponse.json(
     { ok: true },

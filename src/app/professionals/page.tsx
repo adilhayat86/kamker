@@ -20,7 +20,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getCityOptions } from "@/lib/city-options";
 import { trackedContactHref } from "@/lib/contact-tracking";
-import { trackAnalyticsEvent } from "@/lib/analytics";
 import {
   workerAvailabilitySummary,
   workerDayAvailabilityLabel,
@@ -813,7 +812,6 @@ export default async function ProfessionalsPage({
   const rate = params?.rate?.trim() ?? "";
   const verified = params?.verified === "true";
   const sort = params?.sort?.trim() || "featured";
-  const source = params?.source?.trim() || "direct";
   const currentPage = Math.max(Number(params?.page ?? "1") || 1, 1);
   const cityOptions = await getCityOptions();
   const inferredCity = city || cityFromSearchIntent(q, cityOptions);
@@ -977,42 +975,6 @@ export default async function ProfessionalsPage({
     city: inferredCity,
     category: inferredCategory,
   });
-  const hasSearchIntent = Boolean(
-    q ||
-      city ||
-      category ||
-      gender ||
-      age ||
-      availabilityTime ||
-      availabilityDays ||
-      rate ||
-      verified,
-  );
-
-  if (hasSearchIntent && currentPage === 1) {
-    await trackAnalyticsEvent({
-      eventType: "search",
-      targetType: "professional",
-      metadata: {
-        query: q,
-        search_term: q || category || city || "filtered search",
-        category: inferredCategory || category,
-        selected_category: category,
-        city: inferredCity || city,
-        selected_city: city,
-        gender,
-        age,
-        availability_time: availabilityTime,
-        availability_days: availabilityDays,
-        rate,
-        verified,
-        sort,
-        source,
-        result_count: totalVisibleProfessionals,
-        path: "/professionals",
-      },
-    });
-  }
   const pageHrefParams = {
     q,
     city,

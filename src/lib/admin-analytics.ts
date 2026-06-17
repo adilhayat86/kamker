@@ -356,6 +356,21 @@ function eventVisitorId(event: EventRow) {
   return String(event.metadata?.visitor_id ?? "").trim();
 }
 
+function hasBrowserVisitor(event: EventRow) {
+  return Boolean(eventVisitorId(event));
+}
+
+function searchEventKey(event: EventRow) {
+  return [
+    eventVisitorId(event),
+    eventPath(event),
+    String(event.metadata?.query ?? "").trim(),
+    eventSearchTerm(event),
+    eventCategory(event),
+    eventCity(event),
+  ].join("|");
+}
+
 async function dateQuery<T>(table: string, select: string, filters: AnalyticsFilters, limit = 800) {
   if (!supabase) {
     return [] as T[];
@@ -484,6 +499,14 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
       matchesFilter(eventCity(event), filters.city)
     );
   });
+  const browserEvents = events.filter(hasBrowserVisitor);
+  const browserEventsRaw = eventsRaw.filter(hasBrowserVisitor);
+  const browseSignalEvents = events.filter(
+    (event) =>
+      hasBrowserVisitor(event) ||
+      event.event_type === "call_click" ||
+      event.event_type === "whatsapp_click",
+  );
 
   const categoryOptions = Array.from(
     new Set(
@@ -494,7 +517,7 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
         ...workersRaw.map((worker) => relationName(worker.categories)),
         ...staffRaw.map((item) => item.category ?? ""),
         ...requirementsRaw.map((item) => item.required_service ?? ""),
-        ...eventsRaw.map(eventCategory),
+        ...browserEventsRaw.map(eventCategory),
       ].filter(Boolean),
     ),
   ).sort();
@@ -508,15 +531,18 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
         ...workersRaw.map((worker) => relationName(worker.cities)),
         ...staffRaw.map((item) => item.city ?? ""),
         ...requirementsRaw.map((item) => relationName(item.cities)),
-        ...eventsRaw.map(eventCity),
+        ...browserEventsRaw.map(eventCity),
       ].filter(Boolean),
     ),
   ).sort();
 
   const byEvent = countBy(events.map((event) => event.event_type ?? "unknown"));
-  const searchEvents = events.filter((event) => event.event_type === "search");
-  const pageViewEvents = events.filter((event) => event.event_type === "view");
-  const searchPageViewEvents = pageViewEvents.filter(isSearchPageViewEvent);
+  const searchEvents = browserEvents.filter((event) => event.event_type === "search");
+  const pageViewEvents = browserEvents.filter((event) => event.event_type === "view");
+  const explicitSearchKeys = new Set(searchEvents.map(searchEventKey));
+  const searchPageViewEvents = pageViewEvents.filter(
+    (event) => isSearchPageViewEvent(event) && !explicitSearchKeys.has(searchEventKey(event)),
+  );
   const trackedSearchEvents = [...searchEvents, ...searchPageViewEvents];
   const profileViewEvents = pageViewEvents.filter(isProfileViewEvent);
   const uniqueVisitorCount = new Set(
@@ -541,15 +567,15 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
     ...workers.map((worker) => relationName(worker.categories)),
     ...staff.map((item) => item.category ?? "Unknown"),
     ...requirements.map((item) => item.required_service ?? "Unknown"),
-    ...events.map(eventCategory),
+    ...browseSignalEvents.map(eventCategory),
   ]);
   const cityCounts = countBy([
     ...workers.map((worker) => relationName(worker.cities)),
     ...staff.map((item) => item.city ?? "Unknown"),
     ...requirements.map((item) => relationName(item.cities)),
-    ...events.map(eventCity),
+    ...browseSignalEvents.map(eventCity),
   ]);
-  const sourceCounts = countBy(events.map(eventSource));
+  const sourceCounts = countBy(pageViewEvents.map(eventSource));
   const searchTermCounts = countBy(trackedSearchEvents.map(eventSearchTerm));
   const pageCounts = countBy(pageViewEvents.map(eventPath));
 
@@ -630,7 +656,7 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
       detail: `${relationName(requirement.cities)} / ${requirement.status ?? "new"}`,
       createdAt: requirement.created_at,
     })),
-    ...events.slice(0, 5).map((event) => ({
+    ...browseSignalEvents.slice(0, 5).map((event) => ({
       type: event.event_type ?? "Event",
       label: eventCategory(event),
       detail: `${eventCity(event)} / ${eventSource(event)}`,
