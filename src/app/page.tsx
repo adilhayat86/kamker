@@ -7,6 +7,7 @@ import {
   ClipboardList,
   Home,
   PhoneCall,
+  Send,
   Sparkles,
   User,
   Users,
@@ -20,16 +21,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCityOptions } from "@/lib/city-options";
+import { getSessionCustomer, getSessionProfessional } from "@/lib/auth";
 import { categories, cities, parentCategories } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const revalidate = 120;
 
-const bottomNavItems = [
+const guestBottomNavItems = [
   { label: "Home", icon: Home, href: "/" },
   { label: "Categories", icon: ClipboardList, href: "/categories" },
   { label: "Professionals", icon: Users, href: "/professionals" },
   { label: "Register", icon: BriefcaseBusiness, href: "/register" },
+  { label: "Account", icon: User, href: "/account" },
+];
+
+const loggedInBottomNavItems = [
+  { label: "Home", icon: Home, href: "/" },
+  { label: "Categories", icon: ClipboardList, href: "/categories" },
+  { label: "Professionals", icon: Users, href: "/professionals" },
+  { label: "Send Req.", icon: Send, href: "/send-requirement" },
   { label: "Account", icon: User, href: "/account" },
 ];
 
@@ -40,10 +50,23 @@ const trustItems = [
   "Contact directly by WhatsApp/call where available",
 ];
 
+const loggedInTrustItems = [
+  "No commission from workers",
+  "Find workers by category and city",
+  "Contact directly by WhatsApp/call where available",
+  "Paid requirement broadcast available",
+];
+
 const steps = [
   ["Browse service groups", "Choose Healthcare, Domestic Help, Education, Repairs, Transport, Office, or Beauty."],
   ["Find matching workers", "Use category and city filters to shortlist workers quickly."],
   ["Register", "Workers, companies, and customers choose the right registration path."],
+];
+
+const loggedInSteps = [
+  ["Browse service groups", "Choose Healthcare, Domestic Help, Education, Repairs, Transport, Office, or Beauty."],
+  ["Find matching workers", "Use category and city filters to shortlist workers quickly."],
+  ["Continue from account", "Manage your profile or send a paid requirement broadcast from your logged-in session."],
 ];
 
 const popularSearchLinks = [
@@ -169,10 +192,18 @@ const getHomepageStats = unstable_cache(async function getHomepageStats() {
 }, ["homepage-stats"], { revalidate: 60 });
 
 export default async function HomePage() {
-  const [stats, cityOptions] = await Promise.all([
+  const [stats, cityOptions, professional, customer] = await Promise.all([
     getHomepageStats(),
     getCityOptions(),
+    getSessionProfessional(),
+    getSessionCustomer(),
   ]);
+  const isLoggedIn = Boolean(professional || customer);
+  const primarySessionHref = professional ? "/account" : "/send-requirement";
+  const primarySessionLabel = professional ? "My Account" : "Send Requirement";
+  const activeTrustItems = isLoggedIn ? loggedInTrustItems : trustItems;
+  const activeSteps = isLoggedIn ? loggedInSteps : steps;
+  const bottomNavItems = isLoggedIn ? loggedInBottomNavItems : guestBottomNavItems;
 
   return (
     <main className="min-h-screen overflow-hidden pb-24 md:pb-0">
@@ -182,7 +213,11 @@ export default async function HomePage() {
           <div className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
             <a href="#categories" className="hover:text-foreground">Categories</a>
             <a href="#how-it-works" className="hover:text-foreground">How it works</a>
-            <Link href="/register" className="hover:text-foreground">Register</Link>
+            {isLoggedIn ? (
+              <Link href={primarySessionHref} className="hover:text-foreground">{primarySessionLabel}</Link>
+            ) : (
+              <Link href="/register" className="hover:text-foreground">Register</Link>
+            )}
           </div>
         </nav>
       </header>
@@ -197,9 +232,13 @@ export default async function HomePage() {
           <div className="max-w-2xl">
             <Badge variant="secondary" className="mb-2 gap-1.5"><Sparkles className="size-3.5" aria-hidden="true" />Pakistan service marketplace</Badge>
             <h1 className="max-w-xl text-3xl font-bold leading-tight tracking-normal sm:text-5xl lg:text-6xl">Find part time workers</h1>
-            <p className="mt-2 max-w-xl text-sm leading-5 text-muted-foreground sm:mt-4 sm:text-lg sm:leading-7">Coming from a newspaper ad? Search by service and city, choose a category, or register free as a worker.</p>
+            <p className="mt-2 max-w-xl text-sm leading-5 text-muted-foreground sm:mt-4 sm:text-lg sm:leading-7">Coming from a newspaper ad? Search by service and city, choose a category, or contact matching workers.</p>
             <div className="mt-4 grid gap-2 sm:flex sm:max-w-xl">
-              <Button asChild variant="outline" className="h-12 border-primary/30 bg-white text-base font-semibold text-primary hover:bg-accent"><Link href="/register"><BriefcaseBusiness aria-hidden="true" />Register</Link></Button>
+              {isLoggedIn ? (
+                <Button asChild variant="outline" className="h-12 border-primary/30 bg-white text-base font-semibold text-primary hover:bg-accent"><Link href={primarySessionHref}>{professional ? <User aria-hidden="true" /> : <Send aria-hidden="true" />}{primarySessionLabel}</Link></Button>
+              ) : (
+                <Button asChild variant="outline" className="h-12 border-primary/30 bg-white text-base font-semibold text-primary hover:bg-accent"><Link href="/register"><BriefcaseBusiness aria-hidden="true" />Register</Link></Button>
+              )}
             </div>
           </div>
         </div>
@@ -251,26 +290,35 @@ export default async function HomePage() {
           <p className="text-sm font-semibold uppercase tracking-normal text-primary">Trust and safety</p>
           <h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">Simple for workers and customers</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-4">
-            {trustItems.map((item) => <Card key={item} className="bg-background shadow-sm"><CardContent className="flex items-center gap-3 p-4"><CheckCircle2 className="size-5 text-primary" aria-hidden="true" /><span className="text-sm font-semibold">{item}</span></CardContent></Card>)}
+            {activeTrustItems.map((item) => <Card key={item} className="bg-background shadow-sm"><CardContent className="flex items-center gap-3 p-4"><CheckCircle2 className="size-5 text-primary" aria-hidden="true" /><span className="text-sm font-semibold">{item}</span></CardContent></Card>)}
           </div>
         </div>
       </section>
 
       <section id="how-it-works" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <p className="text-sm font-semibold uppercase tracking-normal text-primary">How Kamker works</p>
-        <h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">Search, browse, or register</h2>
+        <h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">{isLoggedIn ? "Search, browse, or continue" : "Search, browse, or register"}</h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Kamker guides customers to service groups, city filters, and worker profiles without becoming a job board.</p>
         <div className="mt-5 grid gap-4 sm:grid-cols-3">
-          {steps.map(([title, description], index) => <Card key={title} className="bg-white shadow-sm"><CardContent className="p-5"><div className="flex size-10 items-center justify-center rounded-md bg-accent text-sm font-bold text-accent-foreground">{index + 1}</div><h3 className="mt-4 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p></CardContent></Card>)}
+          {activeSteps.map(([title, description], index) => <Card key={title} className="bg-white shadow-sm"><CardContent className="p-5"><div className="flex size-10 items-center justify-center rounded-md bg-accent text-sm font-bold text-accent-foreground">{index + 1}</div><h3 className="mt-4 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p></CardContent></Card>)}
         </div>
       </section>
 
-      <section id="join" className="bg-primary text-white">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:px-8">
-          <div><Badge className="bg-white text-primary">Registration</Badge><h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-normal sm:text-4xl">Join Kamker as a worker or customer.</h2><p className="mt-4 max-w-xl text-base leading-7 text-white/85">Workers register free. Customers browse by category and city, then contact workers directly where phone or WhatsApp is available.</p></div>
-          <Card className="border-white/15 bg-white/10 text-white shadow-none"><CardContent className="p-5"><div className="flex items-center gap-3"><div className="flex size-12 items-center justify-center rounded-md bg-white text-primary"><PhoneCall className="size-6" aria-hidden="true" /></div><div><h3 className="font-semibold">Register on Kamker</h3><p className="text-sm text-white/80">Choose worker, company, or customer registration.</p></div></div><Button asChild className="mt-5 h-12 w-full bg-white text-primary hover:bg-white/90"><Link href="/register">Register</Link></Button></CardContent></Card>
-        </div>
-      </section>
+      {isLoggedIn ? (
+        <section id="join" className="bg-primary text-white">
+          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:px-8">
+            <div><Badge className="bg-white text-primary">Welcome back</Badge><h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-normal sm:text-4xl">Continue using Kamker.</h2><p className="mt-4 max-w-xl text-base leading-7 text-white/85">Browse workers, manage your account, or send a paid requirement broadcast to matching professionals.</p></div>
+            <Card className="border-white/15 bg-white/10 text-white shadow-none"><CardContent className="p-5"><div className="flex items-center gap-3"><div className="flex size-12 items-center justify-center rounded-md bg-white text-primary"><PhoneCall className="size-6" aria-hidden="true" /></div><div><h3 className="font-semibold">{primarySessionLabel}</h3><p className="text-sm text-white/80">Continue from your logged-in session.</p></div></div><Button asChild className="mt-5 h-12 w-full bg-white text-primary hover:bg-white/90"><Link href={primarySessionHref}>{primarySessionLabel}</Link></Button></CardContent></Card>
+          </div>
+        </section>
+      ) : (
+        <section id="join" className="bg-primary text-white">
+          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:px-8">
+            <div><Badge className="bg-white text-primary">Registration</Badge><h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-normal sm:text-4xl">Join Kamker as a worker or customer.</h2><p className="mt-4 max-w-xl text-base leading-7 text-white/85">Workers register free. Customers browse by category and city, then contact workers directly where phone or WhatsApp is available.</p></div>
+            <Card className="border-white/15 bg-white/10 text-white shadow-none"><CardContent className="p-5"><div className="flex items-center gap-3"><div className="flex size-12 items-center justify-center rounded-md bg-white text-primary"><PhoneCall className="size-6" aria-hidden="true" /></div><div><h3 className="font-semibold">Register on Kamker</h3><p className="text-sm text-white/80">Choose worker, company, or customer registration.</p></div></div><Button asChild className="mt-5 h-12 w-full bg-white text-primary hover:bg-white/90"><Link href="/register">Register</Link></Button></CardContent></Card>
+          </div>
+        </section>
+      )}
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"><AdBanner label="Reserved ad space before footer" /></section>
 

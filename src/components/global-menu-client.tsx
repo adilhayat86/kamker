@@ -98,6 +98,7 @@ function LogoutLink({ href, label }: { href: string; label: string }) {
 
 export function GlobalMenuClient() {
   const [session, setSession] = useState<MenuSession>(guestSession);
+  const isLoggedIn = session.professionalLoggedIn || session.customerLoggedIn;
 
   const loadSession = useCallback(async () => {
     try {
@@ -170,10 +171,10 @@ export function GlobalMenuClient() {
         <div>
           <p className="text-sm font-bold">Kamker Menu</p>
           <p className="text-xs text-muted-foreground">
-            Browse, register, or manage account.
+            {isLoggedIn ? "Browse or manage your account." : "Browse, register, or manage account."}
           </p>
         </div>
-        {session.professionalLoggedIn || session.customerLoggedIn ? (
+        {isLoggedIn ? (
           <Badge variant="secondary">Logged in</Badge>
         ) : (
           <Badge variant="outline">Guest</Badge>
@@ -208,11 +209,13 @@ export function GlobalMenuClient() {
           ))}
         </MenuSection>
 
-        <MenuSection title="Company">
-          {companyLinks.map((item) => (
-            <MenuItem key={item.href} {...item} />
-          ))}
-        </MenuSection>
+        {!isLoggedIn ? (
+          <MenuSection title="Company">
+            {companyLinks.map((item) => (
+              <MenuItem key={item.href} {...item} />
+            ))}
+          </MenuSection>
+        ) : null}
 
         {session.adminAuthenticated ? (
           <MenuSection title="Admin">
