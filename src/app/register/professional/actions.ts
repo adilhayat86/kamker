@@ -15,6 +15,7 @@ import {
   hashSecret,
 } from "@/lib/auth";
 import { trackAnalyticsEvent } from "@/lib/analytics";
+import { getAutoApproveProfessionals } from "@/lib/admin-settings";
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import {
   isLocalDemoStoreEnabled,
@@ -202,6 +203,7 @@ export async function registerProfessional(formData: FormData) {
     findOrCreateCityId(cityName),
     findOrCreateCategoryId(categoryName),
   ]);
+  const autoApprove = await getAutoApproveProfessionals();
 
   let profilePhotoUrl: string | null = null;
   let photoSkipped = false;
@@ -257,7 +259,7 @@ export async function registerProfessional(formData: FormData) {
     secret_answer_hash: secretAnswerHash,
     is_phone_verified: false,
     is_cnic_verified: false,
-    is_active: false,
+    is_active: autoApprove,
     is_banned: false,
   };
 
