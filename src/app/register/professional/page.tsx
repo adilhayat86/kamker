@@ -7,6 +7,7 @@ import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { PhotoUploadField } from "@/components/photo-upload-field";
 import { ProfessionCategoryField } from "@/components/profession-category-field";
+import { RegistrationFormAnalytics } from "@/components/registration-analytics";
 import { RegistrationSensitiveFieldRestore } from "@/components/registration-sensitive-field-restore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -205,6 +206,7 @@ export default async function ProfessionalRegisterPage({
             <form action={registerProfessional} className="grid gap-6">
               <RegistrationSensitiveFieldRestore restoreOnMount={shouldRestoreSensitiveFields} />
               <input type="hidden" name="source" value={source} />
+              <RegistrationFormAnalytics role="professional" source={source} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Basic info</p>

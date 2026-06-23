@@ -9,6 +9,11 @@ import {
 } from "@/lib/auth";
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import { normalizePakistanMobilePhone } from "@/lib/phone";
+import {
+  trackRegistrationFailure,
+  trackRegistrationSubmitAttempt,
+  trackRegistrationSuccess,
+} from "@/lib/registration-analytics";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { findOrCreateCityId } from "@/lib/taxonomy";
 
@@ -56,6 +61,10 @@ export async function registerCustomer(formData: FormData) {
     area,
   };
 
+  await trackRegistrationSubmitAttempt(formData, "customer", "/register/customer", {
+    city: cityName,
+  });
+
   const errors = [
     !fullName ? "fullName" : null,
     !phoneInput ? "phone" : null,
@@ -65,6 +74,14 @@ export async function registerCustomer(formData: FormData) {
   ].filter((error): error is string => Boolean(error));
 
   if (errors.length > 0) {
+    await trackRegistrationFailure(
+      formData,
+      "customer",
+      "/register/customer",
+      "validation",
+      errors,
+      { city: cityName },
+    );
     await saveFormDraft("customer", {
       ...draft,
       errors: errors.join(","),
@@ -73,6 +90,14 @@ export async function registerCustomer(formData: FormData) {
   }
 
   if (!isSupabaseConfigured || !supabase) {
+    await trackRegistrationFailure(
+      formData,
+      "customer",
+      "/register/customer",
+      "not_configured",
+      ["notConfigured"],
+      { city: cityName },
+    );
     await saveFormDraft("customer", draft);
     redirect(customerRegisterPath("not-configured", safeNext));
   }
@@ -80,6 +105,14 @@ export async function registerCustomer(formData: FormData) {
   const existingCustomers = await findCustomersByPhone(phoneNumber);
 
   if (existingCustomers.length > 0) {
+    await trackRegistrationFailure(
+      formData,
+      "customer",
+      "/register/customer",
+      "duplicate_phone",
+      ["duplicatePhone"],
+      { city: cityName },
+    );
     await saveFormDraft("customer", draft);
     redirect(customerRegisterPath("duplicate", safeNext));
   }
@@ -100,10 +133,26 @@ export async function registerCustomer(formData: FormData) {
 
   if (error || !customer) {
     console.error("Failed to register customer", error);
+    await trackRegistrationFailure(
+      formData,
+      "customer",
+      "/register/customer",
+      "database_insert",
+      [error?.code ?? "databaseInsert"],
+      { city: cityName },
+    );
     await saveFormDraft("customer", draft);
     redirect(customerRegisterPath("error", safeNext));
   }
 
+  await trackRegistrationSuccess(
+    formData,
+    "customer",
+    "/register/customer",
+    customer.id as string,
+    "customer",
+    { city: cityName },
+  );
   await createCustomerSession(customer.id as string);
   await clearFormDraft("customer");
   redirect(appendStatusToNext(safeNext, "customer-registered"));

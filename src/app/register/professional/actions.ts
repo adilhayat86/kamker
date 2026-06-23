@@ -26,6 +26,11 @@ import {
   validatePhoneFieldWithCountry,
 } from "@/lib/phone";
 import { uploadProfessionalPhoto } from "@/lib/professional-photo";
+import {
+  trackRegistrationFailure,
+  trackRegistrationSubmitAttempt,
+  trackRegistrationSuccess,
+} from "@/lib/registration-analytics";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { findOrCreateCategoryId, findOrCreateCityId } from "@/lib/taxonomy";
 
@@ -127,6 +132,11 @@ export async function registerProfessional(formData: FormData) {
     secretQuestion,
   };
 
+  await trackRegistrationSubmitAttempt(formData, "professional", "/register/professional", {
+    category: categoryName,
+    city: cityName,
+  });
+
   const errors = [
     !fullName ? "fullName" : null,
     !phoneInput ? "phone" : null,
@@ -146,6 +156,14 @@ export async function registerProfessional(formData: FormData) {
   ].filter((error): error is string => Boolean(error));
 
   if (errors.length > 0) {
+    await trackRegistrationFailure(
+      formData,
+      "professional",
+      "/register/professional",
+      "validation",
+      errors,
+      { category: categoryName, city: cityName },
+    );
     await saveProfessionalDraft({ ...draftInput, errors });
     redirect("/register/professional?status=missing");
   }
@@ -153,6 +171,14 @@ export async function registerProfessional(formData: FormData) {
   const duplicateProfessionals = await findProfessionalsByPhone(phoneNumber);
 
   if (duplicateProfessionals.length > 0) {
+    await trackRegistrationFailure(
+      formData,
+      "professional",
+      "/register/professional",
+      "duplicate_phone",
+      ["phoneDuplicate"],
+      { category: categoryName, city: cityName },
+    );
     await saveProfessionalDraft({ ...draftInput, errors: ["phoneDuplicate"] });
     redirect("/register/professional?status=missing");
   }
@@ -191,10 +217,26 @@ export async function registerProfessional(formData: FormData) {
       await clearFormDraft("professional");
       if (professional) {
         await createProfessionalSession(professional.id);
+        await trackRegistrationSuccess(
+          formData,
+          "professional",
+          "/register/professional",
+          professional.id,
+          "professional",
+          { category: categoryName, city: cityName, local_demo: true },
+        );
       }
       redirect("/account?status=registered");
     }
 
+    await trackRegistrationFailure(
+      formData,
+      "professional",
+      "/register/professional",
+      "not_configured",
+      ["notConfigured"],
+      { category: categoryName, city: cityName },
+    );
     await saveProfessionalDraft(draftInput);
     redirect("/register/professional?status=not-configured");
   }
@@ -226,6 +268,14 @@ export async function registerProfessional(formData: FormData) {
       }
     } catch (error) {
       if (error instanceof Error && error.message === "invalid-photo") {
+        await trackRegistrationFailure(
+          formData,
+          "professional",
+          "/register/professional",
+          "invalid_photo",
+          ["invalidPhoto"],
+          { category: categoryName, city: cityName },
+        );
         await saveProfessionalDraft(draftInput);
         redirect("/register/professional?status=invalid-photo");
       }
@@ -285,9 +335,26 @@ export async function registerProfessional(formData: FormData) {
 
   if (error || !professional) {
     console.error("Failed to register professional", error);
+    await trackRegistrationFailure(
+      formData,
+      "professional",
+      "/register/professional",
+      "database_insert",
+      [error?.code ?? "databaseInsert"],
+      { category: categoryName, city: cityName },
+    );
     await saveProfessionalDraft(draftInput);
     redirect("/register/professional?status=error");
   }
+
+  await trackRegistrationSuccess(
+    formData,
+    "professional",
+    "/register/professional",
+    professional.id as string,
+    "professional",
+    { category: categoryName, city: cityName, auto_approved: autoApprove },
+  );
 
   await trackAnalyticsEvent({
     eventType: "worker_registration",

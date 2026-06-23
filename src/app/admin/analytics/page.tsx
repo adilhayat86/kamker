@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Activity,
+  AlertTriangle,
   ArrowUpRight,
   Download,
   Filter,
@@ -10,6 +11,7 @@ import {
   Search,
   Sparkles,
   Target,
+  UserPlus,
   Users,
   Zap,
 } from "lucide-react";
@@ -281,6 +283,10 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
                   Page views are public page loads. Profile views count only worker, staff, and
                   company profile pages.
                 </p>
+                <p className="mt-2 text-xs font-semibold text-cyan-100/50">
+                  Browser signals are not exact people: one person can count more than once across
+                  devices, private mode, or browser resets.
+                </p>
                 {report.filters.range === "today" ? (
                   <p className="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-xs leading-5 text-amber-50/80">
                     Today starts at midnight Pakistan time. For late-night testing or recent
@@ -401,7 +407,7 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
                   href: presetHref(currentParams, { range: "24h", source: "all" }),
                 },
                 {
-                  label: "Today’s Ad Result",
+                  label: "Today's Ad Result",
                   icon: Newspaper,
                   href: presetHref(currentParams, { range: "today", source: "all" }),
                 },
@@ -447,11 +453,11 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
               <AnalyticsPrintButton />
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
               <MetricCard
                 label="Public page views"
                 value={report.stats.pageViews}
-                helper={`${numberFormat(report.stats.uniqueVisitors)} unique browser signals; ${numberFormat(
+                helper={`${numberFormat(report.stats.uniqueVisitors)} browser signals, not guaranteed people; ${numberFormat(
                   report.stats.profileViews,
                 )} actual profile views`}
                 icon={Activity}
@@ -470,6 +476,24 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
                 helper={`${numberFormat(report.stats.approvedWorkers)} approved in this scan`}
                 icon={Users}
                 tone="cyan"
+              />
+              <MetricCard
+                label="Register clicks"
+                value={report.stats.registerClicks}
+                helper={`${numberFormat(report.stats.registrationFormStarts)} form starts, ${numberFormat(
+                  report.stats.registrationSubmitAttempts,
+                )} submit attempts`}
+                icon={UserPlus}
+                tone="purple"
+              />
+              <MetricCard
+                label="Failed signups"
+                value={report.stats.registrationFailures}
+                helper={`${numberFormat(report.stats.registrationSuccesses)} successful, ${numberFormat(
+                  report.stats.abandonedRegistrations,
+                )} abandoned after start`}
+                icon={AlertTriangle}
+                tone="amber"
               />
               <MetricCard
                 label="Company staff"
@@ -546,6 +570,68 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
                     the advertised profession and date to the ad day.
                   </p>
                 </div>
+              </Panel>
+            </div>
+
+            <div className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
+              <Panel title="Registration Funnel" eyebrow="Clicks to successful accounts">
+                <div className="space-y-4">
+                  {report.registrationFunnel.length > 0 ? (
+                    report.registrationFunnel.map((step) => (
+                      <div key={step.label}>
+                        <div className="mb-2 flex items-center justify-between text-sm">
+                          <span className="font-semibold text-white/84">{step.label}</span>
+                          <span className="font-black text-cyan-100">
+                            {numberFormat(step.value)}
+                          </span>
+                        </div>
+                        <div className="h-3 overflow-hidden rounded-full bg-white/8">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-violet-300 to-cyan-400"
+                            style={{ width: `${Math.max(step.percent, 4)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-cyan-200/20 bg-white/[0.03] p-5 text-sm text-cyan-100/62">
+                      No registration funnel data yet. New clicks and form submissions will
+                      appear after visitors use the register flow.
+                    </div>
+                  )}
+                </div>
+                <p className="mt-4 rounded-xl border border-cyan-300/15 bg-cyan-300/8 p-3 text-sm leading-6 text-cyan-50/70">
+                  Failed registration means the user submitted and the server rejected it.
+                  Abandoned means the form was started but no submit happened in this date range.
+                </p>
+              </Panel>
+
+              <Panel title="Registration Failure Watch" eyebrow="Why signups stop">
+                <HorizontalBars
+                  rows={report.registrationFailureBreakdown}
+                  empty="No failed registration submissions in this filter."
+                />
+              </Panel>
+            </div>
+
+            <div className="mt-4 grid gap-4 xl:grid-cols-3">
+              <Panel title="Registration Roles" eyebrow="Worker, customer, company">
+                <HorizontalBars
+                  rows={report.registrationRoleBreakdown}
+                  empty="No registration events in this filter."
+                />
+              </Panel>
+              <Panel title="Failed Fields" eyebrow="Exact blockers">
+                <HorizontalBars
+                  rows={report.registrationFieldBreakdown}
+                  empty="No field-level failure codes yet."
+                />
+              </Panel>
+              <Panel title="Registration Sources" eyebrow="Where signups came from">
+                <HorizontalBars
+                  rows={report.registrationSourceBreakdown}
+                  empty="No registration source data yet."
+                />
               </Panel>
             </div>
 

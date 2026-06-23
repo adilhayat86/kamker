@@ -10,11 +10,17 @@ type TrackEventInput = {
     | "call_click"
     | "whatsapp_click"
     | "requirement_match"
-    | "broadcast_sent";
+    | "broadcast_sent"
+    | "register_click"
+    | "registration_form_start"
+    | "registration_submit_attempt"
+    | "registration_failed"
+    | "registration_success";
   targetType:
     | "professional"
     | "company"
     | "company_listing"
+    | "customer"
     | "requirement"
     | "page";
   targetId?: string | null;

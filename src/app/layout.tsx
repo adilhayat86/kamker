@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { AnalyticsPageView } from "@/components/analytics-page-view";
 import { GlobalMenu } from "@/components/global-menu";
+import { RegistrationClickTracker } from "@/components/registration-analytics";
 
 import "./globals.css";
 
@@ -59,6 +60,7 @@ export default function RootLayout({
       <body className="font-sans">
         <Suspense fallback={null}>
           <AnalyticsPageView />
+          <RegistrationClickTracker />
         </Suspense>
         <GlobalMenu />
         {children}

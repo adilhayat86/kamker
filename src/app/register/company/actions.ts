@@ -12,6 +12,11 @@ import {
   normalizePakistanMobilePhone,
   validatePhoneFieldWithCountry,
 } from "@/lib/phone";
+import {
+  trackRegistrationFailure,
+  trackRegistrationSubmitAttempt,
+  trackRegistrationSuccess,
+} from "@/lib/registration-analytics";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { sendAdminWhatsappAlert } from "@/lib/whatsapp";
 
@@ -45,6 +50,11 @@ export async function registerCompany(formData: FormData) {
     description,
   };
 
+  await trackRegistrationSubmitAttempt(formData, "company", "/register/company", {
+    category,
+    city,
+  });
+
   const errors = [
     !companyName ? "companyName" : null,
     !category ? "category" : null,
@@ -57,6 +67,14 @@ export async function registerCompany(formData: FormData) {
   ].filter((error): error is string => Boolean(error));
 
   if (errors.length > 0) {
+    await trackRegistrationFailure(
+      formData,
+      "company",
+      "/register/company",
+      "validation",
+      errors,
+      { category, city },
+    );
     await saveFormDraft("company", {
       ...draft,
       errors: errors.join(","),
@@ -78,13 +96,28 @@ export async function registerCompany(formData: FormData) {
         description,
       });
 
-      await clearFormDraft("company");
-
       if (company) {
+        await trackRegistrationSuccess(
+          formData,
+          "company",
+          "/register/company",
+          company.id,
+          "company",
+          { category, city, local_demo: true },
+        );
+        await clearFormDraft("company");
         redirect(`/companies/${company.id}/packages?status=local-demo`);
       }
     }
 
+    await trackRegistrationFailure(
+      formData,
+      "company",
+      "/register/company",
+      "not_configured",
+      ["notConfigured"],
+      { category, city },
+    );
     await saveFormDraft("company", draft);
     redirect("/register/company?status=not-configured");
   }
@@ -110,9 +143,26 @@ export async function registerCompany(formData: FormData) {
 
   if (error || !data) {
     console.error("Failed to register company", error);
+    await trackRegistrationFailure(
+      formData,
+      "company",
+      "/register/company",
+      "database_insert",
+      [error?.code ?? "databaseInsert"],
+      { category, city },
+    );
     await saveFormDraft("company", draft);
     redirect("/register/company?status=error");
   }
+
+  await trackRegistrationSuccess(
+    formData,
+    "company",
+    "/register/company",
+    data.id as string,
+    "company",
+    { category, city },
+  );
 
   await sendAdminWhatsappAlert(
     [

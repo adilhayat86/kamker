@@ -5,6 +5,7 @@ import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
+import { RegistrationFormAnalytics } from "@/components/registration-analytics";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCityOptions } from "@/lib/city-options";
@@ -48,6 +49,7 @@ type CompanyRegisterPageProps = {
   searchParams?: Promise<{
     status?: keyof typeof statusMessages;
     companyId?: string;
+    source?: string;
   }>;
 };
 
@@ -70,6 +72,7 @@ export default async function CompanyRegisterPage({
   const params = await searchParams;
   const status = params?.status;
   const companyId = params?.companyId;
+  const source = params?.source?.trim() ?? "";
   const statusMessage = status ? statusMessages[status] : null;
   const draft = await getFormDraft<CompanyDraft>("company");
   const cityOptions = await getCityOptions();
@@ -155,6 +158,8 @@ export default async function CompanyRegisterPage({
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5 sm:p-6">
             <form action={registerCompany} className="grid gap-6">
+              <input type="hidden" name="source" value={source} />
+              <RegistrationFormAnalytics role="company" source={source} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">Basic info</p>

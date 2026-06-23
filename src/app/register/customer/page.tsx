@@ -3,6 +3,7 @@ import Link from "next/link";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
+import { RegistrationFormAnalytics } from "@/components/registration-analytics";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCityOptions } from "@/lib/city-options";
@@ -27,6 +28,7 @@ type CustomerRegisterPageProps = {
   searchParams?: Promise<{
     status?: keyof typeof statusMessages;
     next?: string;
+    source?: string;
   }>;
 };
 
@@ -47,6 +49,7 @@ export default async function CustomerRegisterPage({
   const next = params?.next?.startsWith("/") && !params.next.startsWith("//")
     ? params.next
     : "";
+  const source = params?.source?.trim() ?? "";
   const draft = await getFormDraft<CustomerDraft>("customer");
   const cityOptions = await getCityOptions();
   const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
@@ -102,6 +105,8 @@ export default async function CustomerRegisterPage({
           <CardContent className="p-5">
             <form action={registerCustomer} className="grid gap-4 sm:grid-cols-2">
               <input type="hidden" name="next" value={next} />
+              <input type="hidden" name="source" value={source} />
+              <RegistrationFormAnalytics role="customer" source={source} next={next} />
               <FormField
                 label="Full name"
                 name="fullName"

@@ -86,11 +86,22 @@ export type AnalyticsReport = {
     whatsappClicks: number;
     contactClicks: number;
     totalRegistrations: number;
+    registerClicks: number;
+    registrationFormStarts: number;
+    registrationSubmitAttempts: number;
+    registrationFailures: number;
+    registrationSuccesses: number;
+    abandonedRegistrations: number;
     selectedCategoryRegistrations: number;
     selectedCategoryRequirements: number;
     selectedCategoryContactClicks: number;
   };
   funnel: BreakdownRow[];
+  registrationFunnel: BreakdownRow[];
+  registrationRoleBreakdown: BreakdownRow[];
+  registrationFailureBreakdown: BreakdownRow[];
+  registrationSourceBreakdown: BreakdownRow[];
+  registrationFieldBreakdown: BreakdownRow[];
   categoryBreakdown: BreakdownRow[];
   cityBreakdown: BreakdownRow[];
   sourceBreakdown: BreakdownRow[];
@@ -323,6 +334,21 @@ function eventPath(event: EventRow) {
   return String(event.metadata?.path ?? "Unknown");
 }
 
+function eventRole(event: EventRow) {
+  return String(event.metadata?.role ?? "unknown");
+}
+
+function eventFailureReason(event: EventRow) {
+  return String(event.metadata?.failure_reason ?? "unknown");
+}
+
+function eventErrorCodes(event: EventRow) {
+  return String(event.metadata?.error_codes ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
 function isProfileViewEvent(event: EventRow) {
   const path = eventPath(event);
   return (
@@ -396,6 +422,51 @@ async function dateQuery<T>(table: string, select: string, filters: AnalyticsFil
   return (data ?? []) as T[];
 }
 
+async function pagedDateQuery<T>(
+  table: string,
+  select: string,
+  filters: AnalyticsFilters,
+  maxRows = 20000,
+) {
+  if (!supabase) {
+    return [] as T[];
+  }
+
+  const pageSize = 1000;
+  const rows: T[] = [];
+
+  for (let from = 0; from < maxRows; from += pageSize) {
+    let query = supabase
+      .from(table)
+      .select(select)
+      .order("created_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (filters.startIso) {
+      query = query.gte("created_at", filters.startIso);
+    }
+
+    if (filters.endIso) {
+      query = query.lt("created_at", filters.endIso);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error(`Failed to load paged ${table} analytics`, error);
+      return rows;
+    }
+
+    rows.push(...((data ?? []) as T[]));
+
+    if (!data || data.length < pageSize) {
+      break;
+    }
+  }
+
+  return rows;
+}
+
 export function buildAnalyticsSearchParams(filters: AnalyticsFilters) {
   const params = new URLSearchParams();
   params.set("range", filters.range);
@@ -451,11 +522,10 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
         "id, required_service, status, created_at, cities(name)",
         filters,
       ),
-      dateQuery<EventRow>(
+      pagedDateQuery<EventRow>(
         "analytics_events",
         "event_type, target_type, target_id, metadata, created_at",
         filters,
-        1200,
       ),
       supabase.from("categories").select("name").order("name", { ascending: true }),
       supabase.from("cities").select("name").order("name", { ascending: true }),
@@ -537,6 +607,34 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
   ).sort();
 
   const byEvent = countBy(events.map((event) => event.event_type ?? "unknown"));
+  const registerClickEvents = events.filter((event) => event.event_type === "register_click");
+  const registrationFormStartEvents = events.filter(
+    (event) => event.event_type === "registration_form_start",
+  );
+  const registrationSubmitAttemptEvents = events.filter(
+    (event) => event.event_type === "registration_submit_attempt",
+  );
+  const registrationFailureEvents = events.filter(
+    (event) => event.event_type === "registration_failed",
+  );
+  const registrationSuccessEvents = events.filter(
+    (event) => event.event_type === "registration_success",
+  );
+  const registrationEvents = events.filter(
+    (event) =>
+      event.event_type === "register_click" || event.event_type?.startsWith("registration_"),
+  );
+  const abandonedRegistrations = Math.max(
+    registrationFormStartEvents.length - registrationSubmitAttemptEvents.length,
+    0,
+  );
+  const registrationFunnelBase = Math.max(
+    registerClickEvents.length,
+    registrationFormStartEvents.length,
+    registrationSubmitAttemptEvents.length,
+    registrationSuccessEvents.length,
+    1,
+  );
   const searchEvents = browserEvents.filter((event) => event.event_type === "search");
   const pageViewEvents = browserEvents.filter((event) => event.event_type === "view");
   const explicitSearchKeys = new Set(searchEvents.map(searchEventKey));
@@ -689,6 +787,12 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
       whatsappClicks,
       contactClicks,
       totalRegistrations: workerRegistrationCount + companyStaffProfileCount,
+      registerClicks: registerClickEvents.length,
+      registrationFormStarts: registrationFormStartEvents.length,
+      registrationSubmitAttempts: registrationSubmitAttemptEvents.length,
+      registrationFailures: registrationFailureEvents.length,
+      registrationSuccesses: registrationSuccessEvents.length,
+      abandonedRegistrations,
       selectedCategoryRegistrations,
       selectedCategoryRequirements: requirementCount,
       selectedCategoryContactClicks: filters.category
@@ -709,6 +813,27 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
           ? 100
           : Math.round((item.value / Math.max(items[0]?.value || item.value || 1, 1)) * 100),
     })),
+    registrationFunnel: [
+      { label: "Register clicks", value: registerClickEvents.length },
+      { label: "Form starts", value: registrationFormStartEvents.length },
+      { label: "Submit attempts", value: registrationSubmitAttemptEvents.length },
+      { label: "Failed registrations", value: registrationFailureEvents.length },
+      { label: "Abandoned after start", value: abandonedRegistrations },
+      { label: "Successful registrations", value: registrationSuccessEvents.length },
+    ].map((item) => ({
+      ...item,
+      percent: Math.round((item.value / registrationFunnelBase) * 100),
+    })),
+    registrationRoleBreakdown: breakdown(countBy(registrationEvents.map(eventRole)), 6),
+    registrationFailureBreakdown: breakdown(
+      countBy(registrationFailureEvents.map(eventFailureReason)),
+      8,
+    ),
+    registrationSourceBreakdown: breakdown(countBy(registrationEvents.map(eventSource)), 8),
+    registrationFieldBreakdown: breakdown(
+      countBy(registrationFailureEvents.flatMap(eventErrorCodes)),
+      10,
+    ),
     categoryBreakdown: breakdown(categoryCounts, 12),
     cityBreakdown: breakdown(cityCounts, 10),
     sourceBreakdown: breakdown(sourceCounts, 8),
@@ -739,11 +864,22 @@ function emptyReport(filters: AnalyticsFilters): AnalyticsReport {
       whatsappClicks: 0,
       contactClicks: 0,
       totalRegistrations: 0,
+      registerClicks: 0,
+      registrationFormStarts: 0,
+      registrationSubmitAttempts: 0,
+      registrationFailures: 0,
+      registrationSuccesses: 0,
+      abandonedRegistrations: 0,
       selectedCategoryRegistrations: 0,
       selectedCategoryRequirements: 0,
       selectedCategoryContactClicks: 0,
     },
     funnel: [],
+    registrationFunnel: [],
+    registrationRoleBreakdown: [],
+    registrationFailureBreakdown: [],
+    registrationSourceBreakdown: [],
+    registrationFieldBreakdown: [],
     categoryBreakdown: [],
     cityBreakdown: [],
     sourceBreakdown: [],
@@ -767,12 +903,30 @@ export function analyticsReportToCsv(report: AnalyticsReport) {
     ["Company staff profiles", report.stats.companyStaffProfiles],
     ["Requirements submitted", report.stats.requirementsSubmitted],
     ["Page views", report.stats.pageViews],
-    ["Unique visitors", report.stats.uniqueVisitors],
+    ["Unique browser signals", report.stats.uniqueVisitors],
     ["Tracked searches", report.stats.trackedSearches],
     ["Profile views", report.stats.profileViews],
     ["Call clicks", report.stats.callClicks],
     ["WhatsApp clicks", report.stats.whatsappClicks],
     ["Contact clicks", report.stats.contactClicks],
+    ["Register clicks", report.stats.registerClicks],
+    ["Registration form starts", report.stats.registrationFormStarts],
+    ["Registration submit attempts", report.stats.registrationSubmitAttempts],
+    ["Failed registrations", report.stats.registrationFailures],
+    ["Successful registrations", report.stats.registrationSuccesses],
+    ["Abandoned after start", report.stats.abandonedRegistrations],
+    [],
+    ["Registration funnel", "Count"],
+    ...report.registrationFunnel.map((item) => [item.label, item.value]),
+    [],
+    ["Registration failures", "Count"],
+    ...report.registrationFailureBreakdown.map((item) => [item.label, item.value]),
+    [],
+    ["Registration failed fields", "Count"],
+    ...report.registrationFieldBreakdown.map((item) => [item.label, item.value]),
+    [],
+    ["Registration sources", "Count"],
+    ...report.registrationSourceBreakdown.map((item) => [item.label, item.value]),
     [],
     ["Top categories", "Count"],
     ...report.categoryBreakdown.map((item) => [item.label, item.value]),
