@@ -32,7 +32,7 @@ const guestBottomNavItems = [
   { label: "Categories", icon: ClipboardList, href: "/categories" },
   { label: "Professionals", icon: Users, href: "/professionals" },
   { label: "Register", icon: BriefcaseBusiness, href: "/register" },
-  { label: "Account", icon: User, href: "/account" },
+  { label: "Login", icon: User, href: "/login" },
 ];
 
 const loggedInBottomNavItems = [
@@ -210,13 +210,27 @@ export default async function HomePage() {
       <header className="border-b bg-background/95">
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 pr-16 sm:px-6 sm:pr-20 lg:px-8 lg:pr-20">
           <KamkerLogo />
+          <div className="flex items-center gap-2 md:hidden">
+            {isLoggedIn ? (
+              <Button asChild size="sm" variant="outline" className="h-9 border-primary/30 bg-white text-primary">
+                <Link href={primarySessionHref}>Account</Link>
+              </Button>
+            ) : (
+              <Button asChild size="sm" variant="outline" className="h-9 border-primary/30 bg-white text-primary">
+                <Link href="/login">Login</Link>
+              </Button>
+            )}
+          </div>
           <div className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
             <a href="#categories" className="hover:text-foreground">Categories</a>
             <a href="#how-it-works" className="hover:text-foreground">How it works</a>
             {isLoggedIn ? (
               <Link href={primarySessionHref} className="hover:text-foreground">{primarySessionLabel}</Link>
             ) : (
-              <Link href="/register" className="hover:text-foreground">Register</Link>
+              <>
+                <Link href="/login" className="font-semibold text-primary hover:text-primary/80">Login</Link>
+                <Link href="/register" className="hover:text-foreground">Register</Link>
+              </>
             )}
           </div>
         </nav>
@@ -237,7 +251,10 @@ export default async function HomePage() {
               {isLoggedIn ? (
                 <Button asChild variant="outline" className="h-12 border-primary/30 bg-white text-base font-semibold text-primary hover:bg-accent"><Link href={primarySessionHref}>{professional ? <User aria-hidden="true" /> : <Send aria-hidden="true" />}{primarySessionLabel}</Link></Button>
               ) : (
-                <Button asChild variant="outline" className="h-12 border-primary/30 bg-white text-base font-semibold text-primary hover:bg-accent"><Link href="/register"><BriefcaseBusiness aria-hidden="true" />Register</Link></Button>
+                <>
+                  <Button asChild variant="outline" className="h-12 border-primary/30 bg-white text-base font-semibold text-primary hover:bg-accent"><Link href="/register"><BriefcaseBusiness aria-hidden="true" />Register</Link></Button>
+                  <Button asChild variant="ghost" className="h-12 justify-start px-0 text-base font-semibold text-primary hover:bg-transparent hover:text-primary/80 sm:px-4"><Link href="/login"><User aria-hidden="true" />Already registered? Login</Link></Button>
+                </>
               )}
             </div>
           </div>
