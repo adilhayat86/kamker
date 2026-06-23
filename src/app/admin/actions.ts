@@ -365,6 +365,7 @@ export async function makeProfessionalFeatured(formData: FormData) {
 
   if (error) {
     console.error("Failed to feature professional", error);
+    return;
   }
 
   await recordAdminAudit({
@@ -375,7 +376,9 @@ export async function makeProfessionalFeatured(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/admin");
+  revalidatePath("/admin/workers");
   revalidatePath("/admin/featured");
+  revalidatePath("/categories", "layout");
   revalidatePath("/professionals");
 }
 
@@ -402,6 +405,7 @@ export async function removeProfessionalFeatured(formData: FormData) {
 
   if (error) {
     console.error("Failed to remove featured professional", error);
+    return;
   }
 
   await recordAdminAudit({
@@ -412,7 +416,9 @@ export async function removeProfessionalFeatured(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/admin");
+  revalidatePath("/admin/workers");
   revalidatePath("/admin/featured");
+  revalidatePath("/categories", "layout");
   revalidatePath("/professionals");
 }
 
