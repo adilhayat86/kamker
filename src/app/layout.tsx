@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Suspense } from "react";
 
 import { AnalyticsPageView } from "@/components/analytics-page-view";
@@ -9,6 +10,7 @@ import { ServiceWorkerRegistration } from "@/components/service-worker-registrat
 import "./globals.css";
 
 const siteUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://kamker.com");
+const googleAdsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
@@ -87,6 +89,22 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans">
+        {googleAdsId ? (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${googleAdsId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-ads-tag" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${googleAdsId}');
+              `}
+            </Script>
+          </>
+        ) : null}
         <Suspense fallback={null}>
           <AnalyticsPageView />
           <RegistrationClickTracker />
