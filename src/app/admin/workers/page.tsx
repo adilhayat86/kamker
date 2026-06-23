@@ -167,8 +167,16 @@ async function getWorkers({
   return (data ?? []) as unknown as WorkerRow[];
 }
 
-function dateInputValue(value: string | null) {
-  return value ? value.slice(0, 10) : "";
+function featuredUntilLabel(value: string | null) {
+  if (!value) {
+    return "No expiry set";
+  }
+
+  return new Intl.DateTimeFormat("en-PK", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 function duplicatePhoneGroups(workers: WorkerRow[]) {
@@ -198,6 +206,16 @@ function WorkerCard({
   const isPending = isWorkerPending(worker);
   const isApproved = isWorkerApproved(worker);
   const isBanned = isWorkerBanned(worker);
+  const canFeature = adminAuthenticated && isApproved && !isBanned;
+  let featureDisabledReason = "";
+
+  if (isBanned) {
+    featureDisabledReason = "Unban this worker before featuring.";
+  } else if (!isApproved) {
+    featureDisabledReason = "Approve this worker before featuring.";
+  } else if (!adminAuthenticated) {
+    featureDisabledReason = "Admin login is required.";
+  }
 
   return (
     <div className="rounded-xl border bg-white p-4">
@@ -222,6 +240,11 @@ function WorkerCard({
               {worker.categories?.name ?? "Professional"} - {worker.cities?.name ?? "Unknown city"}
               {worker.area ? ` - ${worker.area}` : ""}
             </p>
+            {worker.is_featured ? (
+              <p className="mt-1 text-sm font-medium text-primary">
+                Featured until {featuredUntilLabel(worker.featured_until)}
+              </p>
+            ) : null}
             <p className="mt-2 text-sm font-medium">{worker.tagline ?? "No tagline added"}</p>
           </div>
         </div>
@@ -280,13 +303,22 @@ function WorkerCard({
         </form>
         <form action={makeProfessionalFeatured} className="grid gap-2">
           <input type="hidden" name="professionalId" value={worker.id} />
-          <input
-            name="featuredUntil"
-            type="date"
-            defaultValue={dateInputValue(worker.featured_until)}
+          <select
+            name="featuredDurationDays"
+            defaultValue="30"
             className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-          />
-          <Button disabled={!adminAuthenticated || !isApproved}>Make Featured</Button>
+            disabled={!canFeature}
+          >
+            <option value="30">1 month (30 days)</option>
+            <option value="60">2 months (admin only)</option>
+            <option value="365">1 year (365 days)</option>
+          </select>
+          <Button disabled={!canFeature}>
+            {worker.is_featured ? "Extend Featured" : "Make Featured"}
+          </Button>
+          {featureDisabledReason ? (
+            <p className="text-xs text-muted-foreground">{featureDisabledReason}</p>
+          ) : null}
         </form>
         <form action={removeProfessionalFeatured}>
           <input type="hidden" name="professionalId" value={worker.id} />

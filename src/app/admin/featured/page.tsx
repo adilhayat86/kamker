@@ -91,8 +91,16 @@ async function getFeaturedCompanyStaff() {
   return (data ?? []) as unknown as FeaturedStaff[];
 }
 
-function dateInputValue(value: string | null) {
-  return value ? value.slice(0, 10) : "";
+function featuredUntilLabel(value: string | null) {
+  if (!value) {
+    return "No expiry set";
+  }
+
+  return new Intl.DateTimeFormat("en-PK", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 export default async function AdminFeaturedPage() {
@@ -143,23 +151,34 @@ export default async function AdminFeaturedPage() {
                   <p className="mt-1 text-sm text-muted-foreground">
                     {worker.categories?.name ?? "Professional"} - {worker.cities?.name ?? "Unknown city"}
                   </p>
+                  {worker.is_featured ? (
+                    <p className="mt-1 text-sm font-medium text-primary">
+                      Featured until {featuredUntilLabel(worker.featured_until)}
+                    </p>
+                  ) : null}
                   <Link href={`/professionals/${worker.id}`} className="mt-2 inline-flex text-sm font-medium text-primary hover:underline">
                     Public profile
                   </Link>
                 </div>
-                <form action={makeProfessionalFeatured} className="contents">
+                <form action={makeProfessionalFeatured} className="grid gap-2 lg:contents">
                   <input type="hidden" name="professionalId" value={worker.id} />
-                  <input
-                    name="featuredUntil"
-                    type="date"
-                    defaultValue={dateInputValue(worker.featured_until)}
+                  <select
+                    name="featuredDurationDays"
+                    defaultValue="30"
                     className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                  />
-                  <Button disabled={!adminAuthenticated}>Make Featured</Button>
+                    disabled={!adminAuthenticated}
+                  >
+                    <option value="30">1 month (30 days)</option>
+                    <option value="60">2 months (admin only)</option>
+                    <option value="365">1 year (365 days)</option>
+                  </select>
+                  <Button disabled={!adminAuthenticated}>
+                    {worker.is_featured ? "Extend Featured" : "Make Featured"}
+                  </Button>
                 </form>
                 <form action={removeProfessionalFeatured}>
                   <input type="hidden" name="professionalId" value={worker.id} />
-                  <Button className="w-full" variant="outline" disabled={!adminAuthenticated || !worker.is_featured}>Remove</Button>
+                  <Button className="w-full" variant="outline" disabled={!adminAuthenticated || !worker.is_featured}>Remove Featured</Button>
                 </form>
               </div>
             ))

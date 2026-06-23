@@ -324,7 +324,7 @@ export async function verifyCnic(formData: FormData) {
 
 export async function makeProfessionalFeatured(formData: FormData) {
   const id = formData.get("professionalId");
-  const featuredUntil = formData.get("featuredUntil");
+  const durationDays = parseFeaturedDurationDays(formData.get("featuredDurationDays"));
 
   if (
     typeof id !== "string" ||
@@ -336,12 +336,9 @@ export async function makeProfessionalFeatured(formData: FormData) {
     return;
   }
 
-  const fallbackDate = new Date();
-  fallbackDate.setDate(fallbackDate.getDate() + 30);
-
   const { data: professional, error: professionalError } = await supabase
     .from("professionals")
-    .select("is_active, is_banned")
+    .select("is_active, is_banned, is_featured, featured_until")
     .eq("id", id)
     .maybeSingle();
 
@@ -350,10 +347,8 @@ export async function makeProfessionalFeatured(formData: FormData) {
     return;
   }
 
-  const featuredUntilValue =
-    typeof featuredUntil === "string" && featuredUntil
-      ? new Date(`${featuredUntil}T23:59:59.000Z`).toISOString()
-      : fallbackDate.toISOString();
+  const previousFeaturedUntil = (professional.featured_until as string | null) ?? null;
+  const featuredUntilValue = extendFeaturedUntil(previousFeaturedUntil, durationDays);
 
   const { error } = await supabase
     .from("professionals")
@@ -372,6 +367,12 @@ export async function makeProfessionalFeatured(formData: FormData) {
     action: "make_professional_featured",
     targetType: "professional",
     targetId: id,
+    metadata: {
+      durationDays,
+      previousFeaturedUntil,
+      featuredUntil: featuredUntilValue,
+      wasFeatured: Boolean(professional.is_featured),
+    },
   });
 
   revalidatePath("/");
@@ -508,6 +509,13 @@ export async function unbanProfessional(formData: FormData) {
 
 function featuredDurationFromAmount(amountPkr: number) {
   return amountPkr >= 2500 ? 365 : 30;
+}
+
+function parseFeaturedDurationDays(value: FormDataEntryValue | null) {
+  const durationDays = typeof value === "string" ? Number(value) : 30;
+  const allowedDurations = new Set([30, 60, 365]);
+
+  return allowedDurations.has(durationDays) ? durationDays : 30;
 }
 
 function extendFeaturedUntil(currentValue: string | null, durationDays: number) {
