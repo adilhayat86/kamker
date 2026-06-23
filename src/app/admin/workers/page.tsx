@@ -74,7 +74,13 @@ type WorkersPageProps = {
   searchParams?: Promise<{
     q?: string;
     status?: "pending" | "approved" | "banned" | "featured" | "cnic";
-    notice?: "worker-approved" | "worker-pending" | "worker-banned" | "worker-unbanned";
+    notice?:
+      | "worker-approved"
+      | "worker-pending"
+      | "worker-banned"
+      | "worker-unbanned"
+      | "worker-deleted"
+      | "worker-delete-failed";
   }>;
 };
 
@@ -83,6 +89,8 @@ const workerNoticeMessages = {
   "worker-pending": "Worker moved to pending review.",
   "worker-banned": "Worker banned.",
   "worker-unbanned": "Worker unbanned and moved to pending review.",
+  "worker-deleted": "Worker profile deleted.",
+  "worker-delete-failed": "Worker profile could not be deleted. Check linked records or use Ban instead.",
 } as const;
 
 async function getWorkers({
@@ -328,13 +336,12 @@ function WorkerCard({
 
       <form action={deleteProfessional} className="mt-4 grid gap-2 rounded-lg border border-red-200 bg-red-50 p-3 sm:grid-cols-[1fr_auto]">
         <input type="hidden" name="professionalId" value={worker.id} />
-        <input
-          name="confirmDelete"
-          placeholder="Type DELETE to reject/delete"
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-        />
+        <input type="hidden" name="confirmDelete" value="DELETE" />
+        <p className="text-sm text-red-900">
+          Permanently delete this worker profile. Use Ban if you only want to hide it from public search.
+        </p>
         <Button className="bg-red-600 text-white hover:bg-red-700" disabled={!adminAuthenticated}>
-          Reject/Delete Profile
+          Delete Profile
         </Button>
       </form>
 

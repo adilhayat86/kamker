@@ -462,7 +462,7 @@ export async function banProfessional(formData: FormData) {
   revalidatePath("/admin/featured");
   revalidatePath("/professionals");
   revalidatePath(`/professionals/${id}`);
-  redirect("/admin/workers?notice=worker-banned");
+  redirect("/admin/workers?status=banned&notice=worker-banned");
 }
 
 export async function unbanProfessional(formData: FormData) {
@@ -814,6 +814,7 @@ export async function deleteProfessional(formData: FormData) {
 
   if (error) {
     console.error("Failed to delete professional", error);
+    redirect("/admin/workers?notice=worker-delete-failed");
   }
 
   await recordAdminAudit({
@@ -825,7 +826,10 @@ export async function deleteProfessional(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/admin/workers");
+  revalidatePath("/admin/featured");
   revalidatePath("/professionals");
+  revalidatePath(`/professionals/${id}`);
+  redirect("/admin/workers?notice=worker-deleted");
 }
 
 export async function removeDisputedProfessionalNumber(formData: FormData) {
