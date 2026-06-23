@@ -1,11 +1,8 @@
 import {
   categories,
   categoryCountValue,
-  recentProfessionals,
-  searchTermsForCategory,
   serviceGroups,
 } from "@/lib/marketplace-data";
-import { getApprovedCompanyListingCards } from "@/lib/company-listing-cards";
 import {
   getCategoryIdsByNames,
   getCityIdByName,
@@ -56,35 +53,6 @@ function normalizeMatchValue(value?: string | null) {
     .trim();
 }
 
-function serviceMatchesCategory(serviceName: string, categoryName: string) {
-  const service = normalizeMatchValue(serviceName);
-  const categoryTerms = searchTermsForCategory(categoryName).map(normalizeMatchValue);
-
-  return categoryTerms.some((category) => {
-    const singularCategory = category.replace(/s$/, "");
-
-    return (
-      service.includes(category) ||
-      service.includes(singularCategory) ||
-      category.includes(service)
-    );
-  });
-}
-
-function fallbackProfessionalsCount(input: BroadcastCountInput, targets: string[]) {
-  return recentProfessionals.filter((professional) => {
-    const categoryMatch = targets.length
-      ? targets.some((target) => serviceMatchesCategory(professional.role, target))
-      : true;
-    const cityMatch = input.city ? professional.city === input.city : true;
-    const areaMatch = input.area
-      ? normalizeMatchValue(professional.area).includes(normalizeMatchValue(input.area))
-      : true;
-
-    return categoryMatch && cityMatch && areaMatch;
-  }).length;
-}
-
 function targetServicesFor(input: BroadcastCountInput) {
   if (input.subcategory) {
     return [input.subcategory];
@@ -112,6 +80,7 @@ export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
     return demoCountFor(input);
   }
 
+  const supabaseClient = supabase;
   const targets = targetServicesFor(input);
   const [cityId, categoryIds] = await Promise.all([
     input.city ? getCityIdByName(input.city) : Promise.resolve(null),
@@ -122,7 +91,7 @@ export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
     return 0;
   }
 
-  let professionalsQuery = supabase
+  let professionalsQuery = supabaseClient
     .from("professionals")
     .select("id", { count: "exact", head: true })
     .eq("is_active", true)
@@ -147,7 +116,7 @@ export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
         (group) => normalizeMatchValue(group.name) === normalizeMatchValue(input.category),
       )
     : null;
-  let companyListingsQuery = supabase
+  let companyListingsQuery = supabaseClient
     .from("company_listings")
     .select("id", { count: "exact", head: true })
     .eq("status", "approved");
@@ -178,33 +147,12 @@ export async function getBroadcastRecipientCount(input: BroadcastCountInput) {
       "Failed to count broadcast recipients",
       professionalsResult.error ?? companyListingsResult.error,
     );
-    return demoCountFor(input);
+    return 0;
   }
 
   const professionalDbCount = professionalsResult.count ?? 0;
   const companyListingDbCount = companyListingsResult.count ?? 0;
-  let fallbackCount = 0;
-
-  if (targets.length > 0 && professionalDbCount === 0) {
-    fallbackCount += fallbackProfessionalsCount(input, targets);
-  }
-
-  if (targets.length > 0 && companyListingDbCount === 0) {
-    const shouldUseSubcategoryFallback = Boolean(input.subcategory);
-    const fallbackCompanyCards = await getApprovedCompanyListingCards({
-      categories: shouldUseSubcategoryFallback || !serviceGroup ? targets : undefined,
-      serviceGroup: shouldUseSubcategoryFallback ? undefined : serviceGroup?.name,
-      city: input.city,
-      area: input.area,
-    });
-    fallbackCount += fallbackCompanyCards.length;
-  }
-
-  const recipientCount = professionalDbCount + companyListingDbCount + fallbackCount;
-
-  if (recipientCount === 0 && targets.length === 0 && !input.city && !input.area) {
-    return demoCountFor(input);
-  }
+  const recipientCount = professionalDbCount + companyListingDbCount;
 
   return recipientCount;
 }

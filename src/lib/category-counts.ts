@@ -83,6 +83,10 @@ function fallbackProfessionalCountForCategory(
   professionalCount: number,
   filters?: CountFilters,
 ) {
+  if (isSupabaseConfigured && supabase) {
+    return 0;
+  }
+
   if (professionalCount > 0) {
     return 0;
   }
@@ -149,6 +153,10 @@ function fallbackCompanyCountForCategory(
   companyCount: number,
   filters?: CountFilters,
 ) {
+  if (isSupabaseConfigured && supabase) {
+    return 0;
+  }
+
   if (companyCount > 0) {
     return 0;
   }
@@ -165,6 +173,10 @@ function fallbackCompanyCountForServiceGroup(
   companyCount: number,
   filters?: CountFilters,
 ) {
+  if (isSupabaseConfigured && supabase) {
+    return 0;
+  }
+
   if (companyCount > 0) {
     return 0;
   }

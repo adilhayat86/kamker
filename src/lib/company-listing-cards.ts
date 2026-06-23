@@ -335,11 +335,11 @@ export async function getApprovedCompanyListingCards(filters?: {
 
   if (error) {
     console.error("Failed to load approved company listings", error);
-    return getMockCompanyListingCards(filters);
+    return [];
   }
 
   if (!data || data.length === 0) {
-    return getMockCompanyListingCards(filters);
+    return [];
   }
 
   return (data as unknown as CompanyListingCardRow[])
