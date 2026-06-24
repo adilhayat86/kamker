@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Suspense } from "react";
 
 import { AnalyticsPageView } from "@/components/analytics-page-view";
+import { RegistrationSubmitGuard } from "@/components/form-submit-guard";
 import { GlobalMenu } from "@/components/global-menu";
 import { RegistrationClickTracker } from "@/components/registration-analytics";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
@@ -108,6 +109,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <AnalyticsPageView />
           <RegistrationClickTracker />
+          <RegistrationSubmitGuard />
         </Suspense>
         <ServiceWorkerRegistration />
         <GlobalMenu />

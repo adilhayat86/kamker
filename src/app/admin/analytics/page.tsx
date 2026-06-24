@@ -354,10 +354,6 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
   const report = await loadAdminAnalyticsReport(filters);
   const currentParams = buildAnalyticsSearchParams(filters);
   const exportHref = `/admin/analytics/export?${currentParams.toString()}`;
-  const formSubmitRate = percentage(
-    report.stats.registrationSubmitAttempts,
-    Math.max(report.stats.registrationFormStarts, report.stats.registrationSubmitAttempts),
-  );
   const registerSuccessRate = percentage(
     report.stats.registrationSuccesses,
     report.stats.registrationSubmitAttempts,
@@ -571,7 +567,7 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
           <MetricCard
             label="Form submit attempts"
             value={report.stats.registrationSubmitAttempts}
-            helper={`${formSubmitRate}% of form starts reached submit`}
+            helper={`${numberFormat(report.stats.registrationFormStarts)} form starts recorded; retries can create multiple submits`}
             icon={UserPlus}
             tone="blue"
           />
