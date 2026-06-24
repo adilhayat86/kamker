@@ -207,11 +207,26 @@ export function PhotoUploadField({
     }
 
     if (!ACCEPTED_TYPES.includes(file.type)) {
-      const error = "Please choose a jpg, png, or webp photo.";
-      setInputError(input, error);
-      setMessage(error);
+      clearSelectedFile(input);
+      setInputError(input);
+      setMessage(
+        "This file type is not supported, so it was removed. Continue without photo or choose a jpg, png, or webp image.",
+      );
       setUploadedUrl("");
-      setFileName("");
+      setFileName(file.name);
+      setUploadState("failed");
+      setPreviewUrl("");
+      return;
+    }
+
+    if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
+      clearSelectedFile(input);
+      setInputError(input);
+      setMessage(
+        `This photo is ${formatSize(file.size)}, above the 10MB limit, so it was removed. Continue without photo or choose a smaller image.`,
+      );
+      setUploadedUrl("");
+      setFileName(file.name);
       setUploadState("failed");
       setPreviewUrl("");
       return;
@@ -226,17 +241,6 @@ export function PhotoUploadField({
       setPreviewUrl(await fileToDataUrl(file));
     } catch {
       setPreviewUrl("");
-    }
-
-    if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
-      setMessage(
-        `This photo is ${formatSize(file.size)}. Please choose one under 10MB.`,
-      );
-      setInputError(input, "Please choose a photo under 10MB.");
-      setFileName("");
-      setUploadState("failed");
-      setPreviewUrl("");
-      return;
     }
 
     setMessage(`Preparing ${formatSize(file.size)} photo...`);
@@ -277,7 +281,7 @@ export function PhotoUploadField({
           : error instanceof Error && error.message.startsWith("upload-")
             ? `Cloudinary rejected this upload (${error.message.replace("upload-", "")}).`
             : "Photo upload failed.";
-      setMessage(`${reason} The selected photo is still attached; submit again or choose another photo.`);
+      setMessage(`${reason} Registration can continue without photo, or you can choose another photo.`);
     }
   }
 

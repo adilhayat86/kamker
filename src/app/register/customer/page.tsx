@@ -4,6 +4,7 @@ import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
 import { RegistrationFormAnalytics } from "@/components/registration-analytics";
+import { RegistrationSensitiveFieldRestore } from "@/components/registration-sensitive-field-restore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCityOptions } from "@/lib/city-options";
@@ -53,6 +54,8 @@ export default async function CustomerRegisterPage({
   const draft = await getFormDraft<CustomerDraft>("customer");
   const cityOptions = await getCityOptions();
   const failedFields = new Set((draft.errors ?? "").split(",").filter(Boolean));
+  const shouldRestoreSensitiveFields =
+    status === "missing" || status === "error" || status === "not-configured" || status === "duplicate";
   const errorFor = (field: string) => {
     const phoneError = field === "phone" && failedFields.has("phoneInvalid");
 
@@ -107,6 +110,11 @@ export default async function CustomerRegisterPage({
               <input type="hidden" name="next" value={next} />
               <input type="hidden" name="source" value={source} />
               <RegistrationFormAnalytics role="customer" source={source} next={next} />
+              <RegistrationSensitiveFieldRestore
+                restoreOnMount={shouldRestoreSensitiveFields}
+                storageKey="customer"
+                fieldNames={["password"]}
+              />
               <FormField
                 label="Full name"
                 name="fullName"
