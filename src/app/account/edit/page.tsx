@@ -6,6 +6,8 @@ import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { PageNavigation } from "@/components/page-navigation";
 import { PhotoUploadField } from "@/components/photo-upload-field";
+import { ProfessionCategoryField } from "@/components/profession-category-field";
+import { RegistrationErrorFocus } from "@/components/registration-error-focus";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAccountProfessional, getDemoAccountProfessional } from "@/lib/account";
@@ -61,6 +63,7 @@ const statusMessages = {
 type EditAccountPageProps = {
   searchParams?: Promise<{
     status?: keyof typeof statusMessages;
+    fields?: string;
   }>;
 };
 
@@ -134,6 +137,8 @@ function SelectInput({
   options,
   disabled = false,
   helperText,
+  error,
+  required = false,
 }: {
   label: string;
   name: string;
@@ -141,15 +146,33 @@ function SelectInput({
   options: readonly SelectOption[];
   disabled?: boolean;
   helperText?: string;
+  error?: string;
+  required?: boolean;
 }) {
+  const helpId = helperText ? `${name}-help` : undefined;
+  const errorId = error ? `${name}-error` : undefined;
+
   return (
     <label className="grid gap-2">
-      <span className="text-sm font-medium">{label}</span>
+      <span className="text-sm font-medium">
+        {label}
+        {required ? (
+          <>
+            <span aria-hidden="true" className="ml-1 text-red-600">
+              *
+            </span>
+            <span className="sr-only"> required</span>
+          </>
+        ) : null}
+      </span>
       <select
         name={name}
         defaultValue={value ?? ""}
         disabled={disabled}
-        className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+        required={required}
+        aria-describedby={[helpId, errorId].filter(Boolean).join(" ") || undefined}
+        aria-invalid={Boolean(error)}
+        className={`h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60 ${error ? "border-red-500 bg-red-50 focus-visible:ring-red-500" : ""}`}
       >
         <option value="" disabled>
           Select {label.toLowerCase()}
@@ -166,8 +189,13 @@ function SelectInput({
         })}
       </select>
       {helperText ? (
-        <span className="text-xs leading-5 text-muted-foreground">
+        <span id={helpId} className="text-xs leading-5 text-muted-foreground">
           {helperText}
+        </span>
+      ) : null}
+      {error ? (
+        <span id={errorId} className="text-xs font-medium text-red-600">
+          {error}
         </span>
       ) : null}
     </label>
@@ -180,6 +208,48 @@ export default async function EditAccountPage({
   const params = await searchParams;
   const status = params?.status;
   const statusMessage = status ? statusMessages[status] : null;
+  const failedFields = new Set(
+    (params?.fields ?? "").split(",").filter(Boolean),
+  );
+  const errorFor = (field: string) => {
+    const phoneError =
+      field === "phone" &&
+      (failedFields.has("phoneInvalid") || failedFields.has("phoneDuplicate"));
+
+    if (!failedFields.has(field) && !phoneError) {
+      return undefined;
+    }
+
+    const messages: Record<string, string> = {
+      fullName: "Full name is required.",
+      phone: "Phone number is required.",
+      phoneInvalid: statusMessages["phone-invalid"],
+      phoneDuplicate: statusMessages["duplicate-phone"],
+      city: "Choose a city.",
+      category: "Choose a profession/category.",
+      gender: "Choose gender.",
+      age: `Enter an age between ${WORKER_AGE_MIN} and ${WORKER_AGE_MAX}.`,
+      availabilityTime: "Choose work time.",
+      availabilityDays: "Choose work days.",
+      rate: `Enter an hourly rate between Rs ${WORKER_HOURLY_RATE_MIN} and Rs ${WORKER_HOURLY_RATE_MAX.toLocaleString(
+        "en-PK"
+      )}.`,
+      yearsExperience: "Years of experience must be 0 or more.",
+      tagline: statusMessages["tagline-invalid"],
+      secretQuestion: statusMessages["recovery-missing"],
+      secretAnswer: statusMessages["recovery-missing"],
+    };
+
+    if (field === "phone" && failedFields.has("phoneInvalid")) {
+      return messages.phoneInvalid;
+    }
+
+    if (field === "phone" && failedFields.has("phoneDuplicate")) {
+      return messages.phoneDuplicate;
+    }
+
+    return messages[field] ?? "This field needs attention.";
+  };
   const phoneError =
     status === "phone-invalid"
       ? statusMessages["phone-invalid"]
@@ -267,7 +337,13 @@ export default async function EditAccountPage({
 
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
-            <form action={updateProfessionalProfile} className="grid gap-6">
+            <form action={updateProfessionalProfile} className="grid gap-6" noValidate>
+              <RegistrationErrorFocus errors={Array.from(failedFields)} />
+              <input
+                type="hidden"
+                name="profilePhotoUrl"
+                value={dbProfessional?.profile_photo_url ?? ""}
+              />
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">
@@ -282,6 +358,7 @@ export default async function EditAccountPage({
                   label="Full name"
                   name="fullName"
                   value={fullName}
+                  error={errorFor("fullName")}
                   disabled={isDemo}
                 />
                 {isDemo ? (
@@ -309,7 +386,7 @@ export default async function EditAccountPage({
                       name="phone"
                       type="tel"
                       value={phoneNumber}
-                      error={phoneError}
+                      error={errorFor("phone") ?? phoneError}
                       maxLength={16}
                       helperText="Example: 0300 1234567 or +92 300 1234567."
                     />
@@ -326,6 +403,8 @@ export default async function EditAccountPage({
                   name="city"
                   value={city}
                   options={cityOptions}
+                  error={errorFor("city")}
+                  required
                   disabled={isDemo}
                 />
                 <TextInput
@@ -346,18 +425,28 @@ export default async function EditAccountPage({
                     Keep this accurate so customers find the right worker.
                   </p>
                 </div>
-                <SelectInput
-                  label="Profession/category"
-                  name="category"
-                  value={profession}
-                  options={categories.map((category) => category.name)}
-                  disabled={isDemo}
-                />
+                {isDemo ? (
+                  <SelectInput
+                    label="Profession/category"
+                    name="category"
+                    value={profession}
+                    options={categories.map((category) => category.name)}
+                    disabled
+                  />
+                ) : (
+                  <ProfessionCategoryField
+                    options={categories.map((category) => category.name)}
+                    defaultValue={profession}
+                    error={errorFor("category")}
+                  />
+                )}
                 <SelectInput
                   label="Gender"
                   name="gender"
                   value={gender}
                   options={genderOptions}
+                  error={errorFor("gender")}
+                  required
                   disabled={isDemo}
                 />
                 <TextInput
@@ -366,6 +455,7 @@ export default async function EditAccountPage({
                   type="number"
                   value={age}
                   placeholder="28"
+                  error={errorFor("age")}
                   disabled={isDemo}
                   min={WORKER_AGE_MIN}
                   max={WORKER_AGE_MAX}
@@ -377,6 +467,8 @@ export default async function EditAccountPage({
                   name="availabilityTime"
                   value={availabilityTime}
                   options={workerTimeAvailabilityOptions}
+                  error={errorFor("availabilityTime")}
+                  required
                   disabled={isDemo}
                 />
                 <SelectInput
@@ -384,6 +476,8 @@ export default async function EditAccountPage({
                   name="availabilityDays"
                   value={availabilityDays}
                   options={workerDayAvailabilityOptions}
+                  error={errorFor("availabilityDays")}
+                  required
                   disabled={isDemo}
                 />
                 <TextInput
@@ -392,6 +486,7 @@ export default async function EditAccountPage({
                   type="number"
                   value={expectedRate}
                   placeholder="500"
+                  error={errorFor("rate")}
                   inputMode="numeric"
                   min={WORKER_HOURLY_RATE_MIN}
                   max={WORKER_HOURLY_RATE_MAX}
@@ -404,6 +499,7 @@ export default async function EditAccountPage({
                   type="number"
                   value={yearsExperience}
                   placeholder="5"
+                  error={errorFor("yearsExperience")}
                   disabled={isDemo}
                   min={0}
                 />
@@ -413,7 +509,7 @@ export default async function EditAccountPage({
                   value={tagline}
                   placeholder="Trusted elderly caregiver"
                   maxLength={30}
-                  error={taglineError}
+                  error={errorFor("tagline") ?? taglineError}
                   helperText="Optional, maximum 30 characters. This appears under your name."
                   disabled={isDemo}
                 />
@@ -457,6 +553,7 @@ export default async function EditAccountPage({
                   name="secretQuestion"
                   value=""
                   options={secretQuestionOptions}
+                  error={errorFor("secretQuestion")}
                   disabled={isDemo}
                 />
                 <TextInput
@@ -464,12 +561,13 @@ export default async function EditAccountPage({
                   name="secretAnswer"
                   type="password"
                   placeholder="Private answer"
+                  error={errorFor("secretAnswer")}
                   helperText="Leave both recovery fields blank if you do not want to set recovery now."
                   disabled={isDemo}
                 />
               </div>
 
-              <Button className="h-12" disabled={isDemo}>
+              <Button type="submit" className="h-12" disabled={isDemo}>
                 <Save aria-hidden="true" />
                 Save Profile
               </Button>

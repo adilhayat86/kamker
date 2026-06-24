@@ -14,6 +14,7 @@ import {
 } from "@/lib/phone";
 import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { findOrCreateCategoryId, findOrCreateCityId } from "@/lib/taxonomy";
 import {
   isWorkerDayAvailability,
   isWorkerTimeAvailability,
@@ -32,6 +33,16 @@ function field(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function lastNonEmptyField(formData: FormData, key: string) {
+  const values = formData
+    .getAll(key)
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return values.at(-1) ?? "";
+}
+
 function numericField(formData: FormData, key: string) {
   const value = Number(field(formData, key));
 
@@ -39,6 +50,16 @@ function numericField(formData: FormData, key: string) {
 }
 
 const defaultWorkerTagline = "Trusted local worker";
+
+function redirectWithErrors(status: string, errors: string[]) {
+  const query = new URLSearchParams({ status });
+
+  if (errors.length > 0) {
+    query.set("fields", errors.join(","));
+  }
+
+  redirect(`/account/edit?${query.toString()}`);
+}
 
 function isDuplicatePhoneDatabaseError(error: {
   code?: string;
@@ -74,34 +95,36 @@ export async function updateProfessionalProfile(formData: FormData) {
   const secretAnswer = field(formData, "secretAnswer");
 
   if (phoneInput && !phoneValidation.ok) {
-    redirect("/account/edit?status=phone-invalid");
+    redirectWithErrors("phone-invalid", ["phoneInvalid"]);
   }
 
   if (!whatsappValidation.ok) {
-    redirect("/account/edit?status=whatsapp-invalid");
+    redirectWithErrors("whatsapp-invalid", ["whatsappInvalid"]);
   }
 
-  if (
-    !fullName ||
-    !phoneInput ||
-    !cityName ||
-    !categoryName ||
-    !gender ||
-    age === null ||
-    !isWorkerTimeAvailability(availabilityTime) ||
-    !isWorkerDayAvailability(availabilityDays) ||
-    expectedRate === null ||
-    yearsExperience < 0
-  ) {
-    redirect("/account/edit?status=missing");
+  const errors = [
+    !fullName ? "fullName" : null,
+    !phoneInput ? "phone" : null,
+    !cityName ? "city" : null,
+    !categoryName ? "category" : null,
+    !gender ? "gender" : null,
+    age === null ? "age" : null,
+    !isWorkerTimeAvailability(availabilityTime) ? "availabilityTime" : null,
+    !isWorkerDayAvailability(availabilityDays) ? "availabilityDays" : null,
+    expectedRate === null ? "rate" : null,
+    yearsExperience < 0 ? "yearsExperience" : null,
+  ].filter((error): error is string => Boolean(error));
+
+  if (errors.length > 0) {
+    redirectWithErrors("missing", errors);
   }
 
   if (tagline && tagline.length > 30) {
-    redirect("/account/edit?status=tagline-invalid");
+    redirectWithErrors("tagline-invalid", ["tagline"]);
   }
 
   if ((secretQuestion && !secretAnswer) || (!secretQuestion && secretAnswer)) {
-    redirect("/account/edit?status=recovery-missing");
+    redirectWithErrors("recovery-missing", ["secretQuestion", "secretAnswer"]);
   }
 
   if (!isSupabaseConfigured || !supabase) {
@@ -122,21 +145,15 @@ export async function updateProfessionalProfile(formData: FormData) {
   );
 
   if (duplicateProfessional) {
-    redirect("/account/edit?status=duplicate-phone");
+    redirectWithErrors("duplicate-phone", ["phoneDuplicate"]);
   }
 
-  const { data: city } = await supabase
-    .from("cities")
-    .select("id")
-    .eq("name", cityName)
-    .maybeSingle();
-
-  const { data: category } = await supabase
-    .from("categories")
-    .select("id")
-    .eq("name", categoryName)
-    .maybeSingle();
-  let profilePhotoUrl: string | null = field(formData, "profilePhotoUrl") || null;
+  const [cityId, categoryId] = await Promise.all([
+    findOrCreateCityId(cityName),
+    findOrCreateCategoryId(categoryName),
+  ]);
+  let profilePhotoUrl: string | null =
+    lastNonEmptyField(formData, "profilePhotoUrl") || null;
 
   if (!profilePhotoUrl) {
     try {
@@ -158,9 +175,9 @@ export async function updateProfessionalProfile(formData: FormData) {
     phone_number: phoneNumber,
     phone_normalized: phoneValidation.normalized,
     whatsapp_number: whatsappNumber || null,
-    city_id: city?.id ?? null,
+    city_id: cityId,
     area: area || null,
-    category_id: category?.id ?? null,
+    category_id: categoryId,
     gender,
     age,
     availability: workerAvailabilitySummary(
@@ -195,7 +212,7 @@ export async function updateProfessionalProfile(formData: FormData) {
     console.error("Failed to update professional profile", error);
 
     if (isDuplicatePhoneDatabaseError(error)) {
-      redirect("/account/edit?status=duplicate-phone");
+      redirectWithErrors("duplicate-phone", ["phoneDuplicate"]);
     }
 
     redirect("/account/edit?status=error");
