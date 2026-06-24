@@ -231,9 +231,7 @@ async function getCategoryProfessionals(
   }
 
   if (categoryIds.length === 0) {
-    return recentProfessionals.filter((professional) =>
-      professionalMatchesTargets(professional, targetCategories, city, area),
-    );
+    return [] as Professional[];
   }
 
   let query = supabase
@@ -256,9 +254,7 @@ async function getCategoryProfessionals(
 
   if (error) {
     console.error("Failed to load category professionals", error);
-    return recentProfessionals.filter((professional) =>
-      professionalMatchesTargets(professional, targetCategories, city, area),
-    );
+    return [] as Professional[];
   }
 
   const dbProfessionals = ((data ?? []) as unknown as CategoryDbProfessional[])
@@ -267,11 +263,7 @@ async function getCategoryProfessionals(
       professionalMatchesTargets(professional, targetCategories, city, area),
     );
 
-  return dbProfessionals.length > 0
-    ? dbProfessionals
-    : recentProfessionals.filter((professional) =>
-        professionalMatchesTargets(professional, targetCategories, city, area),
-      );
+  return dbProfessionals;
 }
 
 export function generateStaticParams() {

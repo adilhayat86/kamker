@@ -49,9 +49,7 @@ type DbProfessional = {
 export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
-  return recentProfessionals.map((professional) => ({
-    id: professional.id,
-  }));
+  return [];
 }
 
 async function getDbProfessional(id: string) {
@@ -77,13 +75,16 @@ async function getDbProfessional(id: string) {
 
 export async function generateMetadata({ params }: ProfessionalProfilePageProps) {
   const { id } = await params;
+  const canUseDemoProfiles = !isSupabaseConfigured || !supabase;
   const dbProfessional = await getDbProfessional(id);
-  const localProfessional = dbProfessional
+  const localProfessional = dbProfessional || !canUseDemoProfiles
     ? null
     : await getLocalProfessionalRecordById(id);
   const demoProfessional = localProfessional
     ? localRecordToProfessional(localProfessional)
-    : recentProfessionals.find((item) => item.id === id);
+    : canUseDemoProfiles
+      ? recentProfessionals.find((item) => item.id === id)
+      : null;
   const name = dbProfessional?.full_name ?? demoProfessional?.name;
   const role = dbProfessional?.categories?.name ?? demoProfessional?.role ?? "Professional";
   const city = dbProfessional?.cities?.name ?? demoProfessional?.city ?? "Pakistan";
@@ -104,15 +105,18 @@ export default async function ProfessionalProfilePage({
   params,
 }: ProfessionalProfilePageProps) {
   const { id } = await params;
+  const canUseDemoProfiles = !isSupabaseConfigured || !supabase;
   const dbProfessional = await getDbProfessional(id);
-  const localProfessional = dbProfessional
+  const localProfessional = dbProfessional || !canUseDemoProfiles
     ? null
     : await getLocalProfessionalRecordById(id);
   const sessionProfessional = await getSessionProfessional();
   const isOwnProfile = sessionProfessional?.id === id;
   const demoProfessional = localProfessional
     ? localRecordToProfessional(localProfessional)
-    : recentProfessionals.find((item) => item.id === id);
+    : canUseDemoProfiles
+      ? recentProfessionals.find((item) => item.id === id)
+      : null;
 
   if (!dbProfessional && !demoProfessional) {
     notFound();

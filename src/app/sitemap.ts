@@ -4,7 +4,6 @@ import {
   categories,
   categorySlug,
   parentCategories,
-  recentProfessionals,
 } from "@/lib/marketplace-data";
 import { seoLandingPages } from "@/lib/seo-landing-pages";
 
@@ -32,12 +31,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const categoryRoutes = [...parentCategories, ...categories].map(
     (category) => `/categories/${categorySlug(category.name)}`,
   );
-  const professionalRoutes = recentProfessionals.map(
-    (professional) => `/professionals/${professional.id}`,
-  );
   const seoRoutes = seoLandingPages.map((page) => `/${page.slug}`);
 
-  return [...staticRoutes, ...categoryRoutes, ...professionalRoutes, ...seoRoutes].map(
+  return [...staticRoutes, ...categoryRoutes, ...seoRoutes].map(
     (route) => ({
       url: absoluteUrl(route),
       lastModified: now,

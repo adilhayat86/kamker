@@ -856,19 +856,22 @@ export default async function ProfessionalsPage({
       verified,
     }),
   );
-  const filteredDemoProfessionals = recentProfessionals.filter((professional) =>
-    matchesCompanyProfessionalFilters(professional, {
-      q: effectiveSearchQuery,
-      city: effectiveCity,
-      category,
-      gender,
-      age,
-      availabilityTime,
-      availabilityDays,
-      rate,
-      verified,
-    }),
-  );
+  const canUseDemoProfessionals = !isSupabaseConfigured || !supabase;
+  const filteredDemoProfessionals = canUseDemoProfessionals
+    ? recentProfessionals.filter((professional) =>
+        matchesCompanyProfessionalFilters(professional, {
+          q: effectiveSearchQuery,
+          city: effectiveCity,
+          category,
+          gender,
+          age,
+          availabilityTime,
+          availabilityDays,
+          rate,
+          verified,
+        }),
+      )
+    : [];
   const filteredDbProfessionals = dbProfessionals
     .filter((professional) => {
       const keywordMatch = effectiveSearchQuery
@@ -998,9 +1001,9 @@ export default async function ProfessionalsPage({
         <p className="mt-2 text-muted-foreground">
           Browse approved local professionals by hourly rate and contact them directly without a middleman.
         </p>
-        {!hasDirectoryProfessionals ? (
+        {canUseDemoProfessionals && !hasDirectoryProfessionals ? (
           <p className="mt-2 text-sm text-muted-foreground">
-            Demo listings are shown until approved professionals are added in Supabase.
+            Local demo listings are shown because Supabase is not configured.
           </p>
         ) : null}
 
