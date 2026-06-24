@@ -75,7 +75,7 @@ export const categories = [
   { name: "Fashion Designers", icon: "scissors", count: "0" },
   { name: "Religious Scholars", icon: "graduation", count: "0" },
   { name: "Nikah Khawan/Qari", icon: "graduation", count: "0" },
-  { name: "Legal Consultants", icon: "briefcase", count: "0" },
+  { name: "Lawyers/Legal Consultants", icon: "briefcase", count: "0" },
   { name: "Tax Consultants", icon: "calculator", count: "0" },
   { name: "Education Consultants", icon: "graduation", count: "0" },
   { name: "Medical Consultants", icon: "stethoscope", count: "0" },
@@ -177,7 +177,7 @@ export const categoryAliases: Record<string, string[]> = {
   "Event Staff": ["event staff", "front of house", "kitchen staff", "banquet staff"],
   Waiters: ["waiter", "host", "hostess", "food server"],
   "Catering Staff": ["caterer", "corporate caterer", "event caterer", "hotel caterer"],
-  "Legal Consultants": ["legal advisor"],
+  "Lawyers/Legal Consultants": ["lawyer", "lawyers", "legal consultant", "legal consultants", "legal advisor", "advocate", "attorney"],
   "Tax Consultants": ["tax advisor", "tax accountant"],
   "Education Consultants": ["educational consultant", "theatre consultant"],
   "Medical Consultants": ["medical consultant"],
@@ -317,7 +317,7 @@ export const serviceGroups: ServiceGroup[] = [
     name: "Consultants",
     icon: "briefcase",
     description: "Legal, tax, education, and medical consultants.",
-    subcategories: ["Legal Consultants", "Tax Consultants", "Education Consultants", "Medical Consultants"],
+    subcategories: ["Lawyers/Legal Consultants", "Tax Consultants", "Education Consultants", "Medical Consultants"],
   },
 ];
 

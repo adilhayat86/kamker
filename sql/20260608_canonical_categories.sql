@@ -105,7 +105,7 @@ with category_rows(parent_name, name, slug, icon, sort_order) as (
     ('Clothing & Tailoring', 'Fashion Designers', 'fashion-designers', 'scissors', 20),
     ('Religious Services', 'Religious Scholars', 'religious-scholars', 'graduation', 10),
     ('Religious Services', 'Nikah Khawan/Qari', 'nikah-khawan-qari', 'graduation', 20),
-    ('Consultants', 'Legal Consultants', 'legal-consultants', 'briefcase', 10),
+    ('Consultants', 'Lawyers/Legal Consultants', 'legal-consultants', 'briefcase', 10),
     ('Consultants', 'Tax Consultants', 'tax-consultants', 'calculator', 20),
     ('Consultants', 'Education Consultants', 'education-consultants', 'graduation', 30),
     ('Consultants', 'Medical Consultants', 'medical-consultants', 'stethoscope', 40)
