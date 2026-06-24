@@ -27,6 +27,7 @@ import {
 } from "@/lib/phone";
 import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import {
+  registrationFailureReasonForErrors,
   trackRegistrationFailure,
   trackRegistrationSubmitAttempt,
   trackRegistrationSuccess,
@@ -47,6 +48,16 @@ function numericField(formData: FormData, key: string) {
 function ageField(formData: FormData) {
   const value = Number(field(formData, "age"));
   return Number.isInteger(value) && value >= 16 && value <= 80 ? value : null;
+}
+
+function isDuplicatePhoneDatabaseError(error: {
+  code?: string;
+  message?: string;
+  details?: string;
+} | null | undefined) {
+  const text = `${error?.message ?? ""} ${error?.details ?? ""}`.toLowerCase();
+
+  return error?.code === "23505" && text.includes("phone_normalized");
 }
 
 async function saveProfessionalDraft(input: {
@@ -160,7 +171,7 @@ export async function registerProfessional(formData: FormData) {
       formData,
       "professional",
       "/register/professional",
-      "validation",
+      registrationFailureReasonForErrors(errors),
       errors,
       { category: categoryName, city: cityName },
     );
@@ -168,7 +179,9 @@ export async function registerProfessional(formData: FormData) {
     redirect("/register/professional?status=missing");
   }
 
-  const duplicateProfessionals = await findProfessionalsByPhone(phoneNumber);
+  const duplicateProfessionals = await findProfessionalsByPhone(
+    phoneValidation.normalized,
+  );
 
   if (duplicateProfessionals.length > 0) {
     await trackRegistrationFailure(
@@ -288,6 +301,7 @@ export async function registerProfessional(formData: FormData) {
   const insertPayload = {
     full_name: fullName,
     phone_number: phoneNumber,
+    phone_normalized: phoneValidation.normalized,
     whatsapp_number: whatsappNumber || null,
     city_id: cityId,
     area: area || null,
@@ -335,6 +349,20 @@ export async function registerProfessional(formData: FormData) {
 
   if (error || !professional) {
     console.error("Failed to register professional", error);
+
+    if (isDuplicatePhoneDatabaseError(error)) {
+      await trackRegistrationFailure(
+        formData,
+        "professional",
+        "/register/professional",
+        "duplicate_phone",
+        ["phoneDuplicate"],
+        { category: categoryName, city: cityName },
+      );
+      await saveProfessionalDraft({ ...draftInput, errors: ["phoneDuplicate"] });
+      redirect("/register/professional?status=missing");
+    }
+
     await trackRegistrationFailure(
       formData,
       "professional",

@@ -13,6 +13,7 @@ import {
   validatePhoneFieldWithCountry,
 } from "@/lib/phone";
 import {
+  registrationFailureReasonForErrors,
   trackRegistrationFailure,
   trackRegistrationSubmitAttempt,
   trackRegistrationSuccess,
@@ -71,7 +72,7 @@ export async function registerCompany(formData: FormData) {
       formData,
       "company",
       "/register/company",
-      "validation",
+      registrationFailureReasonForErrors(errors),
       errors,
       { category, city },
     );

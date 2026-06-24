@@ -10,6 +10,7 @@ import {
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import { normalizePakistanMobilePhone } from "@/lib/phone";
 import {
+  registrationFailureReasonForErrors,
   trackRegistrationFailure,
   trackRegistrationSubmitAttempt,
   trackRegistrationSuccess,
@@ -20,6 +21,16 @@ import { findOrCreateCityId } from "@/lib/taxonomy";
 function field(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function isDuplicatePhoneDatabaseError(error: {
+  code?: string;
+  message?: string;
+  details?: string;
+} | null | undefined) {
+  const text = `${error?.message ?? ""} ${error?.details ?? ""}`.toLowerCase();
+
+  return error?.code === "23505" && text.includes("phone_normalized");
 }
 
 function customerRegisterPath(status: string, next: string) {
@@ -78,7 +89,7 @@ export async function registerCustomer(formData: FormData) {
       formData,
       "customer",
       "/register/customer",
-      "validation",
+      registrationFailureReasonForErrors(errors),
       errors,
       { city: cityName },
     );
@@ -102,7 +113,7 @@ export async function registerCustomer(formData: FormData) {
     redirect(customerRegisterPath("not-configured", safeNext));
   }
 
-  const existingCustomers = await findCustomersByPhone(phoneNumber);
+  const existingCustomers = await findCustomersByPhone(phoneValidation.normalized);
 
   if (existingCustomers.length > 0) {
     await trackRegistrationFailure(
@@ -133,6 +144,23 @@ export async function registerCustomer(formData: FormData) {
 
   if (error || !customer) {
     console.error("Failed to register customer", error);
+
+    if (isDuplicatePhoneDatabaseError(error)) {
+      await trackRegistrationFailure(
+        formData,
+        "customer",
+        "/register/customer",
+        "duplicate_phone",
+        ["duplicatePhone"],
+        { city: cityName },
+      );
+      await saveFormDraft("customer", {
+        ...draft,
+        errors: "duplicatePhone",
+      });
+      redirect(customerRegisterPath("duplicate", safeNext));
+    }
+
     await trackRegistrationFailure(
       formData,
       "customer",

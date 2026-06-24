@@ -4,6 +4,7 @@ export type RegistrationRole = "professional" | "customer" | "company";
 
 export type RegistrationFailureReason =
   | "validation"
+  | "invalid_phone"
   | "duplicate_phone"
   | "invalid_photo"
   | "photo_upload"
@@ -39,6 +40,12 @@ function registrationMetadata(
     category: field(formData, "category"),
     ...extra,
   });
+}
+
+export function registrationFailureReasonForErrors(
+  errors: string[],
+): RegistrationFailureReason {
+  return errors.includes("phoneInvalid") ? "invalid_phone" : "validation";
 }
 
 export async function trackRegistrationSubmitAttempt(

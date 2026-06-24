@@ -29,6 +29,16 @@ function ageField(formData: FormData) {
   return Number.isInteger(value) && value >= 16 && value <= 80 ? value : null;
 }
 
+function isDuplicatePhoneDatabaseError(error: {
+  code?: string;
+  message?: string;
+  details?: string;
+} | null | undefined) {
+  const text = `${error?.message ?? ""} ${error?.details ?? ""}`.toLowerCase();
+
+  return error?.code === "23505" && text.includes("phone_normalized");
+}
+
 export async function updateProfessionalProfile(formData: FormData) {
   const fullName = field(formData, "fullName");
   const phoneInput = field(formData, "phone");
@@ -81,7 +91,9 @@ export async function updateProfessionalProfile(formData: FormData) {
     redirect("/login");
   }
 
-  const duplicateProfessionals = await findProfessionalsByPhone(phoneNumber);
+  const duplicateProfessionals = await findProfessionalsByPhone(
+    phoneValidation.normalized,
+  );
   const duplicateProfessional = duplicateProfessionals.find(
     (professional) => professional.id !== sessionProfessional.id,
   );
@@ -118,6 +130,7 @@ export async function updateProfessionalProfile(formData: FormData) {
   const updates: Record<string, string | number | null> = {
     full_name: fullName,
     phone_number: phoneNumber,
+    phone_normalized: phoneValidation.normalized,
     whatsapp_number: whatsappNumber || null,
     city_id: city?.id ?? null,
     area: area || null,
@@ -143,6 +156,11 @@ export async function updateProfessionalProfile(formData: FormData) {
 
   if (error) {
     console.error("Failed to update professional profile", error);
+
+    if (isDuplicatePhoneDatabaseError(error)) {
+      redirect("/account/edit?status=duplicate-phone");
+    }
+
     redirect("/account/edit?status=error");
   }
 

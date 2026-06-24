@@ -339,7 +339,16 @@ function eventRole(event: EventRow) {
 }
 
 function eventFailureReason(event: EventRow) {
-  return String(event.metadata?.failure_reason ?? "unknown");
+  const failureReason = String(event.metadata?.failure_reason ?? "unknown");
+
+  if (
+    failureReason === "validation" &&
+    eventErrorCodes(event).includes("phoneInvalid")
+  ) {
+    return "invalid_phone";
+  }
+
+  return failureReason;
 }
 
 function eventErrorCodes(event: EventRow) {

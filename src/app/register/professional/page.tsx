@@ -132,12 +132,12 @@ export default async function ProfessionalRegisterPage({
       secretAnswer: "Secret answer is required. Re-enter it after this error.",
     };
 
-    if (field === "phone" && failedFields.has("phoneDuplicate")) {
-      return messages.phoneDuplicate;
-    }
-
     if (field === "phone" && failedFields.has("phoneInvalid")) {
       return messages.phoneInvalid;
+    }
+
+    if (field === "phone" && failedFields.has("phoneDuplicate")) {
+      return messages.phoneDuplicate;
     }
 
     if (field === "whatsapp" && failedFields.has("whatsappInvalid")) {
