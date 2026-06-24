@@ -35,6 +35,39 @@ function numberField(formData: FormData, key: string) {
   return Number.isFinite(value) ? value : 0;
 }
 
+async function categorySlugById(id: number) {
+  if (!isSupabaseConfigured || !supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("slug, name")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error("Failed to load category slug by id", error);
+    return null;
+  }
+
+  return String(data.slug || categorySlug(String(data.name)));
+}
+
+function revalidateCategoryAdminPaths(name: string, parentSlug?: string | null) {
+  revalidatePath("/");
+  revalidatePath("/admin/categories");
+  revalidatePath("/categories");
+  revalidatePath(`/categories/${categorySlug(name)}`);
+  if (parentSlug) {
+    revalidatePath(`/categories/${parentSlug}`);
+  }
+  revalidatePath("/professionals");
+  revalidatePath("/register/professional");
+  revalidatePath("/register/company");
+  revalidatePath("/send-requirement");
+}
+
 export async function createAdminCategory(formData: FormData) {
   const name = textField(formData, "name");
   const icon = textField(formData, "icon") || "wrench";
@@ -43,17 +76,70 @@ export async function createAdminCategory(formData: FormData) {
   const sortOrder = numberField(formData, "sortOrder");
 
   if (!name || !isSupabaseConfigured || !supabase || !(await canMutateAdmin())) {
-    return;
+    redirect("/admin/categories?notice=category-not-saved");
+  }
+
+  const nextSlug = categorySlug(name);
+  const parsedParentId = parentId ? Number(parentId) : null;
+  const nextParentId =
+    parsedParentId !== null && Number.isFinite(parsedParentId)
+      ? parsedParentId
+      : null;
+  const parentSlug = nextParentId ? await categorySlugById(nextParentId) : null;
+  const { data: existingCategory, error: existingError } = await supabase
+    .from("categories")
+    .select("id, name, slug, parent_id")
+    .eq("slug", nextSlug)
+    .maybeSingle();
+
+  if (existingError) {
+    console.error("Failed to check existing admin category", existingError);
+    redirect("/admin/categories?notice=category-error");
+  }
+
+  if (existingCategory) {
+    if (nextParentId && existingCategory.parent_id !== nextParentId) {
+      const { error: moveError } = await supabase
+        .from("categories")
+        .update({
+          name,
+          slug: nextSlug,
+          icon,
+          description: description || null,
+          parent_id: nextParentId,
+          sort_order: sortOrder,
+        })
+        .eq("id", existingCategory.id);
+
+      if (moveError) {
+        console.error("Failed to move existing admin category", moveError);
+        redirect("/admin/categories?notice=category-error");
+      }
+
+      await recordAdminAudit({
+        action: "move_existing_subcategory",
+        targetType: "category",
+        targetId: String(existingCategory.id),
+        metadata: { name, parentId: nextParentId },
+      });
+
+      revalidateCategoryAdminPaths(name, parentSlug);
+      redirect("/admin/categories?notice=subcategory-updated");
+    }
+
+    redirect(
+      `/admin/categories?notice=${nextParentId ? "subcategory-exists" : "category-exists"}`,
+    );
   }
 
   const { data, error } = await supabase
     .from("categories")
     .insert({
       name,
-      slug: categorySlug(name),
+      slug: nextSlug,
       icon,
       description: description || null,
-      parent_id: parentId ? Number(parentId) : null,
+      parent_id: nextParentId,
       sort_order: sortOrder,
     })
     .select("id")
@@ -61,7 +147,7 @@ export async function createAdminCategory(formData: FormData) {
 
   if (error || !data) {
     console.error("Failed to create admin category", error);
-    return;
+    redirect("/admin/categories?notice=category-error");
   }
 
   await recordAdminAudit({
@@ -71,8 +157,8 @@ export async function createAdminCategory(formData: FormData) {
     metadata: { name, parentId: parentId || null },
   });
 
-  revalidatePath("/admin/categories");
-  revalidatePath("/categories");
+  revalidateCategoryAdminPaths(name, parentSlug);
+  redirect(`/admin/categories?notice=${nextParentId ? "subcategory-created" : "category-created"}`);
 }
 
 export async function updateAdminCategory(formData: FormData) {
@@ -118,14 +204,8 @@ export async function updateAdminCategory(formData: FormData) {
     metadata: { name, parentId: parentId || null },
   });
 
-  revalidatePath("/");
-  revalidatePath("/admin/categories");
-  revalidatePath("/categories");
-  revalidatePath(`/categories/${categorySlug(name)}`);
-  revalidatePath("/professionals");
-  revalidatePath("/register/professional");
-  revalidatePath("/register/company");
-  revalidatePath("/send-requirement");
+  const parentSlug = parentId ? await categorySlugById(Number(parentId)) : null;
+  revalidateCategoryAdminPaths(name, parentSlug);
 }
 
 export async function createAdminCity(formData: FormData) {

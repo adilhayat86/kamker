@@ -4,7 +4,7 @@
 
 with groups(name, slug, icon, description, sort_order) as (
   values
-    ('Healthcare', 'healthcare', 'stethoscope', 'Nurses, caregivers, physiotherapists, lab technicians, and home health support.', 10),
+    ('Healthcare', 'healthcare', 'stethoscope', 'Doctors, nurses, caregivers, physiotherapists, lab technicians, and home health support.', 10),
     ('Domestic Help', 'domestic-help', 'home', 'Maids, housekeepers, cleaners, cooks, babysitters, gardeners, and daily home support.', 20),
     ('Education & Training', 'education-and-training', 'graduation', 'School teachers, home tutors, online tutors, Quran teachers, handwriting teachers, and trainers.', 30),
     ('Home Repairs & Construction', 'home-repairs-and-construction', 'wrench', 'Electricians, plumbers, AC technicians, carpenters, painters, welders, masons, and construction support.', 40),
@@ -31,6 +31,7 @@ on conflict (name) do update set
 
 with category_rows(parent_name, name, slug, icon, sort_order) as (
   values
+    ('Healthcare', 'Doctors', 'doctors', 'stethoscope', 5),
     ('Healthcare', 'Nurses', 'nurses', 'heart', 10),
     ('Healthcare', 'Caregivers', 'caregivers', 'stethoscope', 20),
     ('Healthcare', 'Physiotherapists', 'physiotherapists', 'heart', 30),

@@ -94,6 +94,25 @@ async function getDbCategoryBySlug(slug: string) {
   return data as DbCategory | null;
 }
 
+async function getDbCategoryByName(name: string) {
+  if (!isSupabaseConfigured || !supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name, slug, icon, description, parent_id")
+    .eq("name", name)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to load DB category by name", error);
+    return null;
+  }
+
+  return data as DbCategory | null;
+}
+
 async function getDbSubcategories(parentId: number) {
   if (!isSupabaseConfigured || !supabase) {
     return [] as DbCategory[];
@@ -276,7 +295,9 @@ export async function generateMetadata({ params }: CategoryDetailPageProps) {
   const { slug } = await params;
   const serviceGroup = findServiceGroupBySlug(slug);
   const category = findCategoryBySlug(slug);
-  const dbCategory = serviceGroup || category ? null : await getDbCategoryBySlug(slug);
+  const dbCategory =
+    (await getDbCategoryBySlug(slug)) ??
+    (serviceGroup ? await getDbCategoryByName(serviceGroup.name) : null);
   const name = serviceGroup?.name ?? category?.name ?? dbCategory?.name;
 
   return {
@@ -294,7 +315,9 @@ export default async function CategoryDetailPage({
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const serviceGroup = findServiceGroupBySlug(slug);
   const category = findCategoryBySlug(slug);
-  const dbCategory = serviceGroup || category ? null : await getDbCategoryBySlug(slug);
+  const dbCategory =
+    (await getDbCategoryBySlug(slug)) ??
+    (serviceGroup ? await getDbCategoryByName(serviceGroup.name) : null);
   const dbSubcategories = dbCategory?.parent_id === null ? await getDbSubcategories(dbCategory.id) : [];
   const dbParentCategory = dbCategory?.parent_id ? await getDbParentCategory(dbCategory.parent_id) : null;
   if (!serviceGroup && !category && !dbCategory) {
@@ -322,18 +345,29 @@ export default async function CategoryDetailPage({
     ],
     { city, area },
   );
-  const subcategoryCards = serviceGroup
-    ? getGroupSubcategoryCards(serviceGroup).map((subcategory) => ({
-        ...subcategory,
-        count: countForCategory(subcategory, liveCountMap),
-      }))
-    : dbSubcategories.map((subcategory) => ({
-        name: subcategory.name,
-        icon: subcategory.icon ?? "wrench",
-        count: countForCategory(subcategory, liveCountMap),
-      }));
+  const fallbackSubcategoryCards = serviceGroup
+    ? getGroupSubcategoryCards(serviceGroup)
+    : [];
+  const mergedSubcategoryCards = [
+    ...fallbackSubcategoryCards,
+    ...dbSubcategories.map((subcategory) => ({
+      name: subcategory.name,
+      icon: subcategory.icon ?? "wrench",
+      count: "0",
+    })),
+  ].filter((subcategory, index, list) => {
+    const key = normaliseMatchValue(subcategory.name);
+    return list.findIndex((item) => normaliseMatchValue(item.name) === key) === index;
+  });
+  const subcategoryCards = mergedSubcategoryCards.map((subcategory) => ({
+    ...subcategory,
+    count: countForCategory(subcategory, liveCountMap),
+  }));
+  const serviceGroupSubcategories = mergedSubcategoryCards.map(
+    (subcategory) => subcategory.name,
+  );
   const targetCategories = serviceGroup
-    ? serviceGroup.subcategories
+    ? serviceGroupSubcategories
     : category
       ? [category.name]
       : dbCategory?.parent_id === null

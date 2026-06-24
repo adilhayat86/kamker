@@ -106,6 +106,14 @@ const extraCategoryAliases: Record<string, string[]> = {
     "patient care",
     "medical attendant",
   ],
+  Doctors: [
+    "doctor",
+    "physician",
+    "general physician",
+    "mbbs doctor",
+    "clinic doctor",
+    "medical doctor",
+  ],
   "Car Mechanics": [
     "mechanic",
     "auto mechanic",

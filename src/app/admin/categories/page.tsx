@@ -36,6 +36,43 @@ type CategoryRow = {
   created_at: string;
 };
 
+type AdminCategoriesPageProps = {
+  searchParams?: Promise<{
+    notice?: string;
+  }>;
+};
+
+const noticeCopy: Record<string, { title: string; body: string }> = {
+  "category-created": {
+    title: "Service group added",
+    body: "The new service group is available in admin and public category pages.",
+  },
+  "subcategory-created": {
+    title: "Subcategory added",
+    body: "The new subcategory is now linked to its parent service group.",
+  },
+  "subcategory-updated": {
+    title: "Subcategory linked",
+    body: "An existing category was moved under the selected service group.",
+  },
+  "category-exists": {
+    title: "Service group already exists",
+    body: "No duplicate was created. Use the edit controls if you need to change it.",
+  },
+  "subcategory-exists": {
+    title: "Subcategory already exists",
+    body: "No duplicate was created. Use the edit controls if you need to change it.",
+  },
+  "category-error": {
+    title: "Category was not saved",
+    body: "Supabase rejected the change. Check the category name and try again.",
+  },
+  "category-not-saved": {
+    title: "Category was not saved",
+    body: "Admin login or Supabase configuration is required before categories can be changed.",
+  },
+};
+
 const iconOptions = [
   "stethoscope",
   "home",
@@ -73,7 +110,10 @@ async function getAdminCategories() {
   return (data ?? []) as CategoryRow[];
 }
 
-export default async function AdminCategoriesPage() {
+export default async function AdminCategoriesPage({
+  searchParams,
+}: AdminCategoriesPageProps) {
+  const query = await searchParams;
   const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
@@ -105,6 +145,12 @@ export default async function AdminCategoriesPage() {
       {!isSupabaseConfigured ? (
         <AdminWarning title="Supabase is not configured">
           Admin-added categories require the Supabase categories table. Built-in code categories still show publicly.
+        </AdminWarning>
+      ) : null}
+
+      {query?.notice && noticeCopy[query.notice] ? (
+        <AdminWarning title={noticeCopy[query.notice].title}>
+          {noticeCopy[query.notice].body}
         </AdminWarning>
       ) : null}
 
@@ -154,7 +200,7 @@ export default async function AdminCategoriesPage() {
             </label>
             <label className="grid gap-2">
               <span className="text-sm font-medium">Subcategory name</span>
-              <input name="name" placeholder="Nurses" required className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm" />
+              <input name="name" placeholder="Doctors" required className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm" />
             </label>
             <label className="grid gap-2">
               <span className="text-sm font-medium">Icon</span>
@@ -167,6 +213,10 @@ export default async function AdminCategoriesPage() {
             <label className="grid gap-2">
               <span className="text-sm font-medium">Description</span>
               <textarea name="description" placeholder="Home nurses and patient care professionals." className="min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm" />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium">Sort order</span>
+              <input name="sortOrder" type="number" defaultValue={0} className="h-11 rounded-md border border-input bg-background px-3 text-sm shadow-sm" />
             </label>
             <Button disabled={!adminAuthenticated || !isSupabaseConfigured || parentCategories.length === 0}>Add Subcategory</Button>
           </form>
@@ -214,145 +264,155 @@ export default async function AdminCategoriesPage() {
                     <span className="text-sm text-muted-foreground">No subcategories yet.</span>
                   )}
                 </div>
-                <form action={updateAdminCategory} className="mt-5 grid gap-3 rounded-lg border bg-slate-50 p-3 lg:grid-cols-[1fr_140px_120px_auto]">
-                  <input type="hidden" name="categoryId" value={category.id} />
-                  <input type="hidden" name="parentId" value="" />
-                  <label className="grid gap-1">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      Service group name
-                    </span>
-                    <input
-                      name="name"
-                      defaultValue={category.name}
-                      required
-                      className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
-                    />
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      Icon
-                    </span>
-                    <select
-                      name="icon"
-                      defaultValue={category.icon ?? "wrench"}
-                      className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
-                    >
-                      {iconOptions.map((icon) => (
-                        <option key={icon} value={icon}>{icon}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      Sort
-                    </span>
-                    <input
-                      name="sortOrder"
-                      type="number"
-                      defaultValue={category.sort_order}
-                      className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
-                    />
-                  </label>
-                  <Button
-                    className="h-10 self-end"
-                    disabled={!adminAuthenticated || !isSupabaseConfigured}
-                    variant="outline"
-                  >
-                    Save
-                  </Button>
-                  <label className="grid gap-1 lg:col-span-4">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      Description
-                    </span>
-                    <textarea
-                      name="description"
-                      defaultValue={category.description ?? ""}
-                      className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                    />
-                  </label>
-                </form>
-                {(childrenByParent.get(category.id) ?? []).length > 0 ? (
-                  <div className="mt-4 grid gap-3">
-                    {(childrenByParent.get(category.id) ?? []).map((child) => (
-                      <form
-                        key={child.id}
-                        action={updateAdminCategory}
-                        className="grid gap-2 rounded-lg border bg-white p-3 lg:grid-cols-[1fr_180px_140px_120px_auto]"
+                <details className="mt-5 rounded-lg border bg-slate-50 p-3">
+                  <summary className="cursor-pointer text-sm font-semibold text-primary">
+                    Edit service group
+                  </summary>
+                  <form action={updateAdminCategory} className="mt-3 grid gap-3 lg:grid-cols-[1fr_140px_120px_auto]">
+                    <input type="hidden" name="categoryId" value={category.id} />
+                    <input type="hidden" name="parentId" value="" />
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Service group name
+                      </span>
+                      <input
+                        name="name"
+                        defaultValue={category.name}
+                        required
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                      />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Icon
+                      </span>
+                      <select
+                        name="icon"
+                        defaultValue={category.icon ?? "wrench"}
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
                       >
-                        <input type="hidden" name="categoryId" value={child.id} />
-                        <label className="grid gap-1">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            Subcategory
-                          </span>
-                          <input
-                            name="name"
-                            defaultValue={child.name}
-                            required
-                            className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
-                          />
-                        </label>
-                        <label className="grid gap-1">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            Parent
-                          </span>
-                          <select
-                            name="parentId"
-                            defaultValue={child.parent_id ?? ""}
-                            required
-                            className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
-                          >
-                            {parentCategories.map((parentCategory) => (
-                              <option key={parentCategory.id} value={parentCategory.id}>
-                                {parentCategory.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="grid gap-1">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            Icon
-                          </span>
-                          <select
-                            name="icon"
-                            defaultValue={child.icon ?? "wrench"}
-                            className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
-                          >
-                            {iconOptions.map((icon) => (
-                              <option key={icon} value={icon}>{icon}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="grid gap-1">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            Sort
-                          </span>
-                          <input
-                            name="sortOrder"
-                            type="number"
-                            defaultValue={child.sort_order}
-                            className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
-                          />
-                        </label>
-                        <Button
-                          className="h-10 self-end"
-                          disabled={!adminAuthenticated || !isSupabaseConfigured}
-                          variant="outline"
+                        {iconOptions.map((icon) => (
+                          <option key={icon} value={icon}>{icon}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Sort
+                      </span>
+                      <input
+                        name="sortOrder"
+                        type="number"
+                        defaultValue={category.sort_order}
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                      />
+                    </label>
+                    <Button
+                      className="h-10 self-end"
+                      disabled={!adminAuthenticated || !isSupabaseConfigured}
+                      variant="outline"
+                    >
+                      Save
+                    </Button>
+                    <label className="grid gap-1 lg:col-span-4">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Description
+                      </span>
+                      <textarea
+                        name="description"
+                        defaultValue={category.description ?? ""}
+                        className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                      />
+                    </label>
+                  </form>
+                </details>
+                {(childrenByParent.get(category.id) ?? []).length > 0 ? (
+                  <details className="mt-4 rounded-lg border bg-white p-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-primary">
+                      Edit subcategories ({(childrenByParent.get(category.id) ?? []).length})
+                    </summary>
+                    <div className="mt-3 grid gap-3">
+                      {(childrenByParent.get(category.id) ?? []).map((child) => (
+                        <form
+                          key={child.id}
+                          action={updateAdminCategory}
+                          className="grid gap-2 rounded-lg border bg-slate-50 p-3 lg:grid-cols-[1fr_180px_140px_120px_auto]"
                         >
-                          Save
-                        </Button>
-                        <label className="grid gap-1 lg:col-span-5">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            Description
-                          </span>
-                          <textarea
-                            name="description"
-                            defaultValue={child.description ?? ""}
-                            className="min-h-16 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                          />
-                        </label>
-                      </form>
-                    ))}
-                  </div>
+                          <input type="hidden" name="categoryId" value={child.id} />
+                          <label className="grid gap-1">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Subcategory
+                            </span>
+                            <input
+                              name="name"
+                              defaultValue={child.name}
+                              required
+                              className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                            />
+                          </label>
+                          <label className="grid gap-1">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Parent
+                            </span>
+                            <select
+                              name="parentId"
+                              defaultValue={child.parent_id ?? ""}
+                              required
+                              className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                            >
+                              {parentCategories.map((parentCategory) => (
+                                <option key={parentCategory.id} value={parentCategory.id}>
+                                  {parentCategory.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="grid gap-1">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Icon
+                            </span>
+                            <select
+                              name="icon"
+                              defaultValue={child.icon ?? "wrench"}
+                              className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                            >
+                              {iconOptions.map((icon) => (
+                                <option key={icon} value={icon}>{icon}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="grid gap-1">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Sort
+                            </span>
+                            <input
+                              name="sortOrder"
+                              type="number"
+                              defaultValue={child.sort_order}
+                              className="h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                            />
+                          </label>
+                          <Button
+                            className="h-10 self-end"
+                            disabled={!adminAuthenticated || !isSupabaseConfigured}
+                            variant="outline"
+                          >
+                            Save
+                          </Button>
+                          <label className="grid gap-1 lg:col-span-5">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Description
+                            </span>
+                            <textarea
+                              name="description"
+                              defaultValue={child.description ?? ""}
+                              className="min-h-16 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                            />
+                          </label>
+                        </form>
+                      ))}
+                    </div>
+                  </details>
                 ) : null}
               </div>
             ))

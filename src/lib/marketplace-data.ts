@@ -2,6 +2,7 @@ export const cities = ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Peshawar
 
 export const categories = [
   { name: "Nurses", icon: "heart", count: "0" },
+  { name: "Doctors", icon: "stethoscope", count: "0" },
   { name: "Caregivers", icon: "stethoscope", count: "0" },
   { name: "Physiotherapists", icon: "heart", count: "0" },
   { name: "Lab Technicians", icon: "stethoscope", count: "0" },
@@ -82,6 +83,7 @@ export const categories = [
 ];
 
 export const categoryAliases: Record<string, string[]> = {
+  Doctors: ["doctor", "physician", "general physician", "mbbs doctor", "clinic doctor", "medical doctor"],
   "Quran Teachers": ["qari", "hafiz", "tajweed teacher", "quran tutor"],
   "Religious Scholars": ["imam", "muezzin", "mullah", "mufti", "alim", "khateeb", "dawah", "preacher"],
   "Nikah Khawan/Qari": ["nikah khawan", "qari", "marriage officiant"],
@@ -232,8 +234,8 @@ export const serviceGroups: ServiceGroup[] = [
   {
     name: "Healthcare",
     icon: "stethoscope",
-    description: "Nurses, caregivers, physiotherapists, lab technicians, and home health support.",
-    subcategories: ["Nurses", "Caregivers", "Physiotherapists", "Lab Technicians"],
+    description: "Doctors, nurses, caregivers, physiotherapists, lab technicians, and home health support.",
+    subcategories: ["Doctors", "Nurses", "Caregivers", "Physiotherapists", "Lab Technicians"],
   },
   {
     name: "Domestic Help",
