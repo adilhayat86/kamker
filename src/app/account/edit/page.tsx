@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { InputHTMLAttributes } from "react";
-import { Save, UserCog } from "lucide-react";
+import { UserCog } from "lucide-react";
 
 import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
@@ -8,7 +8,6 @@ import { PageNavigation } from "@/components/page-navigation";
 import { PhotoUploadField } from "@/components/photo-upload-field";
 import { ProfessionCategoryField } from "@/components/profession-category-field";
 import { RegistrationErrorFocus } from "@/components/registration-error-focus";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAccountProfessional, getDemoAccountProfessional } from "@/lib/account";
 import { getCityOptions } from "@/lib/city-options";
@@ -27,6 +26,7 @@ import {
 } from "@/lib/worker-availability";
 
 import { updateProfessionalProfile } from "./actions";
+import { CompleteProfileSubmitButton } from "./submit-button";
 
 export const metadata = {
   title: "Complete Profile | Kamker",
@@ -567,10 +567,7 @@ export default async function EditAccountPage({
                 />
               </div>
 
-              <Button type="submit" className="h-12" disabled={isDemo}>
-                <Save aria-hidden="true" />
-                Save Profile
-              </Button>
+              <CompleteProfileSubmitButton disabled={isDemo} />
             </form>
           </CardContent>
         </Card>
