@@ -44,7 +44,7 @@ function whatsappHref(value: string | null, title: string) {
 
 async function getListing(id: string) {
   if (id.startsWith("mock-company-")) {
-    return getMockCompanyListingById(id);
+    return !isSupabaseConfigured || !supabase ? getMockCompanyListingById(id) : null;
   }
 
   if (!isSupabaseConfigured || !supabase) {

@@ -67,7 +67,8 @@ type CompanyMedia = {
 };
 
 async function getCompany(id: string) {
-  const mockCompany = getMockCompanyProfileById(id);
+  const mockCompany =
+    !isSupabaseConfigured || !supabase ? getMockCompanyProfileById(id) : null;
 
   if (mockCompany) {
     return mockCompany;
@@ -98,7 +99,10 @@ async function getCompany(id: string) {
 }
 
 async function getCompanyStaff(companyId: string) {
-  const mockListings = getMockCompanyListingsByCompanyId(companyId);
+  const mockListings =
+    !isSupabaseConfigured || !supabase
+      ? getMockCompanyListingsByCompanyId(companyId)
+      : [];
 
   if (mockListings.length > 0) {
     return mockListings;
