@@ -2,7 +2,15 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 const PK_OFFSET_MS = 5 * 60 * 60 * 1000;
 
-export type AnalyticsRange = "24h" | "today" | "yesterday" | "7" | "30" | "custom" | "all";
+export type AnalyticsRange =
+  | "2h"
+  | "24h"
+  | "today"
+  | "yesterday"
+  | "7"
+  | "30"
+  | "custom"
+  | "all";
 
 export type AnalyticsFilters = {
   range: AnalyticsRange;
@@ -59,6 +67,11 @@ export type BreakdownRow = {
   percent: number;
 };
 
+export type RegisteredSubcategoryRow = BreakdownRow & {
+  workerRegistrations: number;
+  companyStaffProfiles: number;
+};
+
 export type TimelineRow = {
   date: string;
   workers: number;
@@ -102,6 +115,7 @@ export type AnalyticsReport = {
   registrationFailureBreakdown: BreakdownRow[];
   registrationSourceBreakdown: BreakdownRow[];
   registrationFieldBreakdown: BreakdownRow[];
+  registeredSubcategoryBreakdown: RegisteredSubcategoryRow[];
   categoryBreakdown: BreakdownRow[];
   cityBreakdown: BreakdownRow[];
   sourceBreakdown: BreakdownRow[];
@@ -203,6 +217,7 @@ export function parseAnalyticsFilters(
 ): AnalyticsFilters {
   const rawRange = paramsGet(params, "range") || paramsGet(params, "period") || "24h";
   const range: AnalyticsRange =
+    rawRange === "2h" ||
     rawRange === "24h" ||
     rawRange === "today" ||
     rawRange === "yesterday" ||
@@ -218,7 +233,11 @@ export function parseAnalyticsFilters(
   let endDate: Date | null = now;
   let label = "Last 24 hours";
 
-  if (range === "24h") {
+  if (range === "2h") {
+    startDate = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+    endDate = now;
+    label = "Last 2 hours";
+  } else if (range === "24h") {
     startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     endDate = now;
     label = "Last 24 hours";
@@ -290,6 +309,23 @@ function breakdown(counts: Record<string, number>, limit = 10): BreakdownRow[] {
 
 function addCount(map: Map<string, number>, key: string, amount = 1) {
   map.set(key, (map.get(key) ?? 0) + amount);
+}
+
+function addRegisteredSubcategory(
+  map: Map<string, { workerRegistrations: number; companyStaffProfiles: number }>,
+  key: string,
+  type: "worker" | "staff",
+) {
+  const label = key || "Unknown";
+  const current = map.get(label) ?? { workerRegistrations: 0, companyStaffProfiles: 0 };
+
+  if (type === "worker") {
+    current.workerRegistrations += 1;
+  } else {
+    current.companyStaffProfiles += 1;
+  }
+
+  map.set(label, current);
 }
 
 function applyDateWindow<T extends { created_at: string }>(items: T[], filters: AnalyticsFilters) {
@@ -735,6 +771,48 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
     .filter((event) => event.event_type === "call_click" || event.event_type === "whatsapp_click")
     .forEach((event) => addCount(categoryContacts, eventCategory(event)));
 
+  const registeredSubcategoryCounts = new Map<
+    string,
+    { workerRegistrations: number; companyStaffProfiles: number }
+  >();
+
+  workers.forEach((worker) => {
+    addRegisteredSubcategory(
+      registeredSubcategoryCounts,
+      relationName(worker.categories),
+      "worker",
+    );
+  });
+
+  staff.forEach((item) => {
+    addRegisteredSubcategory(
+      registeredSubcategoryCounts,
+      item.category ?? "Unknown",
+      "staff",
+    );
+  });
+
+  const registeredSubcategoryMax = Math.max(
+    ...Array.from(registeredSubcategoryCounts.values()).map(
+      (item) => item.workerRegistrations + item.companyStaffProfiles,
+    ),
+    1,
+  );
+  const registeredSubcategoryBreakdown = Array.from(registeredSubcategoryCounts.entries())
+    .map(([label, value]) => {
+      const total = value.workerRegistrations + value.companyStaffProfiles;
+
+      return {
+        label,
+        value: total,
+        workerRegistrations: value.workerRegistrations,
+        companyStaffProfiles: value.companyStaffProfiles,
+        percent: Math.round((total / registeredSubcategoryMax) * 100),
+      };
+    })
+    .sort((left, right) => right.value - left.value)
+    .slice(0, 12);
+
   const timeline = Array.from(timelineMap.entries())
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([date, value]) => ({ date, ...value }));
@@ -843,6 +921,7 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
       countBy(registrationFailureEvents.flatMap(eventErrorCodes)),
       10,
     ),
+    registeredSubcategoryBreakdown,
     categoryBreakdown: breakdown(categoryCounts, 12),
     cityBreakdown: breakdown(cityCounts, 10),
     sourceBreakdown: breakdown(sourceCounts, 8),
@@ -889,6 +968,7 @@ function emptyReport(filters: AnalyticsFilters): AnalyticsReport {
     registrationFailureBreakdown: [],
     registrationSourceBreakdown: [],
     registrationFieldBreakdown: [],
+    registeredSubcategoryBreakdown: [],
     categoryBreakdown: [],
     cityBreakdown: [],
     sourceBreakdown: [],
@@ -936,6 +1016,14 @@ export function analyticsReportToCsv(report: AnalyticsReport) {
     [],
     ["Registration sources", "Count"],
     ...report.registrationSourceBreakdown.map((item) => [item.label, item.value]),
+    [],
+    ["Registered subcategories", "Total", "Workers", "Company staff"],
+    ...report.registeredSubcategoryBreakdown.map((item) => [
+      item.label,
+      item.value,
+      item.workerRegistrations,
+      item.companyStaffProfiles,
+    ]),
     [],
     ["Top categories", "Count"],
     ...report.categoryBreakdown.map((item) => [item.label, item.value]),
