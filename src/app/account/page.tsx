@@ -5,7 +5,6 @@ import {
   BriefcaseBusiness,
   CheckCircle2,
   Crown,
-  Edit,
   LogOut,
   MapPin,
   ShieldCheck,
@@ -28,6 +27,8 @@ import {
   isWorkerBanned,
   workerStatusLabel,
 } from "@/lib/worker-status";
+
+import { CompleteProfileLink } from "./complete-profile-link";
 
 export const metadata = {
   title: "My Account | Kamker",
@@ -229,12 +230,10 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                   </div>
                 </div>
                 <div className="grid gap-2 sm:w-48">
-                  <Button asChild className="h-11 bg-white text-primary hover:bg-white/90">
-                    <Link href="/account/edit">
-                      <Edit aria-hidden="true" />
-                      {profileActionLabel}
-                    </Link>
-                  </Button>
+                  <CompleteProfileLink
+                    label={profileActionLabel}
+                    className="h-11 bg-white text-primary hover:bg-white/90"
+                  />
                   <Button
                     asChild
                     variant="outline"
@@ -283,12 +282,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                         {completedProfileItems} of {profileCompletionChecks.length} profile items complete.
                       </p>
                     </div>
-                    <Button asChild className="h-11">
-                      <Link href="/account/edit">
-                        <Edit aria-hidden="true" />
-                        Complete Profile
-                      </Link>
-                    </Button>
+                    <CompleteProfileLink label="Complete Profile" className="h-11" />
                   </div>
                 </div>
               ) : null}
@@ -352,12 +346,11 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                       <p className="text-sm font-semibold text-primary">Profile Details</p>
                       <h2 className="mt-1 text-xl font-bold tracking-normal">What customers see</h2>
                     </div>
-                    <Button asChild size="sm" variant="outline">
-                      <Link href="/account/edit">
-                        <Edit aria-hidden="true" />
-                        {profileActionLabel}
-                      </Link>
-                    </Button>
+                    <CompleteProfileLink
+                      label={profileActionLabel}
+                      size="sm"
+                      variant="outline"
+                    />
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <DetailCard label="Profession" value={profession} />
@@ -402,12 +395,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
               </div>
 
               <div className="mt-6 grid gap-2 sm:grid-cols-2">
-                <Button asChild className="h-12">
-                  <Link href="/account/edit">
-                    <Edit aria-hidden="true" />
-                    {profileActionLabel}
-                  </Link>
-                </Button>
+                <CompleteProfileLink label={profileActionLabel} className="h-12" />
                 <form action={logoutProfessional}>
                   <Button variant="outline" className="h-12 w-full">
                     <LogOut aria-hidden="true" />
