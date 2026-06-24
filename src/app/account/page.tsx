@@ -36,12 +36,14 @@ export const metadata = {
 
 const statusMessages = {
   updated: "Profile updated successfully.",
-  registered: "Your profile has been submitted for admin review.",
+  registered: "You are registered and logged in.",
   "registered-photo-skipped":
-    "Your profile has been submitted for admin review, but the photo could not be saved. You can add it later from Edit Profile.",
+    "You are registered and logged in, but the photo could not be saved. You can add it later from Complete Profile.",
   "delete-confirmation": "Type DELETE exactly to delete your profile.",
   "delete-error": "Could not delete your profile. Please try again or contact Kamker support.",
 } as const;
+
+const defaultWorkerTagline = "Trusted local worker";
 
 type AccountPageProps = {
   searchParams?: Promise<{
@@ -62,6 +64,49 @@ function DetailCard({
         {label}
       </p>
       <p className="mt-2 text-base font-semibold">{value || "Not provided"}</p>
+    </div>
+  );
+}
+
+function ProfileCompletionRing({ percentage }: { percentage: number }) {
+  const safePercentage = Math.max(0, Math.min(100, percentage));
+  const radius = 42;
+  const circumference = 2 * Math.PI * radius;
+  const strokeOffset = circumference - (safePercentage / 100) * circumference;
+
+  return (
+    <div
+      className="relative size-28 shrink-0"
+      role="img"
+      aria-label={`Profile ${safePercentage}% complete`}
+    >
+      <svg className="size-28 -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          fill="none"
+          stroke="rgb(186 230 253)"
+          strokeWidth="10"
+        />
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          fill="none"
+          stroke="rgb(2 132 199)"
+          strokeLinecap="round"
+          strokeWidth="10"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeOffset}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-sky-950">
+        <span className="text-2xl font-bold tracking-normal">{safePercentage}%</span>
+        <span className="text-[11px] font-semibold uppercase tracking-normal text-sky-800">
+          complete
+        </span>
+      </div>
     </div>
   );
 }
@@ -106,6 +151,37 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
     : Boolean(demoProfessional?.is_featured);
   const publicProfileHref = `/professionals/${dbProfessional?.id ?? demoProfessional?.id}`;
   const isNewRegistration = status === "registered" || status === "registered-photo-skipped";
+  const hasProfilePhoto = Boolean(dbProfessional?.profile_photo_url ?? demoProfessional?.image);
+  const profileCompletionChecks = [
+    { label: "Profile photo", complete: hasProfilePhoto },
+    { label: "Full name", complete: Boolean(fullName) },
+    { label: "Phone number", complete: Boolean(phoneNumber) },
+    { label: "City", complete: Boolean(city) },
+    { label: "Profession", complete: Boolean(profession && profession !== "Professional") },
+    { label: "Gender", complete: Boolean(gender) },
+    { label: "Age", complete: Boolean(age) },
+    { label: "Work time and days", complete: Boolean(availability) },
+    { label: "Hourly rate", complete: Boolean(expectedRate) },
+    { label: "WhatsApp number", complete: Boolean(whatsappNumber) },
+    { label: "Work area", complete: Boolean(area) },
+    { label: "Years experience", complete: Boolean(yearsExperience && yearsExperience > 0) },
+    {
+      label: "Profile tagline",
+      complete: Boolean(tagline && tagline !== defaultWorkerTagline),
+    },
+    { label: "Experience details", complete: Boolean(experience) },
+    { label: "Bio", complete: Boolean(bio) },
+    { label: "CNIC", complete: Boolean(dbProfessional?.cnic) },
+  ];
+  const profileCompletionItems = profileCompletionChecks
+    .filter((item) => !item.complete)
+    .map((item) => item.label);
+  const completedProfileItems = profileCompletionChecks.length - profileCompletionItems.length;
+  const profileCompletionPercentage = Math.round(
+    (completedProfileItems / profileCompletionChecks.length) * 100,
+  );
+  const needsProfileCompletion = profileCompletionItems.length > 0;
+  const profileActionLabel = needsProfileCompletion ? "Complete Profile" : "Edit Profile";
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
@@ -156,7 +232,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                   <Button asChild className="h-11 bg-white text-primary hover:bg-white/90">
                     <Link href="/account/edit">
                       <Edit aria-hidden="true" />
-                      Edit Profile
+                      {profileActionLabel}
                     </Link>
                   </Button>
                   <Button
@@ -175,9 +251,45 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
 
             <div className="p-5 sm:p-7">
               {statusMessage ? (
-                <div className="mb-5 flex items-start gap-3 rounded-lg border bg-accent p-4 text-sm font-medium text-accent-foreground">
-                  <CheckCircle2 className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-                  <span>{statusMessage}</span>
+                <div className="mb-5 rounded-lg border bg-accent p-4 text-sm font-medium text-accent-foreground">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                    <div>
+                      <p>{statusMessage}</p>
+                      {isNewRegistration ? (
+                        <p className="mt-1 text-xs leading-5 text-accent-foreground/80">
+                          Your profile is live with the required details. Add more information to build trust with customers.
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {needsProfileCompletion ? (
+                <div className="mb-5 rounded-xl border border-sky-200 bg-sky-50 p-4">
+                  <div className="grid gap-4 sm:grid-cols-[auto_1fr_auto] sm:items-center">
+                    <ProfileCompletionRing percentage={profileCompletionPercentage} />
+                    <div>
+                      <p className="text-sm font-semibold text-sky-950">
+                        Complete your profile
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-sky-900">
+                        Add {profileCompletionItems.slice(0, 4).join(", ")}
+                        {profileCompletionItems.length > 4 ? " and more" : ""} so
+                        customers can trust and contact you faster.
+                      </p>
+                      <p className="mt-2 text-xs font-semibold text-sky-800">
+                        {completedProfileItems} of {profileCompletionChecks.length} profile items complete.
+                      </p>
+                    </div>
+                    <Button asChild className="h-11">
+                      <Link href="/account/edit">
+                        <Edit aria-hidden="true" />
+                        Complete Profile
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               ) : null}
 
@@ -202,7 +314,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                       ? "Your profile can appear in search."
                       : isBanned
                         ? "Your profile has been banned. Contact Kamker support."
-                        : "Your worker profile is waiting for admin approval."}
+                        : "Your worker profile is not visible. Contact Kamker support."}
                   </p>
                 </div>
                 <div className="rounded-xl border bg-white p-4 shadow-sm">
@@ -243,7 +355,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                     <Button asChild size="sm" variant="outline">
                       <Link href="/account/edit">
                         <Edit aria-hidden="true" />
-                        Edit
+                        {profileActionLabel}
                       </Link>
                     </Button>
                   </div>
@@ -293,7 +405,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                 <Button asChild className="h-12">
                   <Link href="/account/edit">
                     <Edit aria-hidden="true" />
-                    Edit Profile
+                    {profileActionLabel}
                   </Link>
                 </Button>
                 <form action={logoutProfessional}>
@@ -307,7 +419,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
               {isNewRegistration ? (
                 <div className="mt-5 rounded-xl border bg-blue-50/70 p-4">
                   <p className="text-sm font-semibold text-foreground">
-                    Your profile is created. Next, check it once and improve missing details.
+                    Your profile is created. You can keep browsing or update your details any time.
                   </p>
                 </div>
               ) : null}

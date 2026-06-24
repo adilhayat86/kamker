@@ -3,6 +3,7 @@ import Link from "next/link";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
+import { RegistrationErrorFocus } from "@/components/registration-error-focus";
 import { RegistrationFormAnalytics } from "@/components/registration-analytics";
 import { RegistrationSensitiveFieldRestore } from "@/components/registration-sensitive-field-restore";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,9 @@ export default async function CustomerRegisterPage({
   const shouldRestoreSensitiveFields =
     status === "missing" || status === "error" || status === "not-configured" || status === "duplicate";
   const errorFor = (field: string) => {
-    const phoneError = field === "phone" && failedFields.has("phoneInvalid");
+    const phoneError = field === "phone" && (
+      failedFields.has("phoneInvalid") || failedFields.has("duplicatePhone")
+    );
 
     if (!failedFields.has(field) && !phoneError) {
       return undefined;
@@ -66,13 +69,18 @@ export default async function CustomerRegisterPage({
     const messages: Record<string, string> = {
       fullName: "Full name is required.",
       phone: "Phone number is required.",
-      phoneInvalid: "Enter a valid Pakistan mobile number, for example 03001234567.",
+      phoneInvalid: "Enter your number like 0300 1234567 or +92 300 1234567.",
+      duplicatePhone: "This number already has a Kamker account. Login instead, or contact Kamker if this is your number.",
       city: "Choose a city.",
       password: "Password must be at least 6 characters.",
     };
 
     if (field === "phone" && failedFields.has("phoneInvalid")) {
       return messages.phoneInvalid;
+    }
+
+    if (field === "phone" && failedFields.has("duplicatePhone")) {
+      return messages.duplicatePhone;
     }
 
     return messages[field] ?? "This field needs attention.";
@@ -106,7 +114,8 @@ export default async function CustomerRegisterPage({
         ) : null}
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
-            <form action={registerCustomer} className="grid gap-4 sm:grid-cols-2">
+            <form action={registerCustomer} className="grid gap-4 sm:grid-cols-2" noValidate>
+              <RegistrationErrorFocus errors={Array.from(failedFields)} />
               <input type="hidden" name="next" value={next} />
               <input type="hidden" name="source" value={source} />
               <RegistrationFormAnalytics role="customer" source={source} next={next} />
@@ -130,6 +139,9 @@ export default async function CustomerRegisterPage({
                 defaultValue={draft.phone}
                 error={errorFor("phone")}
                 maxLength={16}
+                inputMode="tel"
+                autoComplete="tel"
+                helperText="Example: 0300 1234567 or +92 300 1234567."
                 required
               />
               <SelectField

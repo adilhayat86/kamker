@@ -260,7 +260,7 @@ export async function saveLocalProfessional(input: SaveLocalProfessionalInput) {
     secret_answer_hash: input.secretAnswerHash ?? null,
     is_cnic_verified: false,
     is_phone_verified: false,
-    is_active: false,
+    is_active: true,
     is_banned: false,
     is_featured: false,
     featured_until: null,

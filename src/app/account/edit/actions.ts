@@ -3,13 +3,28 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { findProfessionalsByPhone, getSessionProfessional } from "@/lib/auth";
+import {
+  findProfessionalsByPhone,
+  getSessionProfessional,
+  hashSecret,
+} from "@/lib/auth";
 import {
   normalizePakistanMobilePhone,
   validatePhoneFieldWithCountry,
 } from "@/lib/phone";
 import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import {
+  isWorkerDayAvailability,
+  isWorkerTimeAvailability,
+  type WorkerDayAvailability,
+  type WorkerTimeAvailability,
+  workerAvailabilitySummary,
+} from "@/lib/worker-availability";
+import {
+  parseWorkerAge,
+  parseWorkerHourlyRate,
+} from "@/lib/worker-profile-limits";
 
 function field(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -23,11 +38,7 @@ function numericField(formData: FormData, key: string) {
   return Number.isFinite(value) && value >= 0 ? value : 0;
 }
 
-function ageField(formData: FormData) {
-  const value = Number(field(formData, "age"));
-
-  return Number.isInteger(value) && value >= 16 && value <= 80 ? value : null;
-}
+const defaultWorkerTagline = "Trusted local worker";
 
 function isDuplicatePhoneDatabaseError(error: {
   code?: string;
@@ -50,13 +61,17 @@ export async function updateProfessionalProfile(formData: FormData) {
   const area = field(formData, "area");
   const categoryName = field(formData, "category");
   const gender = field(formData, "gender");
-  const age = ageField(formData);
-  const availability = field(formData, "availability");
+  const age = parseWorkerAge(field(formData, "age"));
+  const availabilityTime = field(formData, "availabilityTime");
+  const availabilityDays = field(formData, "availabilityDays");
   const yearsExperience = numericField(formData, "yearsExperience");
   const experience = field(formData, "experience");
-  const expectedRate = field(formData, "rate");
+  const expectedRate = parseWorkerHourlyRate(field(formData, "rate"));
   const tagline = field(formData, "tagline");
   const shortBio = field(formData, "bio");
+  const cnic = field(formData, "cnic");
+  const secretQuestion = field(formData, "secretQuestion");
+  const secretAnswer = field(formData, "secretAnswer");
 
   if (phoneInput && !phoneValidation.ok) {
     redirect("/account/edit?status=phone-invalid");
@@ -73,12 +88,20 @@ export async function updateProfessionalProfile(formData: FormData) {
     !categoryName ||
     !gender ||
     age === null ||
-    !availability ||
-    !expectedRate ||
-    !tagline ||
-    tagline.length > 30
+    !isWorkerTimeAvailability(availabilityTime) ||
+    !isWorkerDayAvailability(availabilityDays) ||
+    expectedRate === null ||
+    yearsExperience < 0
   ) {
     redirect("/account/edit?status=missing");
+  }
+
+  if (tagline && tagline.length > 30) {
+    redirect("/account/edit?status=tagline-invalid");
+  }
+
+  if ((secretQuestion && !secretAnswer) || (!secretQuestion && secretAnswer)) {
+    redirect("/account/edit?status=recovery-missing");
   }
 
   if (!isSupabaseConfigured || !supabase) {
@@ -127,7 +150,10 @@ export async function updateProfessionalProfile(formData: FormData) {
     }
   }
 
-  const updates: Record<string, string | number | null> = {
+  const validatedAvailabilityTime = availabilityTime as WorkerTimeAvailability;
+  const validatedAvailabilityDays = availabilityDays as WorkerDayAvailability;
+  const validatedExpectedRate = String(expectedRate);
+  const updates: Record<string, string | number | boolean | null> = {
     full_name: fullName,
     phone_number: phoneNumber,
     phone_normalized: phoneValidation.normalized,
@@ -137,13 +163,24 @@ export async function updateProfessionalProfile(formData: FormData) {
     category_id: category?.id ?? null,
     gender,
     age,
-    availability,
+    availability: workerAvailabilitySummary(
+      validatedAvailabilityTime,
+      validatedAvailabilityDays,
+    ),
+    availability_time: validatedAvailabilityTime,
+    availability_days: validatedAvailabilityDays,
     years_experience: yearsExperience,
     experience: experience || null,
-    expected_rate: expectedRate || null,
-    tagline,
+    expected_rate: validatedExpectedRate,
+    tagline: tagline || defaultWorkerTagline,
     short_bio: shortBio || null,
+    cnic: cnic || null,
   };
+
+  if (secretQuestion && secretAnswer) {
+    updates.secret_question = secretQuestion;
+    updates.secret_answer_hash = await hashSecret(secretAnswer.toLowerCase());
+  }
 
   if (profilePhotoUrl) {
     updates.profile_photo_url = profilePhotoUrl;

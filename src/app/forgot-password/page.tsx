@@ -22,7 +22,8 @@ const statusMessages = {
   "missing-phone": "Enter your registered phone number.",
   "missing-answer": "Enter your secret answer.",
   "not-configured": "Supabase is not configured yet.",
-  "not-found": "No professional account with recovery details was found.",
+  "not-found":
+    "No recovery question is set for this account yet. Log in if you remember your password, or contact Kamker support.",
   "phone-review": "This phone number needs admin review before password reset. Contact Kamker support.",
   "wrong-answer": "Secret answer is incorrect.",
   "recovery-expired": "Recovery session expired. Start again.",
@@ -67,7 +68,8 @@ export default async function ForgotPasswordPage({
         </div>
         <p className="mt-3 text-muted-foreground">
           Reset your password with your registered phone number and secret
-          question.
+          question. If you have not completed your profile recovery details yet,
+          contact Kamker support.
         </p>
 
         {statusMessage ? (
@@ -111,7 +113,8 @@ export default async function ForgotPasswordPage({
                     <p className="text-sm font-semibold">Secret Question</p>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {secretQuestion ?? "No secret question found for this phone."}
+                    {secretQuestion ??
+                      "No recovery question is set for this account yet."}
                   </p>
                 </div>
                 <label className="grid gap-2">

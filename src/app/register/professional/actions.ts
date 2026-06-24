@@ -15,16 +15,12 @@ import {
   hashSecret,
 } from "@/lib/auth";
 import { trackAnalyticsEvent } from "@/lib/analytics";
-import { getAutoApproveProfessionals } from "@/lib/admin-settings";
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import {
   isLocalDemoStoreEnabled,
   saveLocalProfessional,
 } from "@/lib/local-demo-store";
-import {
-  normalizePakistanMobilePhone,
-  validatePhoneFieldWithCountry,
-} from "@/lib/phone";
+import { normalizePakistanMobilePhone } from "@/lib/phone";
 import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import {
   registrationFailureReasonForErrors,
@@ -34,20 +30,14 @@ import {
 } from "@/lib/registration-analytics";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { findOrCreateCategoryId, findOrCreateCityId } from "@/lib/taxonomy";
+import {
+  parseWorkerAge,
+  parseWorkerHourlyRate,
+} from "@/lib/worker-profile-limits";
 
 function field(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
-}
-
-function numericField(formData: FormData, key: string) {
-  const value = Number(field(formData, key));
-  return Number.isFinite(value) && value >= 0 ? value : 0;
-}
-
-function ageField(formData: FormData) {
-  const value = Number(field(formData, "age"));
-  return Number.isInteger(value) && value >= 16 && value <= 80 ? value : null;
 }
 
 function isDuplicatePhoneDatabaseError(error: {
@@ -60,42 +50,30 @@ function isDuplicatePhoneDatabaseError(error: {
   return error?.code === "23505" && text.includes("phone_normalized");
 }
 
+const defaultWorkerTagline = "Trusted local worker";
+
 async function saveProfessionalDraft(input: {
   fullName: string;
   phoneNumber: string;
-  whatsappNumber: string;
   cityName: string;
-  area: string;
   categoryName: string;
   gender: string;
   age: number | null;
   availabilityTime: string;
   availabilityDays: string;
-  yearsExperience: number;
-  experience: string;
   expectedRate: string;
-  tagline: string;
-  shortBio: string;
-  secretQuestion: string;
   errors?: string[];
 }) {
   await saveFormDraft("professional", {
     fullName: input.fullName,
     phone: input.phoneNumber,
-    whatsapp: input.whatsappNumber,
     city: input.cityName,
-    area: input.area,
     category: input.categoryName,
     gender: input.gender,
     age: input.age ? String(input.age) : "",
     availabilityTime: input.availabilityTime,
     availabilityDays: input.availabilityDays,
-    yearsExperience: input.yearsExperience,
-    experience: input.experience,
     rate: input.expectedRate,
-    tagline: input.tagline,
-    bio: input.shortBio,
-    secretQuestion: input.secretQuestion,
     errors: input.errors?.join(",") ?? "",
   });
 }
@@ -105,42 +83,26 @@ export async function registerProfessional(formData: FormData) {
   const phoneInput = field(formData, "phone");
   const phoneValidation = normalizePakistanMobilePhone(phoneInput);
   const phoneNumber = phoneValidation.normalized || phoneInput;
-  const whatsappValidation = validatePhoneFieldWithCountry(formData, "whatsapp");
-  const whatsappNumber = whatsappValidation.normalized;
   const cityName = field(formData, "city");
-  const area = field(formData, "area");
   const categoryName = field(formData, "category");
   const gender = field(formData, "gender");
-  const age = ageField(formData);
+  const age = parseWorkerAge(field(formData, "age"));
   const availabilityTime = field(formData, "availabilityTime");
   const availabilityDays = field(formData, "availabilityDays");
-  const yearsExperience = numericField(formData, "yearsExperience");
-  const experience = field(formData, "experience");
-  const expectedRate = field(formData, "rate");
-  const tagline = field(formData, "tagline");
-  const cnic = field(formData, "cnic");
-  const shortBio = field(formData, "bio");
+  const expectedRateInput = field(formData, "rate");
+  const expectedRate = parseWorkerHourlyRate(expectedRateInput);
   const password = field(formData, "password");
-  const secretQuestion = field(formData, "secretQuestion");
-  const secretAnswer = field(formData, "secretAnswer");
   const source = field(formData, "source") || "unknown";
   const draftInput = {
     fullName,
     phoneNumber,
-    whatsappNumber,
     cityName,
-    area,
     categoryName,
     gender,
     age,
     availabilityTime,
     availabilityDays,
-    yearsExperience,
-    experience,
-    expectedRate,
-    tagline,
-    shortBio,
-    secretQuestion,
+    expectedRate: expectedRateInput,
   };
 
   await trackRegistrationSubmitAttempt(formData, "professional", "/register/professional", {
@@ -152,18 +114,14 @@ export async function registerProfessional(formData: FormData) {
     !fullName ? "fullName" : null,
     !phoneInput ? "phone" : null,
     phoneInput && !phoneValidation.ok ? "phoneInvalid" : null,
-    !whatsappValidation.ok ? "whatsappInvalid" : null,
     !cityName ? "city" : null,
     !categoryName ? "category" : null,
     !gender ? "gender" : null,
     age === null ? "age" : null,
     !isWorkerTimeAvailability(availabilityTime) ? "availabilityTime" : null,
     !isWorkerDayAvailability(availabilityDays) ? "availabilityDays" : null,
-    !expectedRate ? "rate" : null,
-    !tagline || tagline.length > 30 ? "tagline" : null,
+    expectedRate === null ? "rate" : null,
     !password ? "password" : null,
-    !secretQuestion ? "secretQuestion" : null,
-    !secretAnswer ? "secretAnswer" : null,
   ].filter((error): error is string => Boolean(error));
 
   if (errors.length > 0) {
@@ -199,33 +157,31 @@ export async function registerProfessional(formData: FormData) {
   const validatedAge = age as number;
   const validatedAvailabilityTime = availabilityTime as WorkerTimeAvailability;
   const validatedAvailabilityDays = availabilityDays as WorkerDayAvailability;
+  const validatedExpectedRate = String(expectedRate);
 
-  const [passwordHash, secretAnswerHash] = await Promise.all([
-    hashSecret(password),
-    hashSecret(secretAnswer.toLowerCase()),
-  ]);
+  const passwordHash = await hashSecret(password);
 
   if (!isSupabaseConfigured || !supabase) {
     if (isLocalDemoStoreEnabled) {
       const professional = await saveLocalProfessional({
         fullName,
         phoneNumber,
-        whatsappNumber,
+        whatsappNumber: "",
         cityName,
-        area,
+        area: "",
         categoryName,
         gender,
         age: validatedAge,
         availabilityTime: validatedAvailabilityTime,
         availabilityDays: validatedAvailabilityDays,
-        yearsExperience,
-        experience,
-        expectedRate,
-        tagline,
-        shortBio,
+        yearsExperience: 0,
+        experience: "",
+        expectedRate: validatedExpectedRate,
+        tagline: defaultWorkerTagline,
+        shortBio: "",
         passwordHash,
-        secretQuestion,
-        secretAnswerHash,
+        secretQuestion: null,
+        secretAnswerHash: null,
       });
       await clearFormDraft("professional");
       if (professional) {
@@ -258,7 +214,6 @@ export async function registerProfessional(formData: FormData) {
     findOrCreateCityId(cityName),
     findOrCreateCategoryId(categoryName),
   ]);
-  const autoApprove = await getAutoApproveProfessionals();
 
   let profilePhotoUrl: string | null = null;
   let photoSkipped = false;
@@ -302,28 +257,28 @@ export async function registerProfessional(formData: FormData) {
     full_name: fullName,
     phone_number: phoneNumber,
     phone_normalized: phoneValidation.normalized,
-    whatsapp_number: whatsappNumber || null,
+    whatsapp_number: null,
     city_id: cityId,
-    area: area || null,
+    area: null,
     category_id: categoryId,
     gender,
     age: validatedAge,
     availability,
     availability_time: validatedAvailabilityTime,
     availability_days: validatedAvailabilityDays,
-    years_experience: yearsExperience,
-    experience: experience || null,
-    expected_rate: expectedRate || null,
-    tagline,
-    short_bio: shortBio || null,
-    cnic: cnic || null,
+    years_experience: 0,
+    experience: null,
+    expected_rate: validatedExpectedRate,
+    tagline: defaultWorkerTagline,
+    short_bio: null,
+    cnic: null,
     profile_photo_url: profilePhotoUrl,
     password_hash: passwordHash,
-    secret_question: secretQuestion,
-    secret_answer_hash: secretAnswerHash,
+    secret_question: null,
+    secret_answer_hash: null,
     is_phone_verified: false,
     is_cnic_verified: false,
-    is_active: autoApprove,
+    is_active: true,
     is_banned: false,
   };
 
@@ -381,7 +336,7 @@ export async function registerProfessional(formData: FormData) {
     "/register/professional",
     professional.id as string,
     "professional",
-    { category: categoryName, city: cityName, auto_approved: autoApprove },
+    { category: categoryName, city: cityName, auto_approved: true },
   );
 
   await trackAnalyticsEvent({

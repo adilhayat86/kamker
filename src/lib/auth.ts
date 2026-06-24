@@ -106,6 +106,8 @@ function localRecordToAccountProfessional(
     gender: professional.gender,
     age: professional.age ?? null,
     availability: professional.availability,
+    availability_time: professional.availability_time,
+    availability_days: professional.availability_days,
     years_experience: professional.years_experience,
     experience: professional.experience,
     expected_rate: professional.expected_rate,
@@ -424,7 +426,7 @@ export async function getSessionProfessional() {
   }
 
   const sessionProfessionalColumns =
-    "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_banned, is_featured, featured_until, cities(name), categories(name)";
+    "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, availability_time, availability_days, years_experience, experience, expected_rate, tagline, short_bio, cnic, profile_photo_url, is_cnic_verified, is_phone_verified, is_active, is_banned, is_featured, featured_until, cities(name), categories(name)";
 
   let { data: professional, error: professionalError } = await supabase
     .from("professionals")
@@ -442,7 +444,12 @@ export async function getSessionProfessional() {
       .maybeSingle();
 
     professional = fallback.data
-      ? { ...fallback.data, is_banned: false }
+      ? {
+          ...fallback.data,
+          availability_time: null,
+          availability_days: null,
+          is_banned: false,
+        }
       : fallback.data;
     professionalError = fallback.error;
   }

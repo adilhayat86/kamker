@@ -1,6 +1,9 @@
 import { countryCodeOptions } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 
+const errorFieldClass =
+  "!border-red-600 bg-red-50 focus-within:!border-red-600 focus-within:!ring-red-600";
+
 type CountryPhoneFieldProps = {
   label: string;
   name: string;
@@ -55,7 +58,7 @@ export function CountryPhoneField({
       <div
         className={cn(
           "grid grid-cols-[112px_1fr] overflow-hidden rounded-md border border-input bg-background shadow-sm focus-within:ring-2 focus-within:ring-ring",
-          error && "border-red-500 bg-red-50 focus-within:ring-red-500",
+          error && errorFieldClass,
         )}
       >
         <select

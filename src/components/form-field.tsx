@@ -3,6 +3,9 @@ import type { HTMLInputTypeAttribute, InputHTMLAttributes } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
+const errorFieldClass =
+  "!border-red-600 bg-red-50 focus:border-red-600 focus-visible:!border-red-600 focus-visible:!ring-red-600";
+
 type FieldLabelProps = {
   label: string;
   required?: boolean;
@@ -80,7 +83,7 @@ export function FormField({
         title={title}
         aria-describedby={[helpId, errorId].filter(Boolean).join(" ") || undefined}
         aria-invalid={Boolean(error)}
-        className={error ? "border-red-500 bg-red-50 focus-visible:ring-red-500" : undefined}
+        className={error ? errorFieldClass : undefined}
       />
       {helperText ? (
         <span id={helpId} className="text-xs leading-5 text-muted-foreground">
@@ -126,7 +129,7 @@ export function TextAreaField({
         aria-invalid={Boolean(error)}
         className={cn(
           "min-h-28 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          error && "border-red-500 bg-red-50 focus-visible:ring-red-500",
+          error && errorFieldClass,
         )}
       />
       {helperText ? (
@@ -144,7 +147,7 @@ type SelectOption = string | { value: string; label: string };
 type SelectFieldProps = {
   label: string;
   name: string;
-  options: SelectOption[];
+  options: readonly SelectOption[];
   defaultValue?: string;
   placeholder?: string;
   error?: string;
@@ -176,7 +179,7 @@ export function SelectField({
         aria-invalid={Boolean(error)}
         className={cn(
           "h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          error && "border-red-500 bg-red-50 focus-visible:ring-red-500",
+          error && errorFieldClass,
         )}
       >
         <option value="" disabled>

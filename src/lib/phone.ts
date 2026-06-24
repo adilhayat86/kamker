@@ -51,7 +51,9 @@ export function normalizePakistanMobilePhone(value: string | null | undefined) {
 
   if (digits.startsWith("92")) {
     digits = digits.slice(2);
-  } else if (digits.startsWith("0")) {
+  }
+
+  if (digits.startsWith("0")) {
     digits = digits.slice(1);
   }
 

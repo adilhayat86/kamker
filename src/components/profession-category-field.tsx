@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const OTHER_VALUE = "__other__";
+const errorFieldClass =
+  "!border-red-600 bg-red-50 focus:border-red-600 focus-visible:!border-red-600 focus-visible:!ring-red-600";
 
 type ProfessionCategoryFieldProps = {
   options: string[];
@@ -39,13 +41,14 @@ export function ProfessionCategoryField({
           <span className="sr-only"> required</span>
         </span>
         <select
+          data-registration-focus="category"
           value={selectedValue}
           onChange={(event) => setSelectedValue(event.target.value)}
           aria-invalid={Boolean(error)}
           aria-describedby="profession-category-help"
           className={cn(
             "h-11 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            error && "border-red-500 bg-red-50 focus-visible:ring-red-500",
+            error && errorFieldClass,
           )}
           required
         >
@@ -76,7 +79,7 @@ export function ProfessionCategoryField({
             onChange={(event) => setOtherValue(event.target.value)}
             placeholder="Write your profession"
             aria-invalid={Boolean(error)}
-            className={error ? "border-red-500 bg-red-50 focus-visible:ring-red-500" : undefined}
+            className={error ? errorFieldClass : undefined}
             required
           />
         </label>

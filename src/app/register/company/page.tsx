@@ -5,6 +5,7 @@ import { CountryPhoneField } from "@/components/country-phone-field";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField, TextAreaField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
+import { RegistrationErrorFocus } from "@/components/registration-error-focus";
 import { RegistrationFormAnalytics } from "@/components/registration-analytics";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -91,7 +92,7 @@ export default async function CompanyRegisterPage({
       city: "Choose a city.",
       contactPerson: "Contact person is required.",
       phone: "Phone number is required.",
-      phoneInvalid: "Enter a valid Pakistan mobile number, for example 03001234567.",
+      phoneInvalid: "Enter your number like 0300 1234567 or +92 300 1234567.",
       whatsappInvalid: "Enter a valid WhatsApp number or leave it blank.",
       description: "Company description is required.",
     };
@@ -157,7 +158,8 @@ export default async function CompanyRegisterPage({
 
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5 sm:p-6">
-            <form action={registerCompany} className="grid gap-6">
+            <form action={registerCompany} className="grid gap-6" noValidate>
+              <RegistrationErrorFocus errors={Array.from(failedFields)} />
               <input type="hidden" name="source" value={source} />
               <RegistrationFormAnalytics role="company" source={source} />
               <div className="grid gap-4 sm:grid-cols-2">
@@ -211,6 +213,9 @@ export default async function CompanyRegisterPage({
                   defaultValue={draft.phone}
                   error={errorFor("phone")}
                   maxLength={16}
+                  inputMode="tel"
+                  autoComplete="tel"
+                  helperText="Example: 0300 1234567 or +92 300 1234567."
                   required
                 />
                 <CountryPhoneField

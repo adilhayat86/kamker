@@ -14,6 +14,8 @@ export type AccountProfessional = {
   gender: string | null;
   age: number | null;
   availability: string | null;
+  availability_time?: string | null;
+  availability_days?: string | null;
   years_experience: number | null;
   experience: string | null;
   expected_rate: string | null;
