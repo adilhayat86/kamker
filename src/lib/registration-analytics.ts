@@ -24,6 +24,20 @@ function compactMetadata(metadata: Record<string, MetadataValue | undefined>) {
   ) as Record<string, MetadataValue>;
 }
 
+function normalizeRegistrationSource(source: string, path: string) {
+  const value = source.trim();
+
+  if (value && value !== "unknown") {
+    return value.slice(0, 80);
+  }
+
+  if (path.startsWith("/register/")) {
+    return "direct-or-qr";
+  }
+
+  return "unknown";
+}
+
 function registrationMetadata(
   formData: FormData,
   role: RegistrationRole,
@@ -33,7 +47,7 @@ function registrationMetadata(
   return compactMetadata({
     role,
     path,
-    source: field(formData, "source") || "unknown",
+    source: normalizeRegistrationSource(field(formData, "source"), path),
     next: field(formData, "next"),
     visitor_id: field(formData, "visitorId"),
     city: field(formData, "city"),

@@ -11,6 +11,24 @@ function stringValue(value: unknown) {
   return typeof value === "string" ? value.slice(0, 240) : "";
 }
 
+function normalizeSource(source: string, path: string, href: string) {
+  const value = source.trim();
+
+  if (value && value !== "unknown") {
+    return value.slice(0, 80);
+  }
+
+  if (path.startsWith("/register/")) {
+    return "direct-or-qr";
+  }
+
+  if (href.startsWith("/register") || href.startsWith("https://kamker.com/register")) {
+    return "site-navigation";
+  }
+
+  return "unknown";
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
@@ -24,15 +42,17 @@ export async function POST(request: Request) {
     }
 
     const role = allowedRoles.has(stringValue(body.role)) ? stringValue(body.role) : "unknown";
+    const path = stringValue(body.path);
+    const href = stringValue(body.href);
 
     await trackAnalyticsEvent({
       eventType: eventType as "register_click" | "registration_form_start",
       targetType: "page",
       metadata: {
         role,
-        href: stringValue(body.href),
-        path: stringValue(body.path),
-        source: stringValue(body.source) || "unknown",
+        href,
+        path,
+        source: normalizeSource(stringValue(body.source), path, href),
         next: stringValue(body.next),
         visitor_id: stringValue(body.visitorId),
         city: stringValue(body.city),

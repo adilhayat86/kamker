@@ -278,7 +278,11 @@ function decisionItems(report: AnalyticsReport) {
     report.stats.registrationSubmitAttempts,
   );
 
-  if (report.stats.pageViews === 0 && report.stats.registerClicks === 0) {
+  if (
+    report.stats.pageViews === 0 &&
+    report.stats.registerClicks === 0 &&
+    report.stats.registrationFormStarts === 0
+  ) {
     items.push({
       title: "No visible traffic in this range",
       body: "Use Last 24 hours or Today if you are checking newspaper or social visitors.",
@@ -286,10 +290,18 @@ function decisionItems(report: AnalyticsReport) {
     });
   }
 
+  if (report.stats.registrationSubmitAttempts > report.stats.registerClicks) {
+    items.push({
+      title: "QR or direct registration traffic is active",
+      body: "Submit attempts are higher than register link clicks because some visitors opened the registration form directly from QR, bookmark, or shared link.",
+      tone: "blue",
+    });
+  }
+
   if (report.stats.registerClicks > 0 && report.stats.registrationSuccesses === 0) {
     items.push({
       title: "People clicked Register but nobody completed signup",
-      body: "Check failed fields and try the registration form on mobile. This is the highest-priority fix.",
+      body: "Check form starts, failed fields, and try the registration form on mobile. This is the highest-priority fix.",
       tone: "red",
     });
   } else if (report.stats.registrationSubmitAttempts > 0 && registerSuccessRate < 70) {
@@ -321,7 +333,7 @@ function decisionItems(report: AnalyticsReport) {
   if (items.length === 0) {
     items.push({
       title: "Traffic is low but the system is readable",
-      body: "Keep watching Register clicks, failed fields, and registered subcategories after the next ad push.",
+      body: "Keep watching register link clicks, form starts, failed fields, and registered subcategories after the next ad push.",
       tone: "blue",
     });
   }
@@ -342,9 +354,9 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
   const report = await loadAdminAnalyticsReport(filters);
   const currentParams = buildAnalyticsSearchParams(filters);
   const exportHref = `/admin/analytics/export?${currentParams.toString()}`;
-  const registerSubmitRate = percentage(
+  const formSubmitRate = percentage(
     report.stats.registrationSubmitAttempts,
-    report.stats.registerClicks,
+    Math.max(report.stats.registrationFormStarts, report.stats.registrationSubmitAttempts),
   );
   const registerSuccessRate = percentage(
     report.stats.registrationSuccesses,
@@ -399,7 +411,8 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
               <p className="font-black text-slate-900">How to read this page</p>
               <p className="mt-1">
                 Browser signals are not exact people. Use them for direction. Use registration
-                successes and subcategories for real business decisions.
+                successes and subcategories for real business decisions. QR visitors can open a
+                register form directly, so submit attempts may be higher than register link clicks.
               </p>
             </div>
           </div>
@@ -463,7 +476,9 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
                   <option value="all">All</option>
                   <option value="newspaper">Newspaper/manual</option>
                   <option value="facebook">Facebook</option>
+                  <option value="direct-or-qr">Direct / QR</option>
                   <option value="direct">Direct</option>
+                  <option value="site-navigation">Site navigation</option>
                   <option value="whatsapp">WhatsApp</option>
                   <option value="unknown">Unknown</option>
                 </select>
@@ -547,16 +562,16 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
             tone="blue"
           />
           <MetricCard
-            label="Register clicks"
+            label="Register link clicks"
             value={report.stats.registerClicks}
-            helper={`${registerSubmitRate}% reached a submit attempt`}
+            helper="Only clicks from Kamker links/buttons; QR can skip this"
             icon={MousePointerClick}
             tone="amber"
           />
           <MetricCard
-            label="Submit attempts"
+            label="Form submit attempts"
             value={report.stats.registrationSubmitAttempts}
-            helper="People who actually tried to register"
+            helper={`${formSubmitRate}% of form starts reached submit`}
             icon={UserPlus}
             tone="blue"
           />

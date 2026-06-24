@@ -62,6 +62,33 @@ function safeReferrerHost() {
   }
 }
 
+function normalizedSource(source: string | null | undefined, pathname: string) {
+  const value = (source ?? "").trim();
+
+  if (value && value !== "unknown") {
+    return value.slice(0, 80);
+  }
+
+  if (pathname.startsWith("/register/")) {
+    return "direct-or-qr";
+  }
+
+  return "site-navigation";
+}
+
+function sourceFromSearchParams(
+  targetParams: URLSearchParams,
+  currentParams: URLSearchParams,
+) {
+  return (
+    targetParams.get("source") ||
+    targetParams.get("utm_source") ||
+    currentParams.get("source") ||
+    currentParams.get("utm_source") ||
+    ""
+  );
+}
+
 function sendRegistrationEvent(payload: Record<string, string | null>) {
   try {
     void fetch("/api/analytics/register-event", {
@@ -106,12 +133,18 @@ export function RegistrationClickTracker() {
         return;
       }
 
+      const currentParams = new URLSearchParams(window.location.search);
+      const source = normalizedSource(
+        sourceFromSearchParams(url.searchParams, currentParams),
+        url.pathname,
+      );
+
       sendRegistrationEvent({
         eventType: "register_click",
         role: roleFromPath(url.pathname),
         href: `${url.pathname}${url.search}`,
         path: window.location.pathname,
-        source: url.searchParams.get("source") || new URLSearchParams(window.location.search).get("source") || "unknown",
+        source,
         next: url.searchParams.get("next"),
         visitorId: getVisitorId(),
         referrerHost: safeReferrerHost(),
@@ -164,11 +197,17 @@ export function RegistrationFormAnalytics({
       }
 
       const data = new FormData(form);
+      const currentParams = new URLSearchParams(window.location.search);
+      const eventSource = normalizedSource(
+        source || currentParams.get("source") || currentParams.get("utm_source"),
+        window.location.pathname,
+      );
+
       sendRegistrationEvent({
         eventType: "registration_form_start",
         role,
         path: window.location.pathname,
-        source: source || new URLSearchParams(window.location.search).get("source") || "unknown",
+        source: eventSource,
         next,
         visitorId,
         city: typeof data.get("city") === "string" ? String(data.get("city")) : "",

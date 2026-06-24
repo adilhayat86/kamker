@@ -338,7 +338,24 @@ function applyDateWindow<T extends { created_at: string }>(items: T[], filters: 
 }
 
 function eventSource(event: EventRow) {
-  return String(event.metadata?.source ?? "unknown");
+  const source = String(event.metadata?.source ?? "").trim();
+
+  if (source && source !== "unknown") {
+    return source;
+  }
+
+  const path = String(event.metadata?.path ?? "").trim();
+  const href = String(event.metadata?.href ?? "").trim();
+
+  if (path.startsWith("/register/")) {
+    return "direct-or-qr";
+  }
+
+  if (href.startsWith("/register")) {
+    return "site-navigation";
+  }
+
+  return "unknown";
 }
 
 function eventCategory(event: EventRow) {
@@ -901,9 +918,9 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
           : Math.round((item.value / Math.max(items[0]?.value || item.value || 1, 1)) * 100),
     })),
     registrationFunnel: [
-      { label: "Register clicks", value: registerClickEvents.length },
+      { label: "Register link clicks", value: registerClickEvents.length },
       { label: "Form starts", value: registrationFormStartEvents.length },
-      { label: "Submit attempts", value: registrationSubmitAttemptEvents.length },
+      { label: "Form submit attempts", value: registrationSubmitAttemptEvents.length },
       { label: "Failed registrations", value: registrationFailureEvents.length },
       { label: "Abandoned after start", value: abandonedRegistrations },
       { label: "Successful registrations", value: registrationSuccessEvents.length },
@@ -998,9 +1015,9 @@ export function analyticsReportToCsv(report: AnalyticsReport) {
     ["Call clicks", report.stats.callClicks],
     ["WhatsApp clicks", report.stats.whatsappClicks],
     ["Contact clicks", report.stats.contactClicks],
-    ["Register clicks", report.stats.registerClicks],
+    ["Register link clicks", report.stats.registerClicks],
     ["Registration form starts", report.stats.registrationFormStarts],
-    ["Registration submit attempts", report.stats.registrationSubmitAttempts],
+    ["Registration form submit attempts", report.stats.registrationSubmitAttempts],
     ["Failed registrations", report.stats.registrationFailures],
     ["Successful registrations", report.stats.registrationSuccesses],
     ["Abandoned after start", report.stats.abandonedRegistrations],
