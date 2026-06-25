@@ -100,6 +100,8 @@ export type AnalyticsReport = {
     contactClicks: number;
     totalRegistrations: number;
     registerClicks: number;
+    uniqueRegisterClickers: number;
+    repeatRegisterClicks: number;
     registrationFormStarts: number;
     registrationSubmitAttempts: number;
     registrationFailures: number;
@@ -448,6 +450,23 @@ function hasBrowserVisitor(event: EventRow) {
   return Boolean(eventVisitorId(event));
 }
 
+function uniqueEventVisitorCount(events: EventRow[]) {
+  let anonymousEvents = 0;
+  const visitorIds = new Set<string>();
+
+  events.forEach((event) => {
+    const visitorId = eventVisitorId(event);
+
+    if (visitorId) {
+      visitorIds.add(visitorId);
+    } else {
+      anonymousEvents += 1;
+    }
+  });
+
+  return visitorIds.size + anonymousEvents;
+}
+
 function searchEventKey(event: EventRow) {
   return [
     eventVisitorId(event),
@@ -670,6 +689,8 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
 
   const byEvent = countBy(events.map((event) => event.event_type ?? "unknown"));
   const registerClickEvents = events.filter((event) => event.event_type === "register_click");
+  const uniqueRegisterClickers = uniqueEventVisitorCount(registerClickEvents);
+  const repeatRegisterClicks = Math.max(registerClickEvents.length - uniqueRegisterClickers, 0);
   const registrationFormStartEvents = events.filter(
     (event) => event.event_type === "registration_form_start",
   );
@@ -892,6 +913,8 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
       contactClicks,
       totalRegistrations: workerRegistrationCount + companyStaffProfileCount,
       registerClicks: registerClickEvents.length,
+      uniqueRegisterClickers,
+      repeatRegisterClicks,
       registrationFormStarts: registrationFormStartEvents.length,
       registrationSubmitAttempts: registrationSubmitAttemptEvents.length,
       registrationFailures: registrationFailureEvents.length,
@@ -919,6 +942,8 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
     })),
     registrationFunnel: [
       { label: "Register link clicks", value: registerClickEvents.length },
+      { label: "Unique register clickers", value: uniqueRegisterClickers },
+      { label: "Repeat register clicks", value: repeatRegisterClicks },
       { label: "Form starts", value: registrationFormStartEvents.length },
       { label: "Form submit attempts", value: registrationSubmitAttemptEvents.length },
       { label: "Failed registrations", value: registrationFailureEvents.length },
@@ -970,6 +995,8 @@ function emptyReport(filters: AnalyticsFilters): AnalyticsReport {
       contactClicks: 0,
       totalRegistrations: 0,
       registerClicks: 0,
+      uniqueRegisterClickers: 0,
+      repeatRegisterClicks: 0,
       registrationFormStarts: 0,
       registrationSubmitAttempts: 0,
       registrationFailures: 0,
@@ -1016,6 +1043,8 @@ export function analyticsReportToCsv(report: AnalyticsReport) {
     ["WhatsApp clicks", report.stats.whatsappClicks],
     ["Contact clicks", report.stats.contactClicks],
     ["Register link clicks", report.stats.registerClicks],
+    ["Unique register clickers", report.stats.uniqueRegisterClickers],
+    ["Repeat register clicks", report.stats.repeatRegisterClicks],
     ["Registration form starts", report.stats.registrationFormStarts],
     ["Registration form submit attempts", report.stats.registrationSubmitAttempts],
     ["Failed registrations", report.stats.registrationFailures],

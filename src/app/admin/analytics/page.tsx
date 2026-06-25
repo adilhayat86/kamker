@@ -298,6 +298,16 @@ function decisionItems(report: AnalyticsReport) {
     });
   }
 
+  if (report.stats.repeatRegisterClicks > 0) {
+    items.push({
+      title: "Some Register clicks are repeated taps",
+      body: `${numberFormat(report.stats.repeatRegisterClicks)} of ${numberFormat(
+        report.stats.registerClicks,
+      )} register clicks came from visitors who already clicked once in this range. Judge demand from unique clickers, not raw clicks alone.`,
+      tone: "blue",
+    });
+  }
+
   if (report.stats.registerClicks > 0 && report.stats.registrationSuccesses === 0) {
     items.push({
       title: "People clicked Register but nobody completed signup",
@@ -558,9 +568,11 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
             tone="blue"
           />
           <MetricCard
-            label="Register link clicks"
-            value={report.stats.registerClicks}
-            helper="Only clicks from Kamker links/buttons; QR can skip this"
+            label="Unique register clickers"
+            value={report.stats.uniqueRegisterClickers}
+            helper={`${numberFormat(report.stats.registerClicks)} raw clicks; ${numberFormat(
+              report.stats.repeatRegisterClicks,
+            )} repeat taps`}
             icon={MousePointerClick}
             tone="amber"
           />
