@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { Camera, Info } from "lucide-react";
+import { Info } from "lucide-react";
 
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import { FormField, SelectField } from "@/components/form-field";
 import { PageNavigation } from "@/components/page-navigation";
-import { PhotoUploadField } from "@/components/photo-upload-field";
 import { ProfessionCategoryField } from "@/components/profession-category-field";
 import { RegistrationErrorFocus } from "@/components/registration-error-focus";
 import { RegistrationFormAnalytics } from "@/components/registration-analytics";
@@ -38,10 +37,8 @@ const statusMessages = {
   "local-success":
     "Test worker saved locally because Supabase is not configured. Configure Supabase for real registrations and login.",
   missing:
-    "Some required information is missing or invalid. Check the highlighted fields below; your typed values, password, and selected photo should remain on this device.",
+    "Some required information is missing or invalid. Check the highlighted fields below; your typed values and password should remain on this device.",
   "not-configured": "Supabase is not configured yet.",
-  "invalid-photo": "Upload a jpg, png, or webp image under 10MB.",
-  "photo-error": "Could not upload profile photo. Please try again.",
   error: "Could not register professional. Please try again.",
 } as const;
 
@@ -76,8 +73,6 @@ export default async function ProfessionalRegisterPage({
   const statusMessage = status ? statusMessages[status] : null;
   const shouldRestoreSensitiveFields =
     status === "missing" ||
-    status === "invalid-photo" ||
-    status === "photo-error" ||
     status === "error";
   const draft = await getFormDraft<ProfessionalDraft>("professional");
   const cityOptions = await getCityOptions();
@@ -140,8 +135,8 @@ export default async function ProfessionalRegisterPage({
               <p className="font-semibold">Fast registration</p>
               <p>
                 Only the fields needed for search and login are required now.
-                If photo upload causes trouble, register without photo first
-                and add it later from your account.
+                Profile photo, WhatsApp, area, experience, CNIC, and recovery
+                details can be added after registration from Complete Profile.
               </p>
             </div>
           </div>
@@ -171,18 +166,6 @@ export default async function ProfessionalRegisterPage({
         ) : null}
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5 sm:p-6">
-            <div className="mb-5 flex items-center gap-4 rounded-lg border border-dashed p-4">
-              <div className="flex size-16 items-center justify-center rounded-full bg-accent text-accent-foreground">
-                <Camera className="size-7" aria-hidden="true" />
-              </div>
-              <div>
-                <p className="font-semibold">Profile photo</p>
-                <p className="text-sm text-muted-foreground">
-                  Optional. Upload a jpg, png, or webp image from your phone.
-                  Large photos will be compressed before upload.
-                </p>
-              </div>
-            </div>
             <form action={registerProfessional} className="grid gap-6" noValidate>
               <RegistrationErrorFocus errors={Array.from(failedFields)} />
               <RegistrationSensitiveFieldRestore
@@ -200,7 +183,6 @@ export default async function ProfessionalRegisterPage({
                     These details make your worker profile searchable.
                   </p>
                 </div>
-                <PhotoUploadField />
                 <FormField
                   label="Full name"
                   name="fullName"

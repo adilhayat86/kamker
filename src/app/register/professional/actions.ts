@@ -21,7 +21,6 @@ import {
   saveLocalProfessional,
 } from "@/lib/local-demo-store";
 import { normalizePakistanMobilePhone } from "@/lib/phone";
-import { uploadProfessionalPhoto } from "@/lib/professional-photo";
 import {
   registrationFailureReasonForErrors,
   trackRegistrationFailure,
@@ -215,43 +214,10 @@ export async function registerProfessional(formData: FormData) {
     findOrCreateCategoryId(categoryName),
   ]);
 
-  let profilePhotoUrl: string | null = null;
-  let photoSkipped = false;
   const availability = workerAvailabilitySummary(
     validatedAvailabilityTime,
     validatedAvailabilityDays,
   );
-  const browserUploadedPhotoUrl = field(formData, "profilePhotoUrl");
-  const submittedPhoto = formData.get("photo");
-  const hasSubmittedPhoto =
-    submittedPhoto instanceof File && submittedPhoto.size > 0;
-
-  if (browserUploadedPhotoUrl) {
-    profilePhotoUrl = browserUploadedPhotoUrl;
-  } else {
-    try {
-      profilePhotoUrl = await uploadProfessionalPhoto(formData);
-      if (!profilePhotoUrl && hasSubmittedPhoto) {
-        photoSkipped = true;
-      }
-    } catch (error) {
-      if (error instanceof Error && error.message === "invalid-photo") {
-        await trackRegistrationFailure(
-          formData,
-          "professional",
-          "/register/professional",
-          "invalid_photo",
-          ["invalidPhoto"],
-          { category: categoryName, city: cityName },
-        );
-        await saveProfessionalDraft(draftInput);
-        redirect("/register/professional?status=invalid-photo");
-      }
-
-      photoSkipped = true;
-      console.error("Professional photo upload failed; continuing registration without photo", error);
-    }
-  }
 
   const insertPayload = {
     full_name: fullName,
@@ -272,7 +238,7 @@ export async function registerProfessional(formData: FormData) {
     tagline: defaultWorkerTagline,
     short_bio: null,
     cnic: null,
-    profile_photo_url: profilePhotoUrl,
+    profile_photo_url: null,
     password_hash: passwordHash,
     secret_question: null,
     secret_answer_hash: null,
@@ -353,5 +319,5 @@ export async function registerProfessional(formData: FormData) {
 
   await createProfessionalSession(professional.id as string);
   await clearFormDraft("professional");
-  redirect(photoSkipped ? "/account?status=registered-photo-skipped" : "/account?status=registered");
+  redirect("/account?status=registered");
 }
