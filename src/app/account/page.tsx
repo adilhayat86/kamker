@@ -29,6 +29,7 @@ import {
 } from "@/lib/worker-status";
 
 import { CompleteProfileLink } from "./complete-profile-link";
+import { RegisteredLandingFocus } from "./registered-landing-focus";
 
 export const metadata = {
   title: "My Account | Kamker",
@@ -201,6 +202,38 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
           </div>
         </div>
 
+        {isNewRegistration ? (
+          <>
+            <RegisteredLandingFocus />
+            <section className="mt-5 rounded-2xl border border-sky-200 bg-white p-5 shadow-sm sm:p-6">
+              <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                    Registration complete
+                  </p>
+                  <h1 className="mt-2 text-3xl font-bold tracking-normal text-foreground">
+                    You are registered and logged in.
+                  </h1>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                    Your public worker profile is live with the required details.
+                    Add your photo, WhatsApp number, area, and experience now so
+                    customers trust and contact you faster.
+                  </p>
+                </div>
+                <div className="grid gap-2 sm:min-w-48">
+                  <CompleteProfileLink
+                    label={profileActionLabel}
+                    className="h-12"
+                  />
+                  <Button asChild variant="outline" className="h-12">
+                    <Link href={publicProfileHref}>View Public Profile</Link>
+                  </Button>
+                </div>
+              </div>
+            </section>
+          </>
+        ) : null}
+
         <Card className="mt-5 overflow-hidden bg-white shadow-sm">
           <CardContent className="p-0">
             <div className="bg-primary p-5 text-primary-foreground sm:p-7">
@@ -249,7 +282,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
             </div>
 
             <div className="p-5 sm:p-7">
-              {statusMessage ? (
+              {statusMessage && !isNewRegistration ? (
                 <div className="mb-5 rounded-lg border bg-accent p-4 text-sm font-medium text-accent-foreground">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
