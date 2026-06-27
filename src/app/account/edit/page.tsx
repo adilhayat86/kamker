@@ -280,6 +280,7 @@ export default async function EditAccountPage({
   const phoneNumber = dbProfessional?.phone_number ?? demoProfessional?.phone_number;
   const whatsappNumber =
     dbProfessional?.whatsapp_number ?? demoProfessional?.whatsapp_number;
+  const whatsappDefaultValue = whatsappNumber || phoneNumber || "";
   const gender = dbProfessional?.gender ?? "";
   const age = dbProfessional?.age ?? "";
   const availabilityTime = dbProfessional?.availability_time ?? "";
@@ -393,8 +394,9 @@ export default async function EditAccountPage({
                     <CountryPhoneField
                       label="WhatsApp number"
                       name="whatsapp"
-                      defaultValue={whatsappNumber}
+                      defaultValue={whatsappDefaultValue}
                       error={whatsappError}
+                      helperText="Pre-filled from your phone number. Change it if your WhatsApp uses another number."
                     />
                   </>
                 )}
