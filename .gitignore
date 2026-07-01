@@ -30,3 +30,5 @@ test-results/
 qa-receipts/
 
 .vercel
+.open-next/
+.wrangler/
