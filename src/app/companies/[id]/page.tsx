@@ -200,11 +200,24 @@ export async function generateMetadata({ params }: CompanyProfilePageProps) {
     };
   }
 
+  const description =
+    company.description ??
+    `${company.company_name} company profile on Kamker. Browse company-managed staff profiles in ${company.city}.`;
+  const canonicalPath = `/companies/${company.id}`;
+
   return {
     title: `${company.company_name} - ${company.category} in ${company.city} | Kamker`,
-    description:
-      company.description ??
-      `${company.company_name} company profile on Kamker. Browse company-managed staff profiles in ${company.city}.`,
+    description,
+    alternates: {
+      canonical: canonicalPath,
+    },
+    openGraph: {
+      title: `${company.company_name} | Kamker`,
+      description,
+      url: canonicalPath,
+      type: "profile",
+      images: company.logo_url ? [{ url: company.logo_url }] : undefined,
+    },
   };
 }
 
@@ -263,9 +276,27 @@ export default async function CompanyProfilePage({
   });
   const verificationLabel =
     company.verification_status === "verified" ? "Verified Company" : "Verification Pending";
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: company.company_name,
+    description: company.description ?? `${company.category} company on Kamker`,
+    image: company.logo_url || undefined,
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: company.city,
+      addressRegion: company.area || undefined,
+      addressCountry: "PK",
+    },
+    telephone: company.phone || undefined,
+  };
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <section className="mx-auto max-w-7xl">
         <PageNavigation backHref="/professionals" backLabel="Professionals" />
 

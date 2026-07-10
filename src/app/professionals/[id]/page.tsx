@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { BadgeCheck, Crown, MapPin, MessageCircle, Phone, Send, Star } from "lucide-react";
 
 import { ContactActionButton } from "@/components/contact-action-button";
@@ -17,6 +17,7 @@ import {
   localRecordToProfessional,
 } from "@/lib/local-demo-store";
 import { getSessionProfessional } from "@/lib/auth";
+import { buildProfileSlug, extractIdFromSlug } from "@/lib/slug";
 
 type ProfessionalProfilePageProps = {
   params: Promise<{
@@ -74,7 +75,8 @@ async function getDbProfessional(id: string) {
 }
 
 export async function generateMetadata({ params }: ProfessionalProfilePageProps) {
-  const { id } = await params;
+  const { id: rawParam } = await params;
+  const id = extractIdFromSlug(rawParam);
   const canUseDemoProfiles = !isSupabaseConfigured || !supabase;
   const dbProfessional = await getDbProfessional(id);
   const localProfessional = dbProfessional || !canUseDemoProfiles
@@ -92,19 +94,41 @@ export async function generateMetadata({ params }: ProfessionalProfilePageProps)
     dbProfessional?.tagline?.trim() ||
     demoProfessional?.tagline?.trim() ||
     "Trusted local professional";
+  const description = `${tagline}. ${role} in ${city} on Kamker. Contact directly by call or WhatsApp where available.`;
+  const canonicalPath = dbProfessional
+    ? `/professionals/${buildProfileSlug(dbProfessional.full_name, dbProfessional.id)}`
+    : `/professionals/${rawParam}`;
+  const image = dbProfessional?.profile_photo_url || undefined;
 
   return {
     title: name
       ? `${name} - ${tagline} | Kamker`
       : "Professional Profile | Kamker",
-    description: `${tagline}. ${role} in ${city} on Kamker. Contact directly by call or WhatsApp where available.`,
+    description,
+    alternates: {
+      canonical: canonicalPath,
+    },
+    openGraph: {
+      title: name ? `${name} | Kamker` : "Professional Profile | Kamker",
+      description,
+      url: canonicalPath,
+      type: "profile",
+      images: image ? [{ url: image }] : undefined,
+    },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      title: name ? `${name} | Kamker` : "Professional Profile | Kamker",
+      description,
+      images: image ? [image] : undefined,
+    },
   };
 }
 
 export default async function ProfessionalProfilePage({
   params,
 }: ProfessionalProfilePageProps) {
-  const { id } = await params;
+  const { id: rawParam } = await params;
+  const id = extractIdFromSlug(rawParam);
   const canUseDemoProfiles = !isSupabaseConfigured || !supabase;
   const dbProfessional = await getDbProfessional(id);
   const localProfessional = dbProfessional || !canUseDemoProfiles
@@ -123,10 +147,50 @@ export default async function ProfessionalProfilePage({
   }
 
   if (dbProfessional) {
+    const canonicalSlug = buildProfileSlug(dbProfessional.full_name, dbProfessional.id);
+    if (rawParam !== canonicalSlug) {
+      permanentRedirect(`/professionals/${canonicalSlug}`);
+    }
+
     const whatsappNumber = dbProfessional.whatsapp_number ?? dbProfessional.phone_number;
     const whatsappLink = buildWhatsappHref(whatsappNumber);
     const phoneLink = dbProfessional.phone_number ? `tel:${dbProfessional.phone_number}` : null;
-    const profilePath = `/professionals/${dbProfessional.id}`;
+    const profilePath = `/professionals/${canonicalSlug}`;
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: dbProfessional.full_name,
+      jobTitle: dbProfessional.categories?.name ?? "Professional",
+      description:
+        dbProfessional.short_bio ??
+        dbProfessional.tagline ??
+        `${dbProfessional.categories?.name ?? "Professional"} in ${dbProfessional.cities?.name ?? "Pakistan"}`,
+      image: dbProfessional.profile_photo_url || undefined,
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: dbProfessional.cities?.name ?? "Pakistan",
+        addressCountry: "PK",
+      },
+      makesOffer: {
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: dbProfessional.categories?.name ?? "Professional Service",
+          areaServed: dbProfessional.cities?.name ?? "Pakistan",
+        },
+        priceCurrency: "PKR",
+        price: dbProfessional.expected_rate ?? undefined,
+      },
+      ...(dbProfessional.rating
+        ? {
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: dbProfessional.rating,
+              reviewCount: 1,
+            },
+          }
+        : {}),
+    };
     const trackedPhoneLink = trackedContactHref({
       href: phoneLink,
       eventType: "call_click",
@@ -148,6 +212,10 @@ export default async function ProfessionalProfilePage({
 
     return (
       <main className="min-h-screen bg-background px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <section className="mx-auto max-w-3xl">
           <PageNavigation backHref="/professionals" backLabel="Professionals" />
           <Card className="mt-6 bg-white shadow-sm">

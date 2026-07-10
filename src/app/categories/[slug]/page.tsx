@@ -28,6 +28,7 @@ import {
   type Professional,
 } from "@/lib/marketplace-data";
 import { getLocalProfessionalCards } from "@/lib/local-demo-store";
+import { buildProfileSlug } from "@/lib/slug";
 import {
   getCategoryIdsByNames,
   getCityIdByName,
@@ -295,20 +296,35 @@ export function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({ params }: CategoryDetailPageProps) {
-  const { slug } = await params;
+export async function generateMetadata({ params, searchParams }: CategoryDetailPageProps) {
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
   const serviceGroup = findServiceGroupBySlug(slug);
   const category = findCategoryBySlug(slug);
   const dbCategory =
     (await getDbCategoryBySlug(slug)) ??
     (serviceGroup ? await getDbCategoryByName(serviceGroup.name) : null);
   const name = serviceGroup?.name ?? category?.name ?? dbCategory?.name;
+  const description = name
+    ? `Find ${name} professionals on Kamker and prepare reviewed customer requirements.`
+    : "Find professionals on Kamker.";
+  const canonicalPath = `/categories/${slug}`;
+  const hasFilters = Boolean(query?.city?.trim() || query?.area?.trim());
 
   return {
     title: name ? `${name} Professionals | Kamker` : "Category | Kamker",
-    description: name
-      ? `Find ${name} professionals on Kamker and prepare reviewed customer requirements.`
-      : "Find professionals on Kamker.",
+    description,
+    alternates: {
+      canonical: canonicalPath,
+    },
+    openGraph: {
+      title: name ? `${name} Professionals | Kamker` : "Category | Kamker",
+      description,
+      url: canonicalPath,
+      type: "website",
+    },
+    robots: hasFilters
+      ? { index: false, follow: true }
+      : { index: true, follow: true },
   };
 }
 
@@ -427,6 +443,27 @@ export default async function CategoryDetailPage({
   const professionalSectionTitle = isParentCategoryPage
     ? `Featured ${pageName} professionals`
     : `${category?.name ?? dbCategory?.name ?? pageName} professionals`;
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: "https://kamker.com/" },
+        { "@type": "ListItem", position: 2, name: "Categories", item: "https://kamker.com/categories" },
+        { "@type": "ListItem", position: 3, name: pageName, item: `https://kamker.com/categories/${slug}` },
+      ],
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      itemListElement: professionalPreview.slice(0, 20).map((professional, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `https://kamker.com/professionals/${buildProfileSlug(professional.name, professional.id)}`,
+        name: professional.name,
+      })),
+    },
+  ];
   const directoryHref = isParentCategoryPage
     ? "/categories"
     : `/professionals?category=${encodeURIComponent(category?.name ?? dbCategory?.name ?? "")}`;
@@ -434,6 +471,13 @@ export default async function CategoryDetailPage({
 
   return (
     <main className="min-h-screen bg-background">
+      {jsonLd.map((entry, index) => (
+        <script
+          key={index}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(entry) }}
+        />
+      ))}
       <header className="border-b bg-background/90 backdrop-blur">
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 pr-16 sm:px-6 sm:pr-20 lg:px-8 lg:pr-20">
           <KamkerLogo />

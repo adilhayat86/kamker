@@ -1,4 +1,5 @@
 import type { Professional } from "@/lib/marketplace-data";
+import { buildProfileSlug } from "@/lib/slug";
 
 type ContactEventType = "call_click" | "whatsapp_click";
 type ContactTargetType = "professional" | "company" | "company_listing";
@@ -60,7 +61,9 @@ export function trackedProfessionalContactHref({
     eventType,
     targetType: professional.is_company_managed ? "company_listing" : "professional",
     targetId: professional.id,
-    path: professional.profileHref ?? `/professionals/${professional.id}`,
+    path:
+      professional.profileHref ??
+      `/professionals/${buildProfileSlug(professional.name, professional.id)}`,
     category: professional.role,
     city: professional.city,
   });

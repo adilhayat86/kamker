@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BadgeCheck, Building2, MapPin, Sparkles, Star } from "lucide-react";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { ContactActionButton } from "@/components/contact-action-button";
 import { PageNavigation } from "@/components/page-navigation";
@@ -19,6 +19,7 @@ import {
 } from "@/lib/local-demo-store";
 import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { buildProfileSlug, extractIdFromSlug } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
 
@@ -103,7 +104,8 @@ async function getListing(id: string) {
 }
 
 export async function generateMetadata({ params }: CompanyListingDetailPageProps) {
-  const { id } = await params;
+  const { id: rawParam } = await params;
+  const id = extractIdFromSlug(rawParam);
   const listing = await getListing(id);
 
   if (!listing) {
@@ -113,23 +115,55 @@ export async function generateMetadata({ params }: CompanyListingDetailPageProps
   }
 
   const companyName = listing.companies?.company_name ?? "Company";
+  const description = `${listing.tagline ?? listing.category} in ${listing.city}. Company-managed professional profile on Kamker.`;
+  const canonicalPath = `/company-listings/${buildProfileSlug(listing.title, listing.id)}`;
 
   return {
     title: `${listing.title} - ${listing.category} by ${companyName} | Kamker`,
-    description: `${listing.tagline ?? listing.category} in ${listing.city}. Company-managed professional profile on Kamker.`,
+    description,
+    alternates: {
+      canonical: canonicalPath,
+    },
+    openGraph: {
+      title: `${listing.title} | Kamker`,
+      description,
+      url: canonicalPath,
+      type: "profile",
+      images: listing.profile_photo_url ? [{ url: listing.profile_photo_url }] : undefined,
+    },
   };
 }
 
 export default async function CompanyListingDetailPage({ params }: CompanyListingDetailPageProps) {
-  const { id } = await params;
+  const { id: rawParam } = await params;
+  const id = extractIdFromSlug(rawParam);
   const listing = await getListing(id);
 
   if (!listing) {
     notFound();
   }
 
+  const canonicalSlug = buildProfileSlug(listing.title, listing.id);
+  if (rawParam !== canonicalSlug && !id.startsWith("mock-company-")) {
+    permanentRedirect(`/company-listings/${canonicalSlug}`);
+  }
+
   const whatsapp = whatsappHref(listing.whatsapp, listing.title);
-  const listingPath = `/company-listings/${listing.id}`;
+  const listingPath = `/company-listings/${canonicalSlug}`;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: listing.title,
+    serviceType: listing.category,
+    description: listing.description ?? listing.tagline ?? listing.category,
+    areaServed: listing.city,
+    provider: listing.companies
+      ? {
+          "@type": "Organization",
+          name: listing.companies.company_name,
+        }
+      : undefined,
+  };
   const phoneHref = listing.phone ? `tel:${listing.phone}` : null;
   const trackedPhoneHref = trackedContactHref({
     href: phoneHref,
@@ -152,6 +186,10 @@ export default async function CompanyListingDetailPage({ params }: CompanyListin
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <section className="mx-auto max-w-5xl">
         <PageNavigation backHref="/professionals" backLabel="Professionals" />
 

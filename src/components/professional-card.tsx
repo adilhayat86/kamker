@@ -10,6 +10,7 @@ import { trackedProfessionalContactHref } from "@/lib/contact-tracking";
 import type { Professional } from "@/lib/marketplace-data";
 import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
 import { workerAvailabilityLabel } from "@/lib/worker-availability";
+import { buildProfileSlug } from "@/lib/slug";
 
 type ProfessionalCardProps = {
   professional: Professional;
@@ -32,7 +33,8 @@ export function ProfessionalCard({
     eventType: "whatsapp_click",
     professional,
   });
-  const profileHref = professional.profileHref ?? `/professionals/${professional.id}`;
+  const profileHref =
+    professional.profileHref ?? `/professionals/${buildProfileSlug(professional.name, professional.id)}`;
   const companyHref = professional.company_id
     ? `/companies/${professional.company_id}`
     : null;

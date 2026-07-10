@@ -39,6 +39,7 @@ import {
   type LocalProfessionalRecord,
 } from "@/lib/local-demo-store";
 import { whatsappHref as buildWhatsappHref } from "@/lib/phone";
+import { buildProfileSlug } from "@/lib/slug";
 import {
   categoryNamesForSearch,
   getCategoryIdsByNames,
@@ -532,7 +533,7 @@ function DbProfessionalCard({
   const contactPhone = professional.phone_number;
   const whatsappDisplay = professional.whatsapp_number ?? contactPhone;
   const whatsappLink = buildWhatsappHref(whatsappDisplay);
-  const profilePath = `/professionals/${professional.id}`;
+  const profilePath = `/professionals/${buildProfileSlug(professional.full_name, professional.id)}`;
   const phoneLink = contactPhone ? `tel:${contactPhone}` : null;
   const trackedPhoneLink = trackedContactHref({
     href: phoneLink,
@@ -658,7 +659,7 @@ function DbProfessionalCard({
           />
         </div>
         <Button asChild className="mt-2 h-11 w-full" variant="outline">
-          <Link href={`/professionals/${professional.id}`}>View Profile</Link>
+          <Link href={profilePath}>View Profile</Link>
         </Button>
       </CardContent>
     </Card>
@@ -677,7 +678,7 @@ function ConversionProfessionalCard({
   const contactPhone = professional.phone_number;
   const whatsappDisplay = professional.whatsapp_number ?? contactPhone;
   const whatsappLink = buildWhatsappHref(whatsappDisplay);
-  const profilePath = `/professionals/${professional.id}`;
+  const profilePath = `/professionals/${buildProfileSlug(professional.full_name, professional.id)}`;
   const phoneLink = contactPhone ? `tel:${contactPhone}` : null;
   const trackedPhoneLink = trackedContactHref({
     href: phoneLink,
@@ -790,7 +791,7 @@ function ConversionProfessionalCard({
             className="h-10 bg-[#25d366] px-2 text-white hover:bg-[#21bd5b]"
           />
           <Button asChild className="h-10 px-2" variant="outline">
-            <Link href={`/professionals/${professional.id}`}>View Profile</Link>
+            <Link href={profilePath}>View Profile</Link>
           </Button>
         </div>
       </CardContent>
@@ -990,13 +991,37 @@ export default async function ProfessionalsPage({
     verified: verified ? "true" : "",
     sort,
   };
+  const pageHeading =
+    inferredCategory && inferredCity
+      ? `${inferredCategory} in ${inferredCity}`
+      : inferredCategory
+        ? `${inferredCategory} Professionals in Pakistan`
+        : inferredCity
+          ? `Find Workers and Professionals in ${inferredCity}`
+          : "Find Verified Workers and Professionals in Pakistan";
+  const itemListJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: [...featuredDbProfessionals, ...regularDbProfessionals]
+      .slice(0, 20)
+      .map((professional, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `https://kamker.com/professionals/${buildProfileSlug(professional.full_name, professional.id)}`,
+        name: professional.full_name,
+      })),
+  };
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
       <section className="mx-auto max-w-7xl">
         <PageNavigation backHref="/categories" backLabel="Categories" />
         <h1 className="mt-4 text-3xl font-bold tracking-normal">
-          Professionals
+          {pageHeading}
         </h1>
         <p className="mt-2 text-muted-foreground">
           Browse approved local professionals by hourly rate and contact them directly without a middleman.
