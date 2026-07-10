@@ -14,6 +14,19 @@
       "service": "kamker-staging"
     }
   ],
+  "kv_namespaces": [
+    {
+      "binding": "NEXT_INC_CACHE_KV",
+      "id": "21e02c3379834128811cc5e7f3ada54f"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "NEXT_TAG_CACHE_D1",
+      "database_name": "kamker-staging-tag-cache",
+      "database_id": "5fa55d4d-9583-417e-8ef3-1ebe92839936"
+    }
+  ],
   "observability": {
     "enabled": true
   }
