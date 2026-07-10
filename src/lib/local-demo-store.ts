@@ -379,6 +379,8 @@ export function localRecordToProfessional(
   return {
     id: professional.id,
     name: professional.full_name,
+    phone: professional.phone_number,
+    whatsapp: professional.whatsapp_number ?? professional.phone_number,
     role: professional.categories?.name ?? "Professional",
     city: professional.cities?.name ?? "Pakistan",
     area: professional.area ?? "Area not added",

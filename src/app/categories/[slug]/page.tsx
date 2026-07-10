@@ -49,6 +49,8 @@ type CategoryDetailPageProps = {
 type CategoryDbProfessional = {
   id: string;
   full_name: string;
+  phone_number: string | null;
+  whatsapp_number: string | null;
   area: string | null;
   gender?: string | null;
   age?: number | null;
@@ -206,6 +208,8 @@ function dbProfessionalToCard(professional: CategoryDbProfessional): Professiona
   return {
     id: professional.id,
     name: professional.full_name,
+    phone: professional.phone_number,
+    whatsapp: professional.whatsapp_number ?? professional.phone_number,
     role: professional.categories?.name ?? "Professional",
     city: professional.cities?.name ?? "Pakistan",
     area: professional.area ?? "Area not added",
@@ -256,7 +260,7 @@ async function getCategoryProfessionals(
   let query = supabase
     .from("professionals")
     .select(
-      "id, full_name, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_featured, featured_until, rating, cities(name), categories(name)",
+      "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_featured, featured_until, rating, cities(name), categories(name)",
     )
     .eq("is_active", true)
     .or("is_banned.eq.false,is_banned.is.null")
