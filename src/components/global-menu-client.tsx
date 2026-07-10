@@ -150,18 +150,12 @@ export function GlobalMenuClient() {
 
     window.addEventListener("kamker:navigation", refreshSession);
     window.addEventListener("popstate", refreshSession);
-    window.addEventListener("focus", refreshSession);
-    window.addEventListener("pageshow", refreshSession);
-    document.addEventListener("visibilitychange", refreshSession);
 
     return () => {
       window.history.pushState = originalPushState;
       window.history.replaceState = originalReplaceState;
       window.removeEventListener("kamker:navigation", refreshSession);
       window.removeEventListener("popstate", refreshSession);
-      window.removeEventListener("focus", refreshSession);
-      window.removeEventListener("pageshow", refreshSession);
-      document.removeEventListener("visibilitychange", refreshSession);
     };
   }, [loadSession]);
 

@@ -294,6 +294,7 @@ export default async function HomePage() {
             <Link
               key={href}
               href={href}
+              prefetch={false}
               className="rounded-full border border-sky-100 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-primary hover:text-primary"
             >
               {label}

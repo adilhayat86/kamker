@@ -112,6 +112,7 @@ export function CategoryGrid({ categories, city, area }: CategoryGridProps) {
           <Link
             key={category.name}
             href={categoryHref(category.name, city, area)}
+            prefetch={false}
             className="block h-full"
           >
             <Card className="h-full border-sky-100 bg-white shadow-sm transition-colors hover:border-primary/50 hover:bg-sky-50/40">
