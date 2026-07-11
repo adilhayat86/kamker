@@ -1,4 +1,15 @@
-export const cities = ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Peshawar"];
+export const cities = [
+  "Karachi",
+  "Lahore",
+  "Islamabad",
+  "Rawalpindi",
+  "Peshawar",
+  "Faisalabad",
+  "Multan",
+  "Hyderabad",
+  "Quetta",
+  "Sialkot",
+];
 
 export const categories = [
   { name: "Nurses", icon: "heart", count: "0" },

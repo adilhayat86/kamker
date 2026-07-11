@@ -142,10 +142,10 @@ const categorySeoConfig = [
 ];
 
 const categoryCityTargets: Record<string, string[]> = {
-  "part-time-maids": ["Karachi", "Lahore", "Islamabad"],
-  "part-time-nurses": ["Karachi", "Lahore"],
-  "part-time-drivers": ["Karachi", "Lahore"],
-  "part-time-tutors": ["Islamabad", "Lahore"],
+  "part-time-maids": cities,
+  "part-time-nurses": cities,
+  "part-time-drivers": cities,
+  "part-time-tutors": cities,
 };
 
 export const partTimeWorkerPages: SeoLandingPage[] = [
