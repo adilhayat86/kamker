@@ -29,8 +29,7 @@ export default function PrivacyPage() {
               </p>
               <h2 className="text-lg font-semibold text-foreground">Cookies and measurement</h2>
               <p>
-                Kamker uses first-party cookies to keep accounts signed in and browser storage to measure visits and registration activity. When Google Ads measurement is enabled, Google may use advertising cookies and ad-click identifiers to measure registrations and contact-button clicks.
-                Contact-button clicks indicate interest; they do not confirm a completed call, WhatsApp conversation, or hire.
+                Kamker uses first-party cookies to keep accounts signed in and browser storage to measure visits and registration activity. When Google Ads measurement is enabled, Google may use advertising cookies and ad-click identifiers to measure successful worker registrations.
               </p>
               <p>
                 Kamker&apos;s conversion-event payloads do not include phone numbers, email addresses, CNIC numbers, passwords, payment receipts, or message text. Registration events use a random transaction identifier to avoid counting the same signup again.

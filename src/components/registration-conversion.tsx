@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-import { trackGoogleAdsConversion } from "@/lib/google-ads";
+import { trackGoogleAdsRegistration } from "@/lib/google-ads";
 
 export function RegistrationConversion({ eventId }: { eventId: string }) {
   const sent = useRef(false);
@@ -14,7 +14,7 @@ export function RegistrationConversion({ eventId }: { eventId: string }) {
     } catch {
       // The opaque transaction ID also deduplicates at Google Ads.
     }
-    if (trackGoogleAdsConversion("registration", { transactionId: eventId })) {
+    if (trackGoogleAdsRegistration(eventId)) {
       sent.current = true;
       try {
         window.sessionStorage.setItem(storageKey, "1");
