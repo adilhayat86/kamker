@@ -21,6 +21,8 @@ import { deleteOwnProfessionalProfile } from "@/app/account/actions";
 import { logoutProfessional } from "@/app/logout/actions";
 import { PageNavigation } from "@/components/page-navigation";
 import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
+import { RegistrationConversion } from "@/components/registration-conversion";
+import { getRegistrationConversion } from "@/lib/registration-conversion";
 import { fallbackProfessionalImage } from "@/lib/professional-photo";
 import {
   isWorkerApproved,
@@ -153,6 +155,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
     : Boolean(demoProfessional?.is_featured);
   const publicProfileHref = `/professionals/${dbProfessional?.id ?? demoProfessional?.id}`;
   const isNewRegistration = status === "registered" || status === "registered-photo-skipped";
+  const registrationEventId = isNewRegistration ? await getRegistrationConversion(dbProfessional.id) : null;
   const hasProfilePhoto = Boolean(dbProfessional?.profile_photo_url ?? demoProfessional?.image);
   const profileCompletionChecks = [
     { label: "Profile photo", complete: hasProfilePhoto },
@@ -187,6 +190,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
+      {registrationEventId ? <RegistrationConversion eventId={registrationEventId} /> : null}
       <section className="mx-auto max-w-5xl">
         <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
           <PageNavigation backHref="/professionals" backLabel="Directory" />

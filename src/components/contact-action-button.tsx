@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ExternalLink, MessageCircle, Phone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { trackGoogleAdsConversion } from "@/lib/google-ads";
 
 type ContactActionButtonProps = {
   href: string | null | undefined;
@@ -48,10 +49,11 @@ export function ContactActionButton({
       window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 
     if (isTouchPhone && href) {
-      window.location.href = href;
+      trackGoogleAdsConversion(type, { onComplete: () => { window.location.href = href; } });
       return;
     }
 
+    trackGoogleAdsConversion(type);
     await revealAndCopy();
   }
 

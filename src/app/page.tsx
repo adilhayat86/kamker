@@ -242,7 +242,7 @@ export default async function HomePage() {
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(251,251,247,0.98)_0%,rgba(251,251,247,0.92)_42%,rgba(251,251,247,0.58)_100%)]" />
         </div>
         <div className="mx-auto grid min-h-[164px] max-w-7xl content-center px-4 py-4 sm:min-h-[380px] sm:px-6 lg:px-8">
-          <aside aria-label="Reserved Google Ads space" className="absolute right-4 top-4 hidden min-h-24 w-64 items-center justify-center rounded-lg border border-dashed bg-white/75 px-4 text-center text-xs text-muted-foreground shadow-sm backdrop-blur lg:flex">Google Ads placeholder</aside>
+          <aside aria-label="Reserved advertising space" className="kamker-ad-slot absolute right-4 top-4 hidden min-h-[120px] w-64 items-center justify-center overflow-hidden rounded-lg border border-dashed bg-white/75 px-4 text-center text-xs text-muted-foreground shadow-sm backdrop-blur lg:flex">Advertising space</aside>
           <div className="max-w-2xl">
             <Badge variant="secondary" className="mb-2 gap-1.5"><Sparkles className="size-3.5" aria-hidden="true" />Pakistan service marketplace</Badge>
             <h1 className="max-w-xl text-3xl font-bold leading-tight tracking-normal sm:text-5xl lg:text-6xl">Find part time workers</h1>
@@ -267,7 +267,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8"><AdBanner label="Reserved ad space below hero" /></section>
+      <section className="kamker-ad-section mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8"><AdBanner label="Reserved ad space below hero" /></section>
 
       <section id="categories" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="flex items-end justify-between gap-4"><div><p className="text-sm font-semibold uppercase tracking-normal text-primary">Popular services</p><h2 className="mt-1 text-2xl font-bold tracking-normal sm:text-3xl">Browse by service group</h2></div></div>
@@ -280,7 +280,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8"><AdBanner label="Reserved ad space after categories" /></section>
+      <section className="kamker-ad-section mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8"><AdBanner label="Reserved ad space after categories" /></section>
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <p className="text-sm font-semibold uppercase tracking-normal text-primary">
@@ -338,9 +338,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"><AdBanner label="Reserved ad space before footer" /></section>
-
-      <footer className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8"><p>Kamker Pakistan service directory marketplace.</p><div className="flex flex-wrap gap-4"><Link href="/about" className="hover:text-foreground">About</Link><Link href="/privacy" className="hover:text-foreground">Privacy Policy</Link><Link href="/terms" className="hover:text-foreground">Terms</Link><Link href="/contact" className="hover:text-foreground">Contact Us</Link></div></footer>
+      <section className="kamker-ad-section mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"><AdBanner label="Reserved ad space before footer" /></section>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-2 py-2 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
