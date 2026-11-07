@@ -21,6 +21,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { GlobalMenuShell } from "@/components/global-menu-shell";
+import { NavigationLink } from "@/components/navigation-link";
 
 type MenuLink = {
   href: string;
@@ -72,14 +73,13 @@ function MenuSection({
 
 function MenuItem({ href, label, icon: Icon }: MenuLink) {
   return (
-    <Link
+    <NavigationLink
       href={href}
-      prefetch={false}
       className="flex min-h-9 items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
     >
       <Icon className="size-4 text-primary" aria-hidden />
       {label}
-    </Link>
+    </NavigationLink>
   );
 }
 

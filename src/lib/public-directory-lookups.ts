@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 
 import {
   aliasesForCategory,
@@ -18,6 +19,8 @@ type CategoryLookupRow = {
   name: string | null;
   slug: string | null;
   parent_id: number | null;
+  icon: string | null;
+  description: string | null;
 };
 
 const extraCategoryAliases: Record<string, string[]> = {
@@ -183,7 +186,7 @@ export const getPublicCityLookup = unstable_cache(
   { revalidate: 120 },
 );
 
-export const getPublicCategoryLookup = unstable_cache(
+export const getPublicCategoryLookup = cache(unstable_cache(
   async () => {
     if (!isSupabaseConfigured || !supabase) {
       return [] as CategoryLookupRow[];
@@ -191,7 +194,8 @@ export const getPublicCategoryLookup = unstable_cache(
 
     const { data, error } = await supabase
       .from("categories")
-      .select("id, name, slug, parent_id")
+      .select("id, name, slug, parent_id, icon, description")
+      .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
 
     if (error) {
@@ -201,9 +205,9 @@ export const getPublicCategoryLookup = unstable_cache(
 
     return (data ?? []) as CategoryLookupRow[];
   },
-  ["public-category-lookup"],
-  { revalidate: 120 },
-);
+  ["public-category-lookup-v2"],
+  { revalidate: 120, tags: ["public-categories"] },
+));
 
 export async function getCityIdByName(cityName: string) {
   if (!cityName) {

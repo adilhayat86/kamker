@@ -32,6 +32,7 @@ import { buildProfileSlug } from "@/lib/slug";
 import {
   getCategoryIdsByNames,
   getCityIdByName,
+  getPublicCategoryLookup,
 } from "@/lib/public-directory-lookups";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -79,80 +80,26 @@ type DbCategory = {
 };
 
 async function getDbCategoryBySlug(slug: string) {
-  if (!isSupabaseConfigured || !supabase) {
-    return null;
-  }
-
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, name, slug, icon, description, parent_id")
-    .eq("slug", slug)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Failed to load DB category by slug", error);
-    return null;
-  }
-
-  return data as DbCategory | null;
+  const categories = await getPublicCategoryLookup();
+  return (categories.find((category) => category.slug === slug) as DbCategory | undefined) ?? null;
 }
 
 async function getDbCategoryByName(name: string) {
-  if (!isSupabaseConfigured || !supabase) {
-    return null;
-  }
-
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, name, slug, icon, description, parent_id")
-    .eq("name", name)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Failed to load DB category by name", error);
-    return null;
-  }
-
-  return data as DbCategory | null;
+  const categories = await getPublicCategoryLookup();
+  return (categories.find((category) => category.name === name) as DbCategory | undefined) ?? null;
 }
 
 async function getDbSubcategories(parentId: number) {
-  if (!isSupabaseConfigured || !supabase) {
-    return [] as DbCategory[];
-  }
-
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, name, slug, icon, description, parent_id")
-    .eq("parent_id", parentId)
-    .order("sort_order", { ascending: true })
-    .order("name", { ascending: true });
-
-  if (error) {
-    console.error("Failed to load DB subcategories", error);
-    return [] as DbCategory[];
-  }
-
-  return (data ?? []) as DbCategory[];
+  const categories = await getPublicCategoryLookup();
+  return categories.filter((category) => category.parent_id === parentId) as DbCategory[];
 }
 
 async function getDbParentCategory(parentId: number | null) {
-  if (!parentId || !isSupabaseConfigured || !supabase) {
+  if (!parentId) {
     return null;
   }
-
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, name, slug, icon, description, parent_id")
-    .eq("id", parentId)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Failed to load DB parent category", error);
-    return null;
-  }
-
-  return data as DbCategory | null;
+  const categories = await getPublicCategoryLookup();
+  return (categories.find((category) => category.id === parentId) as DbCategory | undefined) ?? null;
 }
 
 function normaliseMatchValue(value: string) {
@@ -338,8 +285,10 @@ export default async function CategoryDetailPage({
   const dbCategory =
     (await getDbCategoryBySlug(slug)) ??
     (serviceGroup ? await getDbCategoryByName(serviceGroup.name) : null);
-  const dbSubcategories = dbCategory?.parent_id === null ? await getDbSubcategories(dbCategory.id) : [];
-  const dbParentCategory = dbCategory?.parent_id ? await getDbParentCategory(dbCategory.parent_id) : null;
+  const [dbSubcategories, dbParentCategory] = await Promise.all([
+    dbCategory?.parent_id === null ? getDbSubcategories(dbCategory.id) : Promise.resolve([] as DbCategory[]),
+    dbCategory?.parent_id ? getDbParentCategory(dbCategory.parent_id) : Promise.resolve(null),
+  ]);
   if (!serviceGroup && !category && !dbCategory) {
     notFound();
   }
@@ -355,7 +304,7 @@ export default async function CategoryDetailPage({
     : parentGroup
       ? `${category?.name} are part of ${parentGroup.name}. Browse matching professionals and prepare a reviewed requirement when needed.`
       : "Browse approved professionals and prepare a reviewed requirement for this service category.";
-  const liveCountMap = await getLiveCategoryCountMap(
+  const liveCountMapPromise = getLiveCategoryCountMap(
     [
       ...dbSubcategories,
       ...categories,
@@ -379,10 +328,6 @@ export default async function CategoryDetailPage({
     const key = normaliseMatchValue(subcategory.name);
     return list.findIndex((item) => normaliseMatchValue(item.name) === key) === index;
   });
-  const subcategoryCards = mergedSubcategoryCards.map((subcategory) => ({
-    ...subcategory,
-    count: countForCategory(subcategory, liveCountMap),
-  }));
   const serviceGroupSubcategories = mergedSubcategoryCards.map(
     (subcategory) => subcategory.name,
   );
@@ -399,7 +344,8 @@ export default async function CategoryDetailPage({
       : [];
   const isParentCategoryPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
   const isServiceGroupPage = Boolean(serviceGroup || dbCategory?.parent_id === null);
-  const [matchingProfessionals, companyManagedProfessionals] = await Promise.all([
+  const [liveCountMap, matchingProfessionals, companyManagedProfessionals] = await Promise.all([
+    liveCountMapPromise,
     getCategoryProfessionals(targetCategories, city, area),
     getApprovedCompanyListingCards({
       categories: serviceGroup ? undefined : targetCategories,
@@ -409,6 +355,10 @@ export default async function CategoryDetailPage({
       limit: 12,
     }),
   ]);
+  const subcategoryCards = mergedSubcategoryCards.map((subcategory) => ({
+    ...subcategory,
+    count: countForCategory(subcategory, liveCountMap),
+  }));
   const parentCategoryCountTarget = serviceGroup
     ? parentCategories.find((item) => item.name === serviceGroup.name)
     : null;
