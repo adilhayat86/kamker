@@ -346,7 +346,7 @@ export default async function HomePage() {
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
           {bottomNavItems.map((item) => {
             const Icon = item.icon;
-            return <a key={item.label} href={item.href} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md px-1 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"><Icon className="size-4" aria-hidden="true" /><span>{item.label}</span></a>;
+            return <Link key={item.label} href={item.href} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-md px-1 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"><Icon className="size-4" aria-hidden="true" /><span>{item.label}</span></Link>;
           })}
         </div>
       </nav>

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { recordAdminAudit } from "@/lib/admin-audit";
@@ -55,6 +55,7 @@ async function categorySlugById(id: number) {
 }
 
 function revalidateCategoryAdminPaths(name: string, parentSlug?: string | null) {
+  revalidateTag("public-categories");
   revalidatePath("/");
   revalidatePath("/admin/categories");
   revalidatePath("/categories");

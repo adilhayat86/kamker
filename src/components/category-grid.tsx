@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   Bike,
   BriefcaseBusiness,
@@ -30,6 +29,7 @@ import {
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { NavigationLink } from "@/components/navigation-link";
 import { categorySlug } from "@/lib/marketplace-data";
 
 type Category = {
@@ -109,10 +109,9 @@ export function CategoryGrid({ categories, city, area }: CategoryGridProps) {
           categoryIcons[category.icon as keyof typeof categoryIcons] ?? Wrench;
 
         return (
-          <Link
+          <NavigationLink
             key={category.name}
             href={categoryHref(category.name, city, area)}
-            prefetch={false}
             className="block h-full"
           >
             <Card className="h-full border-sky-100 bg-white shadow-sm transition-colors hover:border-primary/50 hover:bg-sky-50/40">
@@ -130,7 +129,7 @@ export function CategoryGrid({ categories, city, area }: CategoryGridProps) {
                 </p>
               </CardContent>
             </Card>
-          </Link>
+          </NavigationLink>
         );
       })}
     </div>
