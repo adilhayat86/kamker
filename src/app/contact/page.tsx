@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata = {
+  alternates: { canonical: "/contact" },
   title: "Contact Us | Kamker",
   description: "Contact Kamker for worker, company, and marketplace support.",
 };

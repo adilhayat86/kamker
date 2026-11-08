@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { attributeWorkerRegistrations, REGISTRATION_ATTRIBUTION_WINDOW_MS, type WorkerAcquisition } from "@/lib/registration-attribution";
 
 const PK_OFFSET_MS = 5 * 60 * 60 * 1000;
 
@@ -117,6 +118,7 @@ export type AnalyticsReport = {
   registrationFailureBreakdown: BreakdownRow[];
   registrationSourceBreakdown: BreakdownRow[];
   registrationFieldBreakdown: BreakdownRow[];
+  workerAcquisition: WorkerAcquisition & { contextLimited: boolean };
   registeredSubcategoryBreakdown: RegisteredSubcategoryRow[];
   categoryBreakdown: BreakdownRow[];
   cityBreakdown: BreakdownRow[];
@@ -521,6 +523,7 @@ async function pagedDateQuery<T>(
       .from(table)
       .select(select)
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .range(from, from + pageSize - 1);
 
     if (filters.startIso) {
@@ -586,7 +589,14 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
     return emptyReport(filters);
   }
 
-  const [workersRaw, staffRaw, requirementsRaw, eventsRaw, categoriesRaw, citiesRaw] =
+  const lookback = filters.startIso
+    ? pagedDateQuery<EventRow>("analytics_events", "event_type, target_type, target_id, metadata, created_at", {
+        ...filters,
+        startIso: new Date(Date.parse(filters.startIso) - REGISTRATION_ATTRIBUTION_WINDOW_MS).toISOString(),
+        endIso: filters.startIso,
+      }, 5000)
+    : Promise.resolve([] as EventRow[]);
+  const [workersRaw, staffRaw, requirementsRaw, eventsRaw, categoriesRaw, citiesRaw, lookbackEvents] =
     await Promise.all([
       dateQuery<WorkerRow>(
         "professionals",
@@ -610,6 +620,7 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
       ),
       supabase.from("categories").select("name").order("name", { ascending: true }),
       supabase.from("cities").select("name").order("name", { ascending: true }),
+      lookback,
     ]);
 
   const workers = applyDateWindow(workersRaw, filters).filter((worker) => {
@@ -650,6 +661,10 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
       matchesFilter(eventCity(event), filters.city)
     );
   });
+  const workerAcquisition = {
+    ...attributeWorkerRegistrations([...lookbackEvents, ...eventsRaw], events),
+    contextLimited: eventsRaw.length >= 20000 || lookbackEvents.length >= 5000,
+  };
   const browserEvents = events.filter(hasBrowserVisitor);
   const browserEventsRaw = eventsRaw.filter(hasBrowserVisitor);
   const browseSignalEvents = events.filter(
@@ -963,6 +978,7 @@ export async function loadAdminAnalyticsReport(filters: AnalyticsFilters): Promi
       countBy(registrationFailureEvents.flatMap(eventErrorCodes)),
       10,
     ),
+    workerAcquisition,
     registeredSubcategoryBreakdown,
     categoryBreakdown: breakdown(categoryCounts, 12),
     cityBreakdown: breakdown(cityCounts, 10),
@@ -1012,6 +1028,7 @@ function emptyReport(filters: AnalyticsFilters): AnalyticsReport {
     registrationFailureBreakdown: [],
     registrationSourceBreakdown: [],
     registrationFieldBreakdown: [],
+    workerAcquisition: { googleOrganic: 0, paid: 0, unattributed: 0, total: 0, contextLimited: false },
     registeredSubcategoryBreakdown: [],
     categoryBreakdown: [],
     cityBreakdown: [],
@@ -1050,6 +1067,11 @@ export function analyticsReportToCsv(report: AnalyticsReport) {
     ["Failed registrations", report.stats.registrationFailures],
     ["Successful registrations", report.stats.registrationSuccesses],
     ["Abandoned after start", report.stats.abandonedRegistrations],
+    ["Tracked worker signups (deduplicated)", report.workerAcquisition.total],
+    ["Worker signups matched to Google organic (30 minutes)", report.workerAcquisition.googleOrganic],
+    ["Worker signups matched to paid visits (30 minutes)", report.workerAcquisition.paid],
+    ["Unattributed worker signups", report.workerAcquisition.unattributed],
+    ["Acquisition context row limit reached", report.workerAcquisition.contextLimited ? "Yes" : "No"],
     [],
     ["Registration funnel", "Count"],
     ...report.registrationFunnel.map((item) => [item.label, item.value]),

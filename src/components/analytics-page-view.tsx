@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { hasPaidTraffic, isAcquisitionEntry } from "@/lib/registration-attribution";
 
 const VISITOR_KEY = "kamker_visitor_id";
 const PAGE_VIEW_DEDUPE_PREFIX = "kamker_pageview_seen:";
@@ -77,6 +78,7 @@ function shouldSkipRecentPageView(key: string) {
 }
 
 export function AnalyticsPageView() {
+  const seenDocumentView = useRef(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryString = searchParams.toString();
@@ -87,6 +89,8 @@ export function AnalyticsPageView() {
     }
 
     const dedupeKey = `${pathname}?${queryString}`;
+    const firstDocumentView = !seenDocumentView.current;
+    seenDocumentView.current = true;
 
     if (shouldSkipRecentPageView(dedupeKey)) {
       return;
@@ -109,6 +113,12 @@ export function AnalyticsPageView() {
       searchTerm,
       visitorId: getVisitorId(),
       referrerHost: referrerHost(),
+      isEntry: isAcquisitionEntry(
+        firstDocumentView,
+        (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.type,
+        referrerHost(), window.location.host,
+      ),
+      hasPaidMarker: hasPaidTraffic(queryString, source),
     };
 
     void fetch("/api/analytics/page-view", {

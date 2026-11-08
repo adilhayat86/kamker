@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata = {
+  alternates: { canonical: "/register" },
   title: "Register | Kamker",
   description: "Register as a professional, company, or customer on Kamker.",
 };

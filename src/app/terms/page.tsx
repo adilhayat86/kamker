@@ -2,6 +2,7 @@ import { PageNavigation } from "@/components/page-navigation";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata = {
+  alternates: { canonical: "/terms" },
   title: "Terms | Kamker",
   description: "Kamker marketplace terms for workers, companies, and customers.",
 };

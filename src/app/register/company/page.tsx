@@ -16,6 +16,7 @@ import { categories } from "@/lib/marketplace-data";
 import { registerCompany } from "./actions";
 
 export const metadata = {
+  alternates: { canonical: "/register/company" },
   title: "Register Company | Kamker",
   description:
     "Register a company account to add multiple company-managed professionals on Kamker.",

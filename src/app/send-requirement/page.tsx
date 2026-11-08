@@ -26,6 +26,7 @@ import { workerPostingBlockedStatus } from "@/lib/worker-status";
 import { submitRequirement } from "./actions";
 
 export const metadata = {
+  alternates: { canonical: "/send-requirement" },
   title: "Send Requirement | Kamker",
   description: "Submit a paid Kamker requirement broadcast to matching professionals.",
 };

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
@@ -26,6 +27,10 @@ import { categories, cities, parentCategories } from "@/lib/marketplace-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const revalidate = 120;
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const guestBottomNavItems = [
   { label: "Home", icon: Home, href: "/" },
@@ -252,7 +257,7 @@ export default async function HomePage() {
                 <Button asChild variant="outline" className="h-12 border-primary/30 bg-white text-base font-semibold text-primary hover:bg-accent"><Link href={primarySessionHref}>{professional ? <User aria-hidden="true" /> : <Send aria-hidden="true" />}{primarySessionLabel}</Link></Button>
               ) : (
                 <>
-                  <Button asChild variant="outline" className="h-12 border-primary/30 bg-white text-base font-semibold text-primary hover:bg-accent"><Link href="/register"><BriefcaseBusiness aria-hidden="true" />Register</Link></Button>
+                  <Button asChild variant="outline" className="h-12 border-primary/30 bg-white text-base font-semibold text-primary hover:bg-accent"><Link href="/register/professional"><BriefcaseBusiness aria-hidden="true" />Register as worker</Link></Button>
                   <Button asChild variant="ghost" className="h-12 justify-start px-0 text-base font-semibold text-primary hover:bg-transparent hover:text-primary/80 sm:px-4"><Link href="/login"><User aria-hidden="true" />Already registered? Login</Link></Button>
                 </>
               )}

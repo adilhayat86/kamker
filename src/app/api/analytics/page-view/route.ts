@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { trackAnalyticsEvent } from "@/lib/analytics";
+import { hasPaidTraffic } from "@/lib/registration-attribution";
 
 const ignoredPrefixes = [
   "/admin",
@@ -91,6 +92,8 @@ export async function POST(request: NextRequest) {
       search_term: searchTerm,
       visitor_id: visitorId,
       referrer_host: referrerHost,
+      is_entry: body.isEntry === true,
+      has_paid_marker: body.hasPaidMarker === true || hasPaidTraffic(clean(body.query, 16384), source),
     },
   });
 

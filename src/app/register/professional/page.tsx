@@ -29,7 +29,9 @@ import {
 import { registerProfessional } from "./actions";
 
 export const metadata = {
-  title: "Register as Professional | Kamker",
+  title: "Free Worker Registration in Pakistan | Kamker",
+  description: "Register free as a worker on Kamker. Add your skills, city and availability so customers can find and contact you. No commission from workers.",
+  alternates: { canonical: "/register/professional" },
 };
 
 const statusMessages = {
@@ -122,11 +124,11 @@ export default async function ProfessionalRegisterPage({
       <section className="mx-auto max-w-3xl">
         <PageNavigation backHref="/register" backLabel="Register" />
         <h1 className="mt-4 text-3xl font-bold tracking-normal">
-          Register as Professional
+          Register as a worker
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Create a short public worker profile. You can complete WhatsApp,
-          experience, CNIC, and profile details after signup.
+          Create your free worker profile on Kamker so customers can find your skills
+          and contact you. Kamker does not charge commission from workers.
         </p>
         <div className="mt-5 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
           <div className="flex gap-3">
@@ -287,6 +289,34 @@ export default async function ProfessionalRegisterPage({
             </form>
           </CardContent>
         </Card>
+        <section className="mt-8 rounded-lg border bg-white p-5 sm:p-6" aria-labelledby="worker-registration-help">
+          <h2 id="worker-registration-help" className="text-xl font-semibold">How worker registration works</h2>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
+            <li>Add your name, profession, city, availability and hourly rate.</li>
+            <li>Create your account, then add a photo, experience and other profile details.</li>
+            <li>Keep your public profile up to date so customers can review your skills and contact you using your shared details.</li>
+          </ol>
+          <h2 className="mt-6 text-xl font-semibold">Questions about joining Kamker</h2>
+          <div className="mt-3 divide-y">
+            <details className="py-3">
+              <summary className="cursor-pointer font-semibold">Is worker registration free?</summary>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">Yes. Creating a worker profile is free, and Kamker does not charge commission from workers. Optional paid features are separate.</p>
+            </details>
+            <details className="py-3">
+              <summary className="cursor-pointer font-semibold">Who can create a worker profile?</summary>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">Workers and independent professionals in Pakistan can choose their service category and city when registering. Use accurate details about the services you offer.</p>
+            </details>
+            <details className="py-3">
+              <summary className="cursor-pointer font-semibold">Do I need a photo or CNIC to start?</summary>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">You can add your photo, experience, CNIC and other profile details after signup from your account. Complete the required fields in the form to create your account.</p>
+            </details>
+            <details className="py-3">
+              <summary className="cursor-pointer font-semibold">Does registration guarantee work or earnings?</summary>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">No. Kamker is a worker directory, and registration does not guarantee enquiries, work or income. Customers choose whom to contact and agree on work directly with the provider.</p>
+            </details>
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground">Already registered? <Link href="/login" className="font-semibold text-primary underline">Log in to your account</Link>.</p>
+        </section>
       </section>
     </main>
   );
