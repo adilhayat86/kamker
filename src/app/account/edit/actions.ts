@@ -12,7 +12,7 @@ import {
   normalizePakistanMobilePhone,
   validatePhoneFieldWithCountry,
 } from "@/lib/phone";
-import { uploadProfessionalPhoto } from "@/lib/professional-photo";
+import { verifyPhotoIntent, recordPhotoAttachment } from "@/lib/photo-intents";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { findOrCreateCategoryId, findOrCreateCityId } from "@/lib/taxonomy";
 import {
@@ -33,15 +33,6 @@ function field(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function lastNonEmptyField(formData: FormData, key: string) {
-  const values = formData
-    .getAll(key)
-    .filter((value): value is string => typeof value === "string")
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  return values.at(-1) ?? "";
-}
 
 function numericField(formData: FormData, key: string) {
   const value = Number(field(formData, key));
@@ -152,19 +143,11 @@ export async function updateProfessionalProfile(formData: FormData) {
     findOrCreateCityId(cityName),
     findOrCreateCategoryId(categoryName),
   ]);
-  let profilePhotoUrl: string | null =
-    lastNonEmptyField(formData, "profilePhotoUrl") || null;
-
-  if (!profilePhotoUrl) {
-    try {
-      profilePhotoUrl = await uploadProfessionalPhoto(formData);
-    } catch (error) {
-      redirect(
-        error instanceof Error && error.message === "invalid-photo"
-          ? "/account/edit?status=invalid-photo"
-          : "/account/edit?status=photo-error",
-      );
-    }
+  const photoIntentId = field(formData, "photoIntentId");
+  let profilePhotoUrl: string | null = null;
+  if (photoIntentId) {
+    try { profilePhotoUrl = (await verifyPhotoIntent(photoIntentId, sessionProfessional.id, "professional-photos")).url; }
+    catch { redirect("/account/edit?status=photo-error"); }
   }
 
   const validatedAvailabilityTime = availabilityTime as WorkerTimeAvailability;
@@ -218,6 +201,7 @@ export async function updateProfessionalProfile(formData: FormData) {
     redirect("/account/edit?status=error");
   }
 
+  if (photoIntentId) await recordPhotoAttachment(photoIntentId, sessionProfessional.id);
   revalidatePath("/");
   revalidatePath("/account");
   revalidatePath("/account/edit");

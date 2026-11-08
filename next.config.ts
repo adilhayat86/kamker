@@ -34,6 +34,14 @@ remotePatterns.push({
 });
 
 const sharedConfig: NextConfig = {
+  async rewrites() {
+    return process.env.KAMKER_MAINTENANCE === "true"
+      ? { beforeFiles: [{
+          source: "/:path((?!admin(?:/|$)|_next(?:/|$)|maintenance(?:/|$)).*)",
+          destination: "/maintenance",
+        }], afterFiles: [], fallback: [] }
+      : [];
+  },
   async redirects() {
     return [
       { source: "/add-provider", destination: "/register/professional", permanent: true },

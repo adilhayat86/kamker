@@ -12,7 +12,7 @@ import { DismissibleCard, DismissibleNotice } from "@/components/dismissible-not
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { isAdminAuthenticated, isAdminPasswordConfigured } from "@/lib/admin-auth";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 import {
   getActiveCompanySubscription,
   getPublishedCompanyListingUsage,
@@ -131,10 +131,9 @@ function isSensitiveCategory(category: string) {
 export default async function AdminCompaniesPage({
   searchParams,
 }: CompaniesPageProps) {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login");
   }
 

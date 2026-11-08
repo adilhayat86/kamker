@@ -12,7 +12,7 @@ import { DismissibleNotice } from "@/components/dismissible-notice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { isAdminAuthenticated, isAdminPasswordConfigured } from "@/lib/admin-auth";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 import {
   getActiveCompanySubscription,
   getPublishedCompanyListingUsage,
@@ -109,10 +109,9 @@ async function getListings({
 export default async function AdminCompanyListingsPage({
   searchParams,
 }: CompanyListingsPageProps) {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login");
   }
 

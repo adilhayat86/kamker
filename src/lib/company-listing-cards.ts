@@ -311,8 +311,9 @@ export async function getApprovedCompanyListingCards(filters?: {
 
   let query = supabase
     .from("company_listings")
-    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, age, availability, years_experience, phone, whatsapp, is_featured, created_at, companies(id, company_name, verification_status, logo_url)")
+    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, age, availability, years_experience, phone, whatsapp, is_featured, created_at, companies!inner(id, company_name, verification_status, logo_url)")
     .eq("status", "approved")
+    .eq("companies.verification_status", "verified")
     .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(filters?.limit ?? 100);

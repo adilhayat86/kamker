@@ -32,3 +32,6 @@ qa-receipts/
 .vercel
 .open-next/
 .wrangler/
+
+.security-original-modules/
+supabase/.temp/

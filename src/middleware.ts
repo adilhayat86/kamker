@@ -9,12 +9,7 @@ const PUBLIC_ADMIN_PATHS = new Set([
 ]);
 
 function isAdminAuthConfigured() {
-  return Boolean(
-    process.env.KAMKER_AUTH_SECRET &&
-      (process.env.KAMKER_OWNER_ADMIN_PASSWORD ||
-        process.env.KAMKER_ADMIN_PASSWORD ||
-        process.env.KAMKER_MANAGER_ADMIN_PASSWORD),
-  );
+  return Boolean(process.env.KAMKER_AUTH_SECRET && process.env.SUPABASE_SECRET_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL);
 }
 
 function base64Url(bytes: ArrayBuffer) {
@@ -73,7 +68,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!isAdminAuthConfigured()) {
-    return NextResponse.next();
+    return new NextResponse("Admin access is temporarily unavailable.", { status: 503 });
   }
 
   if (await hasValidAdminSession(request)) {

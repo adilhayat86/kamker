@@ -1,3 +1,4 @@
+import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 
 type CloudinaryResourceType = "image" | "video" | "auto";
@@ -37,10 +38,12 @@ export function getCloudinaryUploadSignature({
   folder,
   publicId,
   tags = [],
+  convertPhoto = false,
 }: {
   folder: string;
   publicId: string;
   tags?: string[];
+  convertPhoto?: boolean;
 }) {
   if (!isCloudinaryConfigured || !cloudName || !apiKey) {
     return null;
@@ -53,6 +56,12 @@ export function getCloudinaryUploadSignature({
     timestamp,
   };
 
+  if (convertPhoto) {
+    params.format = "jpg";
+    params.allowed_formats = "jpg,jpeg,png,webp,heic,heif";
+    params.overwrite = "false";
+  }
+
   if (tags.length > 0) {
     params.tags = tags.join(",");
   }
@@ -64,6 +73,9 @@ export function getCloudinaryUploadSignature({
     publicId,
     timestamp,
     tags: params.tags ?? "",
+    format: params.format ?? "",
+    allowedFormats: params.allowed_formats ?? "",
+    overwrite: params.overwrite ?? "",
     signature: signCloudinaryParams(params),
   };
 }

@@ -1,5 +1,5 @@
-import { getSessionCustomer, getSessionProfessional } from "@/lib/auth";
-import { whatsappDigits } from "@/lib/phone";
+import { canManageRequirement } from "@/lib/ownership";
+
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export type RequirementReportOwner = {
@@ -52,56 +52,6 @@ export function safeReportError(value: string | null) {
     .slice(0, 500);
 }
 
-function digitsMatch(a: string | null | undefined, b: string | null | undefined) {
-  const left = whatsappDigits(a);
-  const right = whatsappDigits(b);
-  return Boolean(left && right && left === right);
-}
-
-async function canAccessRequirementReport(requirement: RequirementReportOwner) {
-  if (
-    requirement.payment_status === "paid" &&
-    ["sent", "partial", "failed", "no_matches"].includes(
-      requirement.broadcast_status ?? "",
-    )
-  ) {
-    return true;
-  }
-
-  const [professional, customer] = await Promise.all([
-    getSessionProfessional(),
-    getSessionCustomer(),
-  ]);
-
-  if (!professional && !customer) {
-    return false;
-  }
-
-  if (customer?.id && requirement.customer_id === customer.id) {
-    return true;
-  }
-
-  if (
-    customer &&
-    (digitsMatch(customer.phone_number, requirement.phone_number) ||
-      digitsMatch(customer.phone_number, requirement.whatsapp_number))
-  ) {
-    return true;
-  }
-
-  if (
-    professional &&
-    (digitsMatch(professional.phone_number, requirement.phone_number) ||
-      digitsMatch(professional.phone_number, requirement.whatsapp_number) ||
-      digitsMatch(professional.whatsapp_number, requirement.whatsapp_number) ||
-      digitsMatch(professional.whatsapp_number, requirement.phone_number))
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
 export async function getRequirementBroadcastReport(
   id: string,
 ): Promise<RequirementBroadcastReport> {
@@ -131,7 +81,7 @@ export async function getRequirementBroadcastReport(
 
   const requirementOwner = requirement as RequirementReportOwner;
 
-  if (!(await canAccessRequirementReport(requirementOwner))) {
+  if (!(await canManageRequirement(id))) {
     return {
       ok: false,
       status: 403,

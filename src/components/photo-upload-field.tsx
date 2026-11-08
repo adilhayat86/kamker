@@ -1,13 +1,14 @@
 "use client";
 
+import { usePhotoUpload } from "@/components/photo-form";
 import { useRef, useState } from "react";
 
 const MAX_DIRECT_UPLOAD_BYTES = 10 * 1024 * 1024;
 const TARGET_UPLOAD_BYTES = 2 * 1024 * 1024;
 const MAX_IMAGE_DIMENSION = 1600;
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const DEFAULT_MESSAGE =
-  "Phone photos are accepted. If photo upload causes trouble, register without photo first and add it later.";
+  "Choose a clear photo. You can skip this step and add a photo later.";
 
 type UploadState = "idle" | "preparing" | "uploading" | "attached" | "failed";
 
@@ -17,6 +18,7 @@ type PhotoUploadFieldProps = {
   helpText?: string;
   uploadFolder?: "professional-photos" | "company-staff";
   uploadTags?: string[];
+  companyId?: string;
 };
 
 function formatSize(bytes: number) {
@@ -121,12 +123,14 @@ async function uploadPhotoToCloudinary(
   file: File,
   folder: PhotoUploadFieldProps["uploadFolder"],
   tags: string[],
+  companyId?: string,
 ) {
   const signResponse = await fetch("/api/cloudinary/sign", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       folder,
+      companyId,
       tags,
     }),
   });
@@ -143,6 +147,10 @@ async function uploadPhotoToCloudinary(
     timestamp: string;
     tags: string;
     signature: string;
+    intentId: string;
+    format: string;
+    allowedFormats: string;
+    overwrite: string;
   };
   const body = new FormData();
   body.append("file", file);
@@ -151,12 +159,17 @@ async function uploadPhotoToCloudinary(
   body.append("public_id", signed.publicId);
   body.append("timestamp", signed.timestamp);
   body.append("signature", signed.signature);
+  body.append("format", signed.format);
+  body.append("allowed_formats", signed.allowedFormats);
+  body.append("overwrite", signed.overwrite);
 
   if (signed.tags) {
     body.append("tags", signed.tags);
   }
 
-  const uploadResponse = await fetch(
+  let uploadResponse: Response;
+  try {
+    uploadResponse = await fetch(
     `https://api.cloudinary.com/v1_1/${signed.cloudName}/image/upload`,
     {
       method: "POST",
@@ -164,7 +177,12 @@ async function uploadPhotoToCloudinary(
     },
   );
 
+  } catch {
+    void fetch("/api/cloudinary/failure", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: signed.intentId }) }).catch(() => {});
+    throw new Error("upload-network");
+  }
   if (!uploadResponse.ok) {
+    void fetch("/api/cloudinary/failure", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: signed.intentId }) }).catch(() => {});
     throw new Error(`upload-${uploadResponse.status}`);
   }
 
@@ -174,16 +192,18 @@ async function uploadPhotoToCloudinary(
     throw new Error("upload-no-url");
   }
 
-  return result.secure_url;
+  return signed.intentId;
 }
 
 export function PhotoUploadField({
   disabled = false,
   label = "Profile photo",
-  helpText = "If registration needs correction, keep this page open so the selected photo stays attached.",
+  helpText = "Your existing photo stays unchanged until your profile is saved.",
   uploadFolder = "professional-photos",
   uploadTags = ["professional-photo"],
+  companyId,
 }: PhotoUploadFieldProps) {
+  const { setBusy } = usePhotoUpload();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploadedUrl, setUploadedUrl] = useState("");
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
@@ -206,24 +226,12 @@ export function PhotoUploadField({
       return;
     }
 
-    if (!ACCEPTED_TYPES.includes(file.type)) {
+    const isHeic = ["image/heic", "image/heif"].includes(file.type) || /\.hei[cf]$/i.test(file.name);
+    if (!ACCEPTED_TYPES.includes(file.type) && !isHeic) {
       clearSelectedFile(input);
       setInputError(input);
       setMessage(
-        "This file type is not supported, so it was removed. Continue without photo or choose a jpg, png, or webp image.",
-      );
-      setUploadedUrl("");
-      setFileName(file.name);
-      setUploadState("failed");
-      setPreviewUrl("");
-      return;
-    }
-
-    if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
-      clearSelectedFile(input);
-      setInputError(input);
-      setMessage(
-        `This photo is ${formatSize(file.size)}, above the 10MB limit, so it was removed. Continue without photo or choose a smaller image.`,
+        "This file type is not supported, so it was removed. Continue without photo or choose a JPEG, PNG, WebP or HEIC/HEIF image.",
       );
       setUploadedUrl("");
       setFileName(file.name);
@@ -236,9 +244,10 @@ export function PhotoUploadField({
     setUploadedUrl("");
     setFileName(file.name);
     setUploadState("preparing");
+    setBusy(true);
 
     try {
-      setPreviewUrl(await fileToDataUrl(file));
+      if (!isHeic) setPreviewUrl(await fileToDataUrl(file));
     } catch {
       setPreviewUrl("");
     }
@@ -250,7 +259,7 @@ export function PhotoUploadField({
     let prepared = file;
 
     try {
-      if (file.size > TARGET_UPLOAD_BYTES) {
+      if (!isHeic && file.size > TARGET_UPLOAD_BYTES) {
         try {
           prepared = await compressImage(file);
         } catch {
@@ -259,29 +268,34 @@ export function PhotoUploadField({
         }
       }
 
+      if (prepared.size > MAX_DIRECT_UPLOAD_BYTES) throw new Error("Photo is above the final 10MB limit.");
       setMessage(`Uploading photo (${formatSize(prepared.size)})...`);
       setUploadState("uploading");
       const publicUrl = await uploadPhotoToCloudinary(
         prepared,
         uploadFolder,
         uploadTags,
+        companyId,
       );
       setUploadedUrl(publicUrl);
       clearSelectedFile(input);
       setInputError(input);
       setUploadState("attached");
-      setMessage("Photo attached. Continue registration.");
+      setMessage("Photo uploaded. Save to attach it to your profile.");
     } catch (error) {
+      clearSelectedFile(input);
       setUploadedUrl("");
       setUploadState("failed");
       setInputError(input);
       const reason =
         error instanceof Error && error.message.startsWith("setup-")
-          ? "Cloudinary setup is not ready."
+          ? "Photo uploads are temporarily unavailable."
           : error instanceof Error && error.message.startsWith("upload-")
-            ? `Cloudinary rejected this upload (${error.message.replace("upload-", "")}).`
-            : "Photo upload failed.";
-      setMessage(`${reason} Registration can continue without photo, or you can choose another photo.`);
+            ? "This photo could not be uploaded. Try a JPEG or PNG photo."
+            : error instanceof Error && error.message.includes("10MB") ? error.message : "Photo upload failed.";
+      setMessage(`${reason} Your existing photo is unchanged. Choose the photo again to retry.`);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -303,7 +317,7 @@ export function PhotoUploadField({
   const isBusy = uploadState === "preparing" || uploadState === "uploading";
   const statusLabel =
     uploadState === "attached"
-      ? "Photo attached"
+      ? "Photo uploaded"
       : uploadState === "failed"
         ? "Photo not uploaded"
         : isBusy
@@ -326,12 +340,12 @@ export function PhotoUploadField({
         ref={inputRef}
         name="photo"
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
         disabled={disabled || isBusy}
         onChange={handleChange}
         className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
       />
-      <input type="hidden" name="profilePhotoUrl" value={uploadedUrl} />
+      <input type="hidden" name="photoIntentId" value={uploadedUrl} />
       {previewUrl ? (
         <div className={`flex items-center gap-3 rounded-lg border p-3 ${statusClass}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -359,7 +373,7 @@ export function PhotoUploadField({
           ) : null}
         </div>
       ) : null}
-      <span className="text-xs text-muted-foreground">{message}</span>
+      <span role="status" aria-live="polite" className="text-xs text-muted-foreground">{message}</span>
       {helpText ? <span className="text-xs text-muted-foreground">{helpText}</span> : null}
     </div>
   );

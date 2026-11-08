@@ -196,7 +196,7 @@ export async function registerProfessional(formData: FormData) {
           { category: categoryName, city: cityName, local_demo: true },
         );
       }
-      redirect("/account?status=registered");
+      redirect("/account/photo?status=registered");
     }
 
     await trackRegistrationFailure(
@@ -322,5 +322,5 @@ export async function registerProfessional(formData: FormData) {
   await createProfessionalSession(professional.id as string);
   await markRegistrationConversion(professional.id as string);
   await clearFormDraft("professional");
-  redirect("/account?status=registered");
+  redirect("/account/photo?status=registered");
 }

@@ -44,6 +44,7 @@ export type SystemHealth = {
   cloudinary: boolean;
   openai: boolean;
   whatsapp: boolean;
+  databaseIssues: string[];
   missingTables: string[];
   missingColumns: string[];
   missingBuckets: string[];
@@ -259,6 +260,7 @@ export async function getSystemHealth() {
       Boolean(process.env.WHATSAPP_ACCESS_TOKEN) &&
       Boolean(process.env.WHATSAPP_PHONE_NUMBER_ID) &&
       Boolean(process.env.KAMKER_ADMIN_WHATSAPP),
+    databaseIssues: [],
     missingTables: [],
     missingColumns: [],
     missingBuckets: [],
@@ -271,6 +273,7 @@ export async function getSystemHealth() {
       getStorageBucketReadiness(),
     ]);
 
+    configured.databaseIssues = databaseReadiness.issues;
     configured.databaseSchema = databaseReadiness.ready;
     configured.storageBuckets = storageReadiness.ready;
     configured.missingTables = databaseReadiness.missingTables;
@@ -282,158 +285,26 @@ export async function getSystemHealth() {
   return configured;
 }
 
-async function hasReadableTable(table: string) {
-  if (!supabase) {
-    return false;
-  }
-
-  const { error } = await supabase
-    .from(table)
-    .select("id", { head: true, count: "exact" })
-    .limit(1);
-
-  if (error) {
-    console.error(`Admin system health table check failed for ${table}`, error);
-    return false;
-  }
-
-  return true;
-}
-
-async function hasCompanyStaffRequirementMatchColumn() {
-  if (!supabase) {
-    return false;
-  }
-
-  const { error } = await supabase
-    .from("requirement_matches")
-    .select("company_listing_id")
-    .limit(1);
-
-  if (error) {
-    console.error(
-      "Admin system health column check failed for requirement_matches.company_listing_id",
-      error,
-    );
-    return false;
-  }
-
-  return true;
-}
-
-async function hasReadableColumn(table: string, column: string) {
-  if (!supabase) {
-    return false;
-  }
-
-  const { error } = await supabase.from(table).select(column).limit(1);
-
-  if (error) {
-    console.error(`Admin system health column check failed for ${table}.${column}`, error);
-    return false;
-  }
-
-  return true;
+async function checkDatabaseObject(table: string, column?: string) {
+  if (!supabase) return { ready: false, missing: false, issue: "Database unavailable" };
+  const { error } = await supabase.from(table).select(column ?? (table === "admin_passwords" ? "role" : table === "admin_settings" ? "key" : "id"), { head: true }).limit(1);
+  if (!error) return { ready: true, missing: false, issue: null };
+  const missing = (column ? ["42703", "PGRST204"] : ["42P01", "PGRST205"]).includes(error.code);
+  return { ready: false, missing, issue: missing ? null : table + (column ? "." + column : "") + ": " + (error.code === "42501" ? "permission denied" : "check failed (" + error.code + ")") };
 }
 
 async function getDatabaseSchemaReadiness() {
-  const requiredTables = [
-    "professionals",
-    "customers",
-    "customer_sessions",
-    "categories",
-    "cities",
-    "requirements",
-    "requirement_matches",
-    "requirement_broadcast_payments",
-    "companies",
-    "company_packages",
-    "manual_payments",
-    "company_package_subscriptions",
-    "company_listings",
-    "company_media",
-    "proof_reviews",
-    "analytics_events",
-    "whatsapp_messages",
-    "admin_passwords",
-    "admin_audit_logs",
-  ];
-
-  const tableChecks = await Promise.all(
-    requiredTables.map(async (table) => ({
-      table,
-      ready: await hasReadableTable(table),
-    })),
-  );
-  const columnChecks = await Promise.all([
-    {
-      column: "customers.password_hash",
-      ready: await hasReadableColumn("customers", "password_hash"),
-    },
-    {
-      column: "customers.phone_normalized",
-      ready: await hasReadableColumn("customers", "phone_normalized"),
-    },
-    {
-      column: "requirements.payment_status",
-      ready: await hasReadableColumn("requirements", "payment_status"),
-    },
-    {
-      column: "requirements.broadcast_status",
-      ready: await hasReadableColumn("requirements", "broadcast_status"),
-    },
-    {
-      column: "requirement_matches.company_listing_id",
-      ready: await hasCompanyStaffRequirementMatchColumn(),
-    },
-    {
-      column: "professionals.age",
-      ready: await hasReadableColumn("professionals", "age"),
-    },
-    {
-      column: "professionals.tagline",
-      ready: await hasReadableColumn("professionals", "tagline"),
-    },
-    {
-      column: "professionals.profile_photo_url",
-      ready: await hasReadableColumn("professionals", "profile_photo_url"),
-    },
-    {
-      column: "professionals.phone_normalized",
-      ready: await hasReadableColumn("professionals", "phone_normalized"),
-    },
-    {
-      column: "professionals.is_banned",
-      ready: await hasReadableColumn("professionals", "is_banned"),
-    },
-    {
-      column: "company_listings.service_group",
-      ready: await hasReadableColumn("company_listings", "service_group"),
-    },
-    {
-      column: "company_listings.age",
-      ready: await hasReadableColumn("company_listings", "age"),
-    },
-    {
-      column: "company_listings.profile_photo_url",
-      ready: await hasReadableColumn("company_listings", "profile_photo_url"),
-    },
-    {
-      column: "companies.logo_url",
-      ready: await hasReadableColumn("companies", "logo_url"),
-    },
+  const requiredTables = ["professionals","professional_sessions","customers","customer_sessions","categories","cities","requirements","requirement_matches","requirement_notifications","requirement_broadcast_payments","companies","company_packages","manual_payments","company_package_subscriptions","company_listings","company_media","proof_reviews","analytics_events","whatsapp_messages","admin_passwords","admin_password_resets","admin_audit_logs","admin_settings","media_upload_intents"];
+  const requiredColumns = ["customers.password_hash","customers.phone_normalized","requirements.payment_status","requirements.broadcast_status","requirements.professional_id","requirement_matches.company_listing_id","professionals.age","professionals.tagline","professionals.profile_photo_url","professionals.phone_normalized","professionals.is_banned","company_listings.service_group","company_listings.age","company_listings.profile_photo_url","companies.logo_url"];
+  const [tables, columns] = await Promise.all([
+    Promise.all(requiredTables.map(async table => ({ table, ...await checkDatabaseObject(table) }))),
+    Promise.all(requiredColumns.map(async column => { const [table, name] = column.split("."); return { column, ...await checkDatabaseObject(table, name) }; })),
   ]);
-
   return {
-    ready:
-      tableChecks.every((check) => check.ready) &&
-      columnChecks.every((check) => check.ready),
-    missingTables: tableChecks
-      .filter((check) => !check.ready)
-      .map((check) => check.table),
-    missingColumns: columnChecks
-      .filter((check) => !check.ready)
-      .map((check) => check.column),
+    ready: [...tables,...columns].every(check => check.ready),
+    issues: [...tables,...columns].flatMap(check => check.issue ? [check.issue] : []),
+    missingTables: tables.filter(check => check.missing).map(check => check.table),
+    missingColumns: columns.filter(check => check.missing).map(check => check.column),
   };
 }
 
@@ -451,7 +322,7 @@ async function checkStorageBucket(bucket: RequiredBucket) {
 
   if (error) {
     console.error(`Admin system health bucket check failed for ${bucket.name}`, error);
-    return { bucket: bucket.name, ready: false, issue: null };
+    return { bucket: bucket.name, ready: false, issue: String(error.status ?? error.message).includes("404") || error.message === "Bucket not found" ? null : `${bucket.name}: ${["401", "403"].includes(String(error.status)) ? "permission denied" : "check failed"}` };
   }
 
   const fileSizeLimit =

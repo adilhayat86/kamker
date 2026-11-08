@@ -1,3 +1,5 @@
+import { privateProofUrl } from "@/lib/private-proofs";
+import { requireRequirementAccess } from "@/lib/ownership";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -211,6 +213,7 @@ export default async function RequirementPaymentPage({
   searchParams,
 }: RequirementPaymentPageProps) {
   const { id } = await params;
+  await requireRequirementAccess(id);
   const query = await searchParams;
   const [
     professional,
@@ -562,7 +565,7 @@ export default async function RequirementPaymentPage({
                       </p>
                       {latestPayment?.proof_image_url ? (
                         <Button asChild variant="outline" className="mt-3 h-10 w-full bg-white">
-                          <a href={latestPayment.proof_image_url} target="_blank" rel="noreferrer">
+                          <a href={privateProofUrl(latestPayment.proof_image_url)} target="_blank" rel="noreferrer">
                             View uploaded receipt
                           </a>
                         </Button>
@@ -589,7 +592,7 @@ export default async function RequirementPaymentPage({
                       </p>
                       {latestPayment?.proof_image_url ? (
                         <Button asChild variant="outline" className="mt-3 h-10 w-full bg-white">
-                          <a href={latestPayment.proof_image_url} target="_blank" rel="noreferrer">
+                          <a href={privateProofUrl(latestPayment.proof_image_url)} target="_blank" rel="noreferrer">
                             View uploaded receipt
                           </a>
                         </Button>

@@ -88,6 +88,7 @@ async function getCompany(id: string) {
     .from("companies")
     .select("id, company_name, category, city, area, contact_person, phone, whatsapp, description, verification_status, logo_url")
     .eq("id", id)
+    .eq("verification_status", "verified")
     .maybeSingle();
 
   if (error) {

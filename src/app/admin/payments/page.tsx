@@ -1,3 +1,4 @@
+import { privateProofUrl } from "@/lib/private-proofs";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -21,7 +22,6 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   isAdminAuthenticated,
-  isAdminPasswordConfigured,
 } from "@/lib/admin-auth";
 import { getAdminCountSummary } from "@/lib/admin-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -218,10 +218,9 @@ async function getRequirementPayments({
 export default async function AdminPaymentsPage({
   searchParams,
 }: PaymentsPageProps) {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login");
   }
 
@@ -365,7 +364,7 @@ export default async function AdminPaymentsPage({
                       </Button>
                     ) : null}
                     <Button asChild variant="outline">
-                      <Link href={proof.image_url}>Open Proof Image</Link>
+                      <Link href={privateProofUrl(proof.image_url)}>Open Proof Image</Link>
                     </Button>
                   </div>
                 </div>

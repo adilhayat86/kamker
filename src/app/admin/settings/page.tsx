@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   isAdminAuthenticated,
-  isAdminPasswordConfigured,
 } from "@/lib/admin-auth";
 import { getAutoApproveProfessionals } from "@/lib/admin-settings";
 import { getSystemHealth } from "@/lib/admin-data";
@@ -33,10 +32,9 @@ type AdminSettingsPageProps = {
 };
 
 export default async function AdminSettingsPage({ searchParams }: AdminSettingsPageProps) {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login");
   }
 

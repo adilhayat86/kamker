@@ -64,6 +64,8 @@ async function getDbProfessional(id: string) {
       "id, full_name, phone_number, whatsapp_number, area, gender, age, availability, years_experience, experience, expected_rate, tagline, short_bio, profile_photo_url, is_cnic_verified, is_phone_verified, rating, cities(name), categories(name)",
     )
     .eq("id", id)
+    .eq("is_active", true)
+    .or("is_banned.eq.false,is_banned.is.null")
     .maybeSingle();
 
   if (error) {

@@ -1,4 +1,7 @@
 "use server";
+import { privateProofUrl } from "@/lib/private-proofs";
+
+import { requireCompanyAccess } from "@/lib/ownership";
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
@@ -40,6 +43,7 @@ function packageExpiry(durationDays: number) {
 
 export async function submitCompanyPackagePayment(formData: FormData) {
   const companyId = field(formData, "companyId");
+  await requireCompanyAccess(companyId);
   const packageKey = field(formData, "packageKey");
   const paymentMethod = field(formData, "paymentMethod");
   const payerName = field(formData, "payerName");
@@ -138,9 +142,7 @@ export async function submitCompanyPackagePayment(formData: FormData) {
     redirectToPayment(companyId, packageKey, "upload-error");
   }
 
-  const { data: publicUrlData } = db.storage
-    .from("proof-images")
-    .getPublicUrl(filePath);
+  const publicUrlData = { publicUrl: privateProofUrl(filePath) };
 
   const imageUrl = publicUrlData.publicUrl;
   const review = await reviewProofWithAi({

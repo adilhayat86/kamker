@@ -1,5 +1,7 @@
 "use server";
 
+import { requireCompanyAccess } from "@/lib/ownership";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -17,6 +19,7 @@ function field(formData: FormData, key: string) {
 
 export async function updateCompanyLogo(formData: FormData) {
   const companyId = field(formData, "companyId");
+  await requireCompanyAccess(companyId);
 
   if (!companyId) {
     redirect("/register/company");
@@ -59,6 +62,7 @@ export async function updateCompanyLogo(formData: FormData) {
 
 export async function addCompanyMedia(formData: FormData) {
   const companyId = field(formData, "companyId");
+  await requireCompanyAccess(companyId);
   const caption = field(formData, "caption");
 
   if (!companyId) {

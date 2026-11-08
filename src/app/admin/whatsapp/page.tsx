@@ -10,7 +10,6 @@ import {
 } from "@/components/admin/admin-ui";
 import {
   isAdminAuthenticated,
-  isAdminPasswordConfigured,
 } from "@/lib/admin-auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -53,10 +52,9 @@ async function getWhatsappMessages() {
 }
 
 export default async function AdminWhatsappPage() {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login");
   }
 

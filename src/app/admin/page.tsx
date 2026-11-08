@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   isAdminAuthenticated,
-  isAdminPasswordConfigured,
 } from "@/lib/admin-auth";
 import {
   getAdminCountSummary,
@@ -89,10 +88,9 @@ function CompactPanel({
 }
 
 export default async function AdminPage() {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login");
   }
 
@@ -135,7 +133,7 @@ export default async function AdminPage() {
         ) : null
       }
     >
-      {!adminPasswordConfigured ? (
+      {!adminAuthenticated ? (
         <AdminWarning title="Admin protection is not configured">
           Set KAMKER_OWNER_ADMIN_PASSWORD, optional KAMKER_MANAGER_ADMIN_PASSWORD,
           and KAMKER_AUTH_SECRET before using admin actions.

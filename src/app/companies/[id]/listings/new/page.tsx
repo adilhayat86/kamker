@@ -1,3 +1,5 @@
+import { PhotoForm, PhotoSaveButton } from "@/components/photo-form";
+import { requireCompanyAccess } from "@/lib/ownership";
 import Link from "next/link";
 import { BriefcaseBusiness, LockKeyhole, PackageCheck } from "lucide-react";
 
@@ -97,6 +99,7 @@ export default async function CompanyListingNewPage({
   searchParams,
 }: CompanyListingNewPageProps) {
   const { id } = await params;
+  await requireCompanyAccess(id);
   const query = await searchParams;
   const status = query?.status;
   const source = query?.source?.trim() ?? "";
@@ -188,7 +191,7 @@ export default async function CompanyListingNewPage({
               <div className="mb-5 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
                 Active package: <span className="font-semibold text-foreground">{activeSubscription.package_title}</span> · Published usage: <span className="font-semibold text-foreground">{usage.published}/{activeSubscription.listings_limit}</span> · Featured usage: <span className="font-semibold text-foreground">{usage.featured}/{activeSubscription.featured_limit}</span>
               </div>
-              <form action={createCompanyListing} className="grid gap-4 sm:grid-cols-2">
+              <PhotoForm action={createCompanyListing} className="grid gap-4 sm:grid-cols-2">
                 <input type="hidden" name="companyId" value={id} />
                 <input type="hidden" name="source" value={source} />
                 <FormField
@@ -253,6 +256,7 @@ export default async function CompanyListingNewPage({
                   label="Staff profile photo"
                   helpText="Choose a photo from phone gallery. Large images are compressed before upload."
                   uploadFolder="company-staff"
+                  companyId={id}
                   uploadTags={["company-staff-photo"]}
                 />
                 <FormField label="Phone optional" name="phone" type="tel" placeholder="0300 1234567" defaultValue={draft.phone} error={phoneError} />
@@ -267,8 +271,8 @@ export default async function CompanyListingNewPage({
                     error={requiredError("description", "Staff profile details are required.")}
                   />
                 </div>
-                <Button className="h-12 sm:col-span-2">Publish Staff Profile</Button>
-              </form>
+                <PhotoSaveButton className="h-12 sm:col-span-2">Publish Staff Profile</PhotoSaveButton>
+              </PhotoForm>
             </CardContent>
           </Card>
         )}

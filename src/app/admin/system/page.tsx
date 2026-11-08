@@ -7,7 +7,6 @@ import {
 } from "@/components/admin/admin-ui";
 import {
   isAdminAuthenticated,
-  isAdminPasswordConfigured,
 } from "@/lib/admin-auth";
 import { getSystemHealth } from "@/lib/admin-data";
 
@@ -18,17 +17,16 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminSystemPage() {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login");
   }
 
   const health = await getSystemHealth();
   const readinessChecks = [
     ["Owner/manager admin password and KAMKER_AUTH_SECRET are set", health.adminAuth],
-    ["NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set", health.supabase],
+    ["Database URL and server-only key are configured", health.supabase],
     ["Required Supabase tables and MVP columns exist", health.databaseSchema],
     ["Supabase proof-images bucket exists for payment receipts", health.storageBuckets],
     ["Cloudinary public media env vars are set", health.cloudinary],
@@ -37,6 +35,7 @@ export default async function AdminSystemPage() {
   ] as const;
   const readyCount = readinessChecks.filter(([, ready]) => ready).length;
   const schemaIssues = [
+    ...health.databaseIssues,
     ...health.missingTables.map((table) => `Missing table: ${table}`),
     ...health.missingColumns.map((column) => `Missing column: ${column}`),
     ...health.missingBuckets.map((bucket) => `Missing storage bucket: ${bucket}`),

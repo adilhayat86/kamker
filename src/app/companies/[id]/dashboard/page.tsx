@@ -1,3 +1,4 @@
+import { requireCompanyAccess } from "@/lib/ownership";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -296,6 +297,7 @@ export default async function CompanyDashboardPage({
   searchParams,
 }: CompanyDashboardPageProps) {
   const { id } = await params;
+  await requireCompanyAccess(id);
   const query = await searchParams;
   const status = query?.status;
   const statusMessage = status ? statusMessages[status] : null;

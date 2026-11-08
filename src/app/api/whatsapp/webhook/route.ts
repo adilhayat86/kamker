@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -17,9 +18,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const payload = await request.json().catch(() => null);
-
-  console.log("WhatsApp webhook payload", JSON.stringify(payload));
-
+  const secret = process.env.WHATSAPP_APP_SECRET;
+  if (!secret) return NextResponse.json({ error: "Webhook unavailable" }, { status: 503 });
+  const body = await request.text();
+  const provided = Buffer.from(request.headers.get("x-hub-signature-256") ?? "");
+  const expected = Buffer.from("sha256=" + createHmac("sha256", secret).update(body).digest("hex"));
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
+  }
   return NextResponse.json({ received: true });
 }

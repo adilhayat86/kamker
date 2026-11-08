@@ -1,3 +1,4 @@
+import { signedProofUrl } from "@/lib/private-proofs";
 export type AiProofReviewResult = {
   readable: boolean;
   detectedAmountPkr: number | null;
@@ -68,6 +69,7 @@ export async function reviewProofWithAi({
     };
   }
 
+  imageUrl = await signedProofUrl(imageUrl, 300);
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
