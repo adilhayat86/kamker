@@ -72,7 +72,6 @@ async function getCompanyListingRoutes() {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
   const staticRoutes = [
     "/",
     "/about",
@@ -96,26 +95,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getCompanyListingRoutes(),
   ]);
 
-  return [
+  const routes = new Set([
     ...staticRoutes,
     ...categoryRoutes,
     ...seoRoutes,
     ...professionalRoutes,
     ...companyRoutes,
     ...companyListingRoutes,
-  ].map((route) => ({
+  ]);
+
+  // No reliable page-update timestamp is available here. Omit lastmod rather
+  // than telling crawlers that every page changed whenever this route runs.
+  return Array.from(routes, (route) => ({
     url: absoluteUrl(route),
-    lastModified: now,
-    changeFrequency: route === "/" ? "daily" : "weekly",
-    priority:
-      route === "/"
-        ? 1
-        : route.startsWith("/part-time")
-          ? 0.9
-          : route.startsWith("/categories") || route.startsWith("/professionals")
-            ? 0.8
-            : route.startsWith("/companies") || route.startsWith("/company-listings")
-              ? 0.6
-              : 0.5,
   }));
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/about" },
   title: "About Kamker | Pakistan Worker Directory",
   description:
     "Kamker helps customers find part time workers and professionals by category and city across Pakistan.",

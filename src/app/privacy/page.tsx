@@ -2,6 +2,7 @@ import { PageNavigation } from "@/components/page-navigation";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata = {
+  alternates: { canonical: "/privacy" },
   title: "Privacy Policy | Kamker",
   description: "How Kamker handles basic marketplace registration and contact data.",
 };

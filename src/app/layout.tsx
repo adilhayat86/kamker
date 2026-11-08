@@ -59,9 +59,6 @@ export const metadata: Metadata = {
       "Find part time workers by category and city across Pakistan.",
     images: ["/kamker-professionals.png"],
   },
-  alternates: {
-    canonical: "/",
-  },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

@@ -599,6 +599,22 @@ export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPage
           />
         </div>
 
+        <Panel title="Worker registrations from Google" eyebrow="Completed worker signups">
+          <p className="text-sm leading-6 text-slate-600">
+            Matches recorded visits to successful worker registrations within 30 minutes, counting each worker once.
+            Paid visits are kept separate. Older events, missing visitor information and signups without a matching entry remain unattributed.
+            These are first-party estimates, not Google Ads conversions.
+          </p>
+          {report.workerAcquisition.contextLimited ? (
+            <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">The event limit was reached for this range. Use a shorter date range for more complete visit matching.</p>
+          ) : null}
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            <MetricCard label="Google organic" value={report.workerAcquisition.googleOrganic} helper="Matched to a recorded Google search entry" icon={Search} tone="green" />
+            <MetricCard label="Paid visits" value={report.workerAcquisition.paid} helper="Excluded from the Google organic count" icon={Target} />
+            <MetricCard label="Unattributed" value={report.workerAcquisition.unattributed} helper="No eligible entry matched to this signup" icon={UserPlus} tone="amber" />
+          </div>
+        </Panel>
+
         <div className="grid gap-4 xl:grid-cols-[1.1fr_.9fr]">
           <Panel title="Registered Subcategories" eyebrow="Which professions got new profiles">
             <RegisteredSubcategories rows={report.registeredSubcategoryBreakdown} />

@@ -15,6 +15,7 @@ import {
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
+  alternates: { canonical: "/categories" },
   title: "All Categories | Kamker",
   description: "Browse all Kamker service categories across Pakistan.",
 };
