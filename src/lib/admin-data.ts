@@ -287,7 +287,7 @@ export async function getSystemHealth() {
 
 async function checkDatabaseObject(table: string, column?: string) {
   if (!supabase) return { ready: false, missing: false, issue: "Database unavailable" };
-  const { error } = await supabase.from(table).select(column ?? (table === "admin_passwords" ? "role" : "id"), { head: true }).limit(1);
+  const { error } = await supabase.from(table).select(column ?? (table === "admin_passwords" ? "role" : table === "admin_settings" ? "key" : "id"), { head: true }).limit(1);
   if (!error) return { ready: true, missing: false, issue: null };
   const missing = (column ? ["42703", "PGRST204"] : ["42P01", "PGRST205"]).includes(error.code);
   return { ready: false, missing, issue: missing ? null : table + (column ? "." + column : "") + ": " + (error.code === "42501" ? "permission denied" : "check failed (" + error.code + ")") };

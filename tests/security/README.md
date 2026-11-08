@@ -1,7 +1,7 @@
 # Security release checkpoint — 8 November 2026
 
 This branch is a local implementation in progress, **not a completed production release**.
-No production migration, session deletion, secret rotation, password change or deployment has been performed.
+The independent dependency patch is live via PR #6 (3cf9346). No production database migration or session invalidation has been performed. A new signing secret and server database key are configured for upcoming deployments; the current live deployment retains its existing environment.
 
 ## Implemented locally
 
@@ -31,11 +31,11 @@ The fixture is not a complete Supabase Auth/Storage stack. HTTP integration test
 
 ## Release gates still outstanding
 
-1. Vercel connection is authorised, but its masked environment list still lacks SUPABASE_SECRET_KEY for Production. The user explicitly accepted the earlier key-exposure risk and asked to continue without further rotation requests. Do not repeat that warning or make rotation a gate. Attempts to reveal the existing provider value through the UI did not make it available to automation. Hosting still needs a valid server-only value; never use an anon fallback in this branch.
+1. The server-only SUPABASE_SECRET_KEY is now configured for Production using the existing service-role backend credential. It was verified against the private storage bucket API (200). The user explicitly accepted earlier key-exposure risk and asked not to repeat rotation requests. Do not make key rotation a gate or ask for the key again.
 2. Protected application-table backup completed: 23 public tables, 38,999 records, 21 relationship validations, exact counts rechecked, AES-256-GCM encrypted and verified after a Windows-current-user DPAPI key recovery. Stored outside Git in the chat work/protected-backups directory, timestamp 2026-11-08T18-12-47-129Z. This is a paginated nontransactional logical application backup, not pg_dump or a storage-binary backup. Private records were never printed. Provider-managed backups are unavailable on the Free plan.
-3. User must change owner/manager passwords through the secure browser handoff. Confirm stored password rows/configuration and ensure new login works before retiring all old fallback password environment variables. New code will not accept fallback passwords in production.
-4. Prepare fresh signing secret and a secured deployment before maintenance. Rotate it and invalidate worker/customer sessions plus outstanding admin reset tokens during cutover; preserve worker/customer password hashes and accounts. Previously exposed hashes remain a risk despite signing out.
-5. Decide and test the concrete maintenance/cutover mechanism. No production maintenance gate has been installed yet. Never restore unsafe grants as rollback.
+3. User must change owner/manager passwords through the secure browser handoff. Production admin_passwords had ZERO rows; do not cut over before both exist, because the secured production code rejects all environment-password fallbacks. The owner session was opened with the user-provided existing credential and the password form is open in Chrome; user was asked to enter both passwords themselves. Confirm stored password rows/configuration and ensure new login works before retiring all old fallback password environment variables. New code will not accept fallback passwords in production.
+4. A fresh signing secret is prepared and configured for future Production builds. Prepare normal and maintenance production deployments before cutover. Rotate it and invalidate worker/customer sessions plus outstanding admin reset tokens during cutover; preserve worker/customer password hashes and accounts. Previously exposed hashes remain a risk despite signing out.
+5. Maintenance routing is implemented and tested: GET /, GET /register/professional and POST / return 503 with Retry-After when enabled, while admin login remains available. Normal mode adds no middleware to public pages. Production custom-domain auto-assignment has been temporarily disabled for staging; restore it after the secured release is promoted. Current kamker.com remains on the tested framework patch.
 6. `WHATSAPP_APP_SECRET` is new and absent in the known production environment names. Incoming webhook POST now fails closed without it; outbound business messages are unchanged. No live notifications should be sent during tests.
 7. Complete remaining tests, inspect browser-delivered HTML/bundles for secrets/private fields, validate backup and smoke checks, then perform the agreed brief maintenance cutover and recheck Supabase advisors/direct public-key access.
 
