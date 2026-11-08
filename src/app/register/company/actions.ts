@@ -1,6 +1,6 @@
 "use server";
 
-import { randomUUID } from "crypto";
+import { requireCustomerAccount } from "@/lib/ownership";
 import { redirect } from "next/navigation";
 
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
@@ -27,6 +27,7 @@ function field(formData: FormData, key: string) {
 }
 
 export async function registerCompany(formData: FormData) {
+  const owner = await requireCustomerAccount("/register/company");
   const companyName = field(formData, "companyName");
   const category = field(formData, "category");
   const city = field(formData, "city");
@@ -126,7 +127,7 @@ export async function registerCompany(formData: FormData) {
   const { data, error } = await supabase
     .from("companies")
     .insert({
-      owner_user_id: randomUUID(),
+      owner_user_id: owner.id,
       company_name: companyName,
       category,
       city,

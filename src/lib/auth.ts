@@ -71,6 +71,7 @@ function hashToken(token: string) {
 }
 
 function signingSecret() {
+  if (process.env.NODE_ENV === "production" && !process.env.KAMKER_AUTH_SECRET) throw new Error("Authentication unavailable");
   return (
     process.env.KAMKER_AUTH_SECRET ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
@@ -380,6 +381,7 @@ export async function clearCustomerSession() {
 }
 
 export async function getSessionProfessional() {
+  if (process.env.NODE_ENV === "production" && !process.env.KAMKER_AUTH_SECRET) return null;
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
 
@@ -396,7 +398,6 @@ export async function getSessionProfessional() {
       !signature ||
       signature !== signLocalSession(professionalId)
     ) {
-      cookieStore.delete(SESSION_COOKIE);
       return null;
     }
 
@@ -416,12 +417,10 @@ export async function getSessionProfessional() {
       console.error("Failed to load professional session", sessionError);
     }
 
-    cookieStore.delete(SESSION_COOKIE);
     return null;
   }
 
   if (new Date(session.expires_at as string) <= new Date()) {
-    await clearProfessionalSession();
     return null;
   }
 
@@ -463,6 +462,7 @@ export async function getSessionProfessional() {
 }
 
 export async function getSessionCustomer() {
+  if (process.env.NODE_ENV === "production" && !process.env.KAMKER_AUTH_SECRET) return null;
   const cookieStore = await cookies();
   const token = cookieStore.get(CUSTOMER_SESSION_COOKIE)?.value;
 
@@ -481,12 +481,10 @@ export async function getSessionCustomer() {
       console.error("Failed to load customer session", sessionError);
     }
 
-    cookieStore.delete(CUSTOMER_SESSION_COOKIE);
     return null;
   }
 
   if (new Date(session.expires_at as string) <= new Date()) {
-    await clearCustomerSession();
     return null;
   }
 
@@ -519,6 +517,7 @@ export async function createPasswordRecoverySession(professionalId: string) {
 }
 
 export async function getRecoveryProfessionalId() {
+  if (process.env.NODE_ENV === "production" && !process.env.KAMKER_AUTH_SECRET) return null;
   const cookieStore = await cookies();
   const recoveryValue = cookieStore.get(RECOVERY_COOKIE)?.value;
   const [professionalId, expiresAtValue, signature] = recoveryValue?.split(":") ?? [];

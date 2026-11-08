@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   isAdminAuthenticated,
-  isAdminPasswordConfigured,
 } from "@/lib/admin-auth";
 import { whatsappHref } from "@/lib/phone";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -152,10 +151,9 @@ export default async function RequirementDetailPage({
   params,
   searchParams,
 }: RequirementDetailPageProps) {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login");
   }
 
@@ -187,7 +185,7 @@ export default async function RequirementDetailPage({
       <section className="mx-auto max-w-5xl">
         <PageNavigation backHref="/admin/requirements" backLabel="Requirements" />
 
-        {!adminPasswordConfigured ? (
+        {!adminAuthenticated ? (
           <DismissibleCard
             className="mt-6 border-amber-200 bg-amber-50 text-amber-950 shadow-sm"
             cardContentClassName="p-4"

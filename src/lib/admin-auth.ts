@@ -89,19 +89,14 @@ async function passwordHashForRole(role: AdminRole) {
 
   if (error) {
     console.error("Failed to load admin password override", error);
-    return null;
+    throw new Error("Admin authentication is unavailable");
   }
 
   return (data as AdminPasswordRow | null)?.password_hash ?? null;
 }
 
 export function isAdminPasswordConfigured() {
-  return Boolean(
-    hasSigningSecret() &&
-      (process.env.KAMKER_OWNER_ADMIN_PASSWORD ||
-        process.env.KAMKER_ADMIN_PASSWORD ||
-        process.env.KAMKER_MANAGER_ADMIN_PASSWORD),
-  );
+  return Boolean(hasSigningSecret() && isSupabaseConfigured);
 }
 
 export function adminOwnerEmail() {
@@ -119,6 +114,7 @@ export async function verifyAdminPassword(role: AdminRole, password: string) {
     return verifySecret(password, storedHash);
   }
 
+  if (process.env.NODE_ENV === "production") return false;
   const configuredPassword = envPasswordForRole(role);
 
   return Boolean(configuredPassword && safeEqual(password, configuredPassword));
@@ -179,7 +175,6 @@ export async function getAdminSessionRole() {
     signature.length !== expectedSignature.length ||
     !safeEqual(signature, expectedSignature)
   ) {
-    await clearAdminSession();
     return null;
   }
 

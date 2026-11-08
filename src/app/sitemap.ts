@@ -61,8 +61,9 @@ async function getCompanyListingRoutes() {
 
   const { data, error } = await supabase
     .from("company_listings")
-    .select("id, title")
+    .select("id, title, companies!inner(verification_status)")
     .eq("status", "approved")
+    .eq("companies.verification_status", "verified")
     .limit(MAX_DYNAMIC_ENTRIES);
 
   if (error || !data) {

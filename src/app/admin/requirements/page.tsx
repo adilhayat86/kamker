@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { isAdminAuthenticated, isAdminPasswordConfigured } from "@/lib/admin-auth";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export const metadata = {
@@ -188,10 +188,9 @@ const selectClassName =
 export default async function AdminRequirementsPage({
   searchParams,
 }: RequirementsPageProps) {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login?next=/admin/requirements");
   }
 
@@ -221,7 +220,7 @@ export default async function AdminRequirementsPage({
         </Button>
       }
     >
-      {!adminPasswordConfigured ? (
+      {!adminAuthenticated ? (
         <AdminWarning title="Admin protection is not configured">
           Set owner/manager admin passwords and KAMKER_AUTH_SECRET before using production admin actions.
         </AdminWarning>

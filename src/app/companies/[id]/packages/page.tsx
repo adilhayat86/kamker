@@ -1,3 +1,4 @@
+import { requireCompanyAccess } from "@/lib/ownership";
 import Link from "next/link";
 import { CheckCircle2, Crown, ListChecks, Star } from "lucide-react";
 
@@ -151,6 +152,7 @@ export default async function CompanyPackagesPage({
   searchParams,
 }: CompanyPackagesPageProps) {
   const { id } = await params;
+  await requireCompanyAccess(id);
   const query = await searchParams;
   const isLocalDemoCompany = id.startsWith("local-company-");
   const [company, packages] = await Promise.all([getCompany(id), getCompanyPackages()]);

@@ -24,7 +24,7 @@ import {
   type RegisteredSubcategoryRow,
   type TimelineRow,
 } from "@/lib/admin-analytics";
-import { isAdminAuthenticated, isAdminPasswordConfigured } from "@/lib/admin-auth";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
@@ -352,10 +352,9 @@ function decisionItems(report: AnalyticsReport) {
 }
 
 export default async function AdminAnalyticsPage({ searchParams }: AnalyticsPageProps) {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login");
   }
 

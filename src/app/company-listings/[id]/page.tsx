@@ -90,9 +90,10 @@ async function getListing(id: string) {
 
   const { data, error } = await supabase
     .from("company_listings")
-    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, age, availability, years_experience, phone, whatsapp, is_featured, companies(id, company_name, verification_status, logo_url)")
+    .select("id, title, service_group, category, city, area, description, hourly_rate, monthly_rate, profile_photo_url, photo_url, tagline, gender, age, availability, years_experience, phone, whatsapp, is_featured, companies!inner(id, company_name, verification_status, logo_url)")
     .eq("id", id)
     .eq("status", "approved")
+    .eq("companies.verification_status", "verified")
     .maybeSingle();
 
   if (error) {

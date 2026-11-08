@@ -1,3 +1,4 @@
+import { PhotoForm } from "@/components/photo-form";
 import { redirect } from "next/navigation";
 import type { InputHTMLAttributes } from "react";
 import { UserCog } from "lucide-react";
@@ -338,13 +339,8 @@ export default async function EditAccountPage({
 
         <Card className="mt-6 bg-white shadow-sm">
           <CardContent className="p-5">
-            <form action={updateProfessionalProfile} className="grid gap-6" noValidate>
+            <PhotoForm action={updateProfessionalProfile} className="grid gap-6" noValidate>
               <RegistrationErrorFocus errors={Array.from(failedFields)} />
-              <input
-                type="hidden"
-                name="profilePhotoUrl"
-                value={dbProfessional?.profile_photo_url ?? ""}
-              />
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <p className="text-sm font-semibold uppercase tracking-normal text-primary">
@@ -570,7 +566,7 @@ export default async function EditAccountPage({
               </div>
 
               <CompleteProfileSubmitButton disabled={isDemo} />
-            </form>
+            </PhotoForm>
           </CardContent>
         </Card>
       </section>

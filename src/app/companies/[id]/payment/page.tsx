@@ -1,3 +1,4 @@
+import { requireCompanyAccess } from "@/lib/ownership";
 import Link from "next/link";
 import { MessageCircle, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -113,6 +114,7 @@ export default async function CompanyPaymentPage({
   searchParams,
 }: CompanyPaymentPageProps) {
   const { id } = await params;
+  await requireCompanyAccess(id);
   const query = await searchParams;
   const packageKey = query?.package ?? "";
 

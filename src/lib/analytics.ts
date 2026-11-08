@@ -2,6 +2,9 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type TrackEventInput = {
   eventType:
+    | "photo_upload_attempt"
+    | "photo_upload_failure"
+    | "photo_attached"
     | "search"
     | "view"
     | "worker_registration"

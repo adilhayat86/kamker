@@ -1,4 +1,5 @@
 "use server";
+import { privateProofUrl } from "@/lib/private-proofs";
 
 import { randomUUID } from "node:crypto";
 
@@ -102,9 +103,7 @@ export async function submitFeaturedProfileProof(formData: FormData) {
     redirect("/account/featured?status=upload-error");
   }
 
-  const { data: publicUrlData } = supabase.storage
-    .from("proof-images")
-    .getPublicUrl(filePath);
+  const publicUrlData = { publicUrl: privateProofUrl(filePath) };
 
   const imageUrl = publicUrlData.publicUrl;
   const review = await reviewProofWithAi({

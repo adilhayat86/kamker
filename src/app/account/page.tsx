@@ -39,7 +39,8 @@ export const metadata = {
 };
 
 const statusMessages = {
-  updated: "Profile updated successfully.",
+  updated: "Profile saved successfully.",
+  "photo-saved": "Photo uploaded and profile saved successfully.",
   registered: "You are registered and logged in.",
   "registered-photo-skipped":
     "You are registered and logged in, but the photo could not be saved. You can add it later from Complete Profile.",

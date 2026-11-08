@@ -1,3 +1,4 @@
+import { requireCustomerAccount } from "@/lib/ownership";
 import Link from "next/link";
 import { Building2, ShieldCheck } from "lucide-react";
 
@@ -71,6 +72,7 @@ type CompanyDraft = {
 export default async function CompanyRegisterPage({
   searchParams,
 }: CompanyRegisterPageProps) {
+  await requireCustomerAccount("/register/company");
   const params = await searchParams;
   const status = params?.status;
   const companyId = params?.companyId;

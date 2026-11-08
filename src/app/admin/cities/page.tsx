@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   isAdminAuthenticated,
-  isAdminPasswordConfigured,
 } from "@/lib/admin-auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -47,10 +46,9 @@ async function getAdminCities() {
 }
 
 export default async function AdminCitiesPage() {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login");
   }
 

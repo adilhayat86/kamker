@@ -18,7 +18,6 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   isAdminAuthenticated,
-  isAdminPasswordConfigured,
 } from "@/lib/admin-auth";
 import { getAdminCountSummary } from "@/lib/admin-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -104,10 +103,9 @@ function featuredUntilLabel(value: string | null) {
 }
 
 export default async function AdminFeaturedPage() {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login");
   }
 

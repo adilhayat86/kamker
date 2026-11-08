@@ -1,3 +1,5 @@
+import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { notFound } from "next/navigation";
 import { Bot, UploadCloud } from "lucide-react";
 
 import { DismissibleNotice } from "@/components/dismissible-notice";
@@ -27,6 +29,7 @@ type ProofUploadPageProps = {
 };
 
 export default async function ProofUploadPage({ searchParams }: ProofUploadPageProps) {
+  if (!(await isAdminAuthenticated())) notFound();
   const query = await searchParams;
   const status = query?.status;
   const statusMessage = status ? statusMessages[status] : null;

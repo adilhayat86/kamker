@@ -1,5 +1,7 @@
 "use server";
 
+import { requireCompanyAccess } from "@/lib/ownership";
+
 import { redirect } from "next/navigation";
 
 import { trackAnalyticsEvent } from "@/lib/analytics";
@@ -7,7 +9,8 @@ import {
   getActiveCompanySubscription,
   getPublishedCompanyListingUsage,
 } from "@/lib/company-packages";
-import { uploadCompanyStaffPhoto } from "@/lib/company-media";
+import { verifyPhotoIntent, recordPhotoAttachment } from "@/lib/photo-intents";
+import { getSessionProfessional, getSessionCustomer } from "@/lib/auth";
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import {
   getLocalCompanyRecordById,
@@ -63,6 +66,7 @@ async function clearCompanyListingDraft(companyId: string) {
 
 export async function createCompanyListing(formData: FormData) {
   const companyId = field(formData, "companyId");
+  await requireCompanyAccess(companyId);
   const title = field(formData, "title");
   const serviceGroup = field(formData, "serviceGroup");
   const category = field(formData, "category");
@@ -209,22 +213,14 @@ export async function createCompanyListing(formData: FormData) {
     redirect(`/companies/${companyId}/listings/new?status=quota-full`);
   }
 
-  const browserUploadedPhotoUrl = field(formData, "profilePhotoUrl");
-  let uploadedStaffPhoto: Awaited<ReturnType<typeof uploadCompanyStaffPhoto>> = null;
-
-  if (!browserUploadedPhotoUrl) {
-    try {
-      uploadedStaffPhoto = await uploadCompanyStaffPhoto(formData, companyId);
-    } catch (error) {
-      await saveCompanyListingDraft(companyId, draft);
-      redirect(
-        error instanceof Error && error.message === "invalid-company-media"
-          ? `/companies/${companyId}/listings/new?status=invalid-photo`
-          : `/companies/${companyId}/listings/new?status=photo-error`,
-      );
-    }
+  const photoIntentId = field(formData, "photoIntentId");
+  let browserUploadedPhotoUrl: string | null = null;
+  if (photoIntentId) {
+    const owner = (await getSessionProfessional()) ?? (await getSessionCustomer());
+    if (!owner) redirect("/login");
+    try { browserUploadedPhotoUrl = (await verifyPhotoIntent(photoIntentId, owner.id, "company-staff")).url; }
+    catch { redirect(draftPath(companyId) + "?status=photo-error"); }
   }
-
   const { data: listing, error } = await supabase
     .from("company_listings")
     .insert({
@@ -242,7 +238,7 @@ export async function createCompanyListing(formData: FormData) {
       description,
       hourly_rate: hourlyRate,
       monthly_rate: monthlyRate,
-      profile_photo_url: browserUploadedPhotoUrl || uploadedStaffPhoto?.publicUrl || null,
+      profile_photo_url: browserUploadedPhotoUrl || null,
       phone: phone || null,
       whatsapp: whatsapp || null,
       status: "pending",
@@ -284,6 +280,10 @@ export async function createCompanyListing(formData: FormData) {
     listing.id as string,
   );
 
+  if (photoIntentId) {
+    const owner = (await getSessionProfessional()) ?? (await getSessionCustomer());
+    if (owner) await recordPhotoAttachment(photoIntentId, owner.id);
+  }
   await clearCompanyListingDraft(companyId);
   redirect(`/companies/${companyId}/dashboard?status=staff-profile-submitted`);
 }

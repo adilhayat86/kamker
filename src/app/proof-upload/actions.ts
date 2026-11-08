@@ -1,4 +1,8 @@
 "use server";
+import { privateProofUrl } from "@/lib/private-proofs";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { notFound } from "next/navigation";
+
 
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
@@ -18,6 +22,7 @@ function numericField(formData: FormData, key: string) {
 }
 
 export async function submitProofForReview(formData: FormData) {
+  if (!(await isAdminAuthenticated())) notFound();
   const reviewType = field(formData, "reviewType") || "general";
   const relatedId = field(formData, "relatedId");
   const expectedAmountPkr = numericField(formData, "expectedAmountPkr");
@@ -47,9 +52,7 @@ export async function submitProofForReview(formData: FormData) {
     redirect("/proof-upload?status=upload-error");
   }
 
-  const { data: publicUrlData } = supabase.storage
-    .from("proof-images")
-    .getPublicUrl(filePath);
+  const publicUrlData = { publicUrl: privateProofUrl(filePath) };
 
   const imageUrl = publicUrlData.publicUrl;
   const review = await reviewProofWithAi({ imageUrl, expectedAmountPkr });

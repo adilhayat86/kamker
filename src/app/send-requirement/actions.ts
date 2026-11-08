@@ -175,6 +175,7 @@ export async function submitRequirement(formData: FormData) {
     .from("requirements")
     .insert({
       customer_id: customer?.id ?? null,
+      professional_id: professional?.id ?? null,
       required_service: requiredService,
       city_id: cityId,
       area: area || null,

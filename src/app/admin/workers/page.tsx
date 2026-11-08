@@ -25,7 +25,6 @@ import { Button } from "@/components/ui/button";
 import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import {
   isAdminAuthenticated,
-  isAdminPasswordConfigured,
 } from "@/lib/admin-auth";
 import { pakistanMobileNormalizedDigits } from "@/lib/phone";
 import { fallbackProfessionalImage } from "@/lib/professional-photo";
@@ -361,10 +360,9 @@ function WorkerCard({
 }
 
 export default async function AdminWorkersPage({ searchParams }: WorkersPageProps) {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login");
   }
 

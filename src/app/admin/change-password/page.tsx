@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   getAdminSessionRole,
   isAdminAuthenticated,
-  isAdminPasswordConfigured,
 } from "@/lib/admin-auth";
 
 import { changeAdminPassword } from "../login/actions";
@@ -35,10 +34,9 @@ type ChangeAdminPasswordPageProps = {
 export default async function ChangeAdminPasswordPage({
   searchParams,
 }: ChangeAdminPasswordPageProps) {
-  const adminPasswordConfigured = isAdminPasswordConfigured();
   const adminAuthenticated = await isAdminAuthenticated();
 
-  if (adminPasswordConfigured && !adminAuthenticated) {
+  if (!adminAuthenticated) {
     redirect("/admin/login");
   }
 

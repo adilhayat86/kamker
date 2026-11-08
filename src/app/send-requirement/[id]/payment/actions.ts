@@ -1,10 +1,11 @@
 "use server";
+import { privateProofUrl } from "@/lib/private-proofs";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { canAutoApproveProof, reviewProofWithAi } from "@/lib/ai-proof-review";
-import { getSessionCustomer, getSessionProfessional } from "@/lib/auth";
+import { requireRequirementAccess } from "@/lib/ownership";
 import {
   calculateRequirementBroadcastAmountPkr,
   getRequirementBroadcastRecipientCount,
@@ -50,18 +51,6 @@ function redirectToPayment(requirementId: string, status: string): never {
   redirect(`/send-requirement/${requirementId}/payment?status=${status}`);
 }
 
-async function requireLoggedIn(requirementId: string) {
-  const [professional, customer] = await Promise.all([
-    getSessionProfessional(),
-    getSessionCustomer(),
-  ]);
-
-  if (!professional && !customer) {
-    redirect(
-      `/login?status=login-required&next=${encodeURIComponent(`/send-requirement/${requirementId}/payment`)}`,
-    );
-  }
-}
 
 async function getOrCreateRecipientCount(requirement: RequirementPaymentContext) {
   const result = await getRequirementBroadcastRecipientCount(requirement.id);
@@ -132,7 +121,7 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
     redirect("/send-requirement?status=error");
   }
 
-  await requireLoggedIn(requirementId);
+  await requireRequirementAccess(requirementId);
 
   if (
     !paymentMethod ||
@@ -220,9 +209,7 @@ export async function submitRequirementBroadcastPayment(formData: FormData) {
     redirectToPayment(requirementId, "upload-error");
   }
 
-  const { data: publicUrlData } = db.storage
-    .from("proof-images")
-    .getPublicUrl(filePath);
+  const publicUrlData = { publicUrl: privateProofUrl(filePath) };
 
   await db
     .from("requirement_broadcast_payments")
@@ -263,7 +250,7 @@ export async function verifyRequirementReceipt(formData: FormData) {
     redirect("/send-requirement?status=error");
   }
 
-  await requireLoggedIn(requirementId);
+  await requireRequirementAccess(requirementId);
 
   if (!isSupabaseConfigured || !supabase) {
     redirectToPayment(requirementId, "not-configured");
@@ -399,7 +386,7 @@ export async function sendVerifiedRequirementBroadcast(formData: FormData) {
     redirect("/send-requirement?status=error");
   }
 
-  await requireLoggedIn(requirementId);
+  await requireRequirementAccess(requirementId);
 
   if (!isSupabaseConfigured || !supabase) {
     redirectToPayment(requirementId, "not-configured");
