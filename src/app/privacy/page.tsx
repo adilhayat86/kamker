@@ -27,6 +27,26 @@ export default function PrivacyPage() {
               <p>
                 Kamker does not sell weapons, act as an agency, or guarantee any worker or customer. Users should verify details before contacting or hiring.
               </p>
+              <h2 className="text-lg font-semibold text-foreground">Cookies and measurement</h2>
+              <p>
+                Kamker uses first-party cookies to keep accounts signed in and browser storage to measure visits and registration activity. When Google Ads measurement is enabled, Google may use advertising cookies and ad-click identifiers to measure successful worker registrations.
+              </p>
+              <p>
+                Kamker&apos;s conversion-event payloads do not include phone numbers, email addresses, CNIC numbers, passwords, payment receipts, or message text. Registration events use a random transaction identifier to avoid counting the same signup again.
+              </p>
+              <h2 className="text-lg font-semibold text-foreground">Advertising choices</h2>
+              <p>
+                If display advertising is enabled, third-party vendors, including Google, may use cookies to serve ads based on prior visits to this or other websites. Google&apos;s advertising cookies may allow Google and its partners to personalize those ads.
+                You can manage personalized advertising through{" "}
+                <a href="https://myadcenter.google.com/" className="font-semibold text-primary underline" target="_blank" rel="noreferrer">Google My Ad Center</a>{" "}
+                or visit{" "}
+                <a href="https://www.aboutads.info/choices/" className="font-semibold text-primary underline" target="_blank" rel="noreferrer">industry advertising choices</a>.
+              </p>
+              <p>
+                For questions about your Kamker data, use the{" "}
+                <a href="/contact" className="font-semibold text-primary underline">Contact Us page</a>.
+                Workers can update their public details from their account.
+              </p>
             </div>
           </CardContent>
         </Card>

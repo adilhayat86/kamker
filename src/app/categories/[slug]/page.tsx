@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin } from "lucide-react";
 
 import { BroadcastRequirementCta } from "@/components/broadcast-requirement-cta";
 import { CategoryGrid } from "@/components/category-grid";
+import { DirectoryEmptyState } from "@/components/directory-empty-state";
 import { KamkerLogo } from "@/components/kamker-logo";
 import { ProfessionalCard } from "@/components/professional-card";
 import { Badge } from "@/components/ui/badge";
@@ -516,15 +517,7 @@ export default async function CategoryDetailPage({
                 ))}
               </div>
             ) : (
-              <Card className="mt-5 bg-white shadow-sm">
-                <CardContent className="p-5">
-                  <p className="font-semibold">No visible profiles yet</p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Approved professionals will appear here. You can still send a
-                    requirement so Kamker can match it when profiles are available.
-                  </p>
-                </CardContent>
-              </Card>
+              <DirectoryEmptyState category={category?.name ?? dbCategory?.name ?? pageName} city={city} />
             )}
           </section>
         ) : null}

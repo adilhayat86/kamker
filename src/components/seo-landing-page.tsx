@@ -119,7 +119,7 @@ export function SeoLandingPageView({ page }: SeoLandingPageViewProps) {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <section className="kamker-ad-section mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <AdBanner label="Reserved ad space for local services" />
       </section>
 

@@ -27,6 +27,12 @@ export default function TermsPage() {
               <p>
                 Company packages control how many company-managed staff profiles can be published. Package activation depends on payment proof review and the current Kamker package rules.
               </p>
+              <p>
+                Browsing and worker registration are free. Send Requirement outreach, featured profiles, and company packages are optional paid services. Review the displayed price and recipient count before submitting payment. Payment verification does not guarantee replies, worker availability, or a completed hire.
+              </p>
+              <p>
+                Availability and rates are provided by workers or companies and may change. Agree on the scope, rate, timing, and payment directly with the provider before work begins. Contact Kamker through the Contact Us page for marketplace or payment-review questions.
+              </p>
             </div>
           </CardContent>
         </Card>

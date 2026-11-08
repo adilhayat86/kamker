@@ -59,6 +59,11 @@ body {
   color: var(--foreground);
 }
 
+html[data-kamker-paid-visit="true"] .kamker-ad-slot,
+html[data-kamker-paid-visit="true"] .kamker-ad-section {
+  display: none;
+}
+
 ::selection {
   background: #c7ecff;
   color: #082f49;

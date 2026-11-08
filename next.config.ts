@@ -34,6 +34,12 @@ remotePatterns.push({
 });
 
 const sharedConfig: NextConfig = {
+  async redirects() {
+    return [
+      { source: "/privacy-policy", destination: "/privacy", permanent: true },
+      { source: "/terms-of-service", destination: "/terms", permanent: true },
+    ];
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "12mb",

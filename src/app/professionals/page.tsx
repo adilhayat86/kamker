@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { ContactActionButton } from "@/components/contact-action-button";
+import { DirectoryEmptyState } from "@/components/directory-empty-state";
 import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import { ProfessionalCard } from "@/components/professional-card";
 import { PageNavigation } from "@/components/page-navigation";
@@ -1220,85 +1221,78 @@ export default async function ProfessionalsPage({
         ) : null}
 
         {totalVisibleProfessionals === 0 ? (
-          <div className="mt-6 rounded-lg border border-dashed bg-white p-6 text-sm text-muted-foreground">
-            <p>No professionals found. Try changing filters.</p>
-            <p className="mt-2 text-xs font-medium text-slate-500">
-              Paid outreach can still be requested after Kamker reviews your
-              details.
-            </p>
-            <Button asChild className="mt-4 h-11 w-full sm:w-auto" variant="outline">
-              <Link href={sendRequirementHref}>
-                <Send aria-hidden="true" />
-                Send Requirement anyway
-              </Link>
-            </Button>
-          </div>
+          <DirectoryEmptyState category={category || categoryFromSearchIntent(effectiveSearchQuery) || undefined} city={effectiveCity || undefined} />
         ) : null}
 
-        <section className="mt-8">
-          <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-            Featured professionals
-          </p>
-          <h2 className="mt-1 text-2xl font-bold tracking-normal">
-            Active featured profiles
-          </h2>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredCompanyProfessionals.map((professional) => (
-              <ProfessionalCard
-                key={professional.id}
-                professional={professional}
-                featured
-              />
-            ))}
-            {featuredDbProfessionals.map((professional) => (
-              <ConversionProfessionalCard
-                key={professional.id}
-                professional={professional}
-                featured
-              />
-            ))}
-            {!hasDbProfessionals
-              ? featuredDemoProfessionals.map((professional) => (
+        {totalVisibleProfessionals > 0 ? (
+          <>
+            <section className="mt-8">
+              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                Featured professionals
+              </p>
+              <h2 className="mt-1 text-2xl font-bold tracking-normal">
+                Active featured profiles
+              </h2>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {featuredCompanyProfessionals.map((professional) => (
                   <ProfessionalCard
                     key={professional.id}
                     professional={professional}
                     featured
                   />
-                ))
-              : null}
-          </div>
-        </section>
+                ))}
+                {featuredDbProfessionals.map((professional) => (
+                  <ConversionProfessionalCard
+                    key={professional.id}
+                    professional={professional}
+                    featured
+                  />
+                ))}
+                {!hasDbProfessionals
+                  ? featuredDemoProfessionals.map((professional) => (
+                      <ProfessionalCard
+                        key={professional.id}
+                        professional={professional}
+                        featured
+                      />
+                    ))
+                  : null}
+              </div>
+            </section>
 
-        <section className="mt-10">
-          <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-            Directory
-          </p>
-          <h2 className="mt-1 text-2xl font-bold tracking-normal">
-            Regular profiles
-          </h2>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {regularCompanyProfessionals.map((professional) => (
-              <ProfessionalCard
-                key={professional.id}
-                professional={professional}
-              />
-            ))}
-            {regularDbProfessionals.map((professional) => (
-              <ConversionProfessionalCard
-                key={professional.id}
-                professional={professional}
-              />
-            ))}
-            {!hasDbProfessionals
-              ? regularDemoProfessionals.map((professional) => (
+            <section className="mt-10">
+              <p className="text-sm font-semibold uppercase tracking-normal text-primary">
+                Directory
+              </p>
+              <h2 className="mt-1 text-2xl font-bold tracking-normal">
+                Regular profiles
+              </h2>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {regularCompanyProfessionals.map((professional) => (
                   <ProfessionalCard
                     key={professional.id}
                     professional={professional}
                   />
-                ))
-              : null}
-          </div>
-        </section>
+                ))}
+                {regularDbProfessionals.map((professional) => (
+                  <ConversionProfessionalCard
+                    key={professional.id}
+                    professional={professional}
+                  />
+                ))}
+                {!hasDbProfessionals
+                  ? regularDemoProfessionals.map((professional) => (
+                      <ProfessionalCard
+                        key={professional.id}
+                        professional={professional}
+                      />
+                    ))
+                  : null}
+              </div>
+            </section>
+
+          </>
+        ) : null}
 
         {hasDbProfessionals && totalPages > 1 ? (
           <nav className="mt-8 flex items-center justify-between gap-3 rounded-lg bg-white p-3 text-sm shadow-sm">

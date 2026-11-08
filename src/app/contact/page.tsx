@@ -9,12 +9,9 @@ export const metadata = {
   description: "Contact Kamker for worker, company, and marketplace support.",
 };
 
-const supportWhatsappNumber =
-  process.env.NEXT_PUBLIC_KAMKER_SUPPORT_WHATSAPP || "923000000000";
+const supportEmail = process.env.NEXT_PUBLIC_KAMKER_SUPPORT_EMAIL?.trim() || "adilhayatkamker@gmail.com";
 
 export default function ContactPage() {
-  const whatsappHref = `https://wa.me/${supportWhatsappNumber.replace(/\D/g, "")}`;
-
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-3xl">
@@ -30,12 +27,13 @@ export default function ContactPage() {
             </p>
             <div className="mt-5 grid gap-3 sm:flex">
               <Button asChild className="h-12">
-                <a href={whatsappHref}>WhatsApp Support</a>
+                <a href={`mailto:${supportEmail}`}>Email Support</a>
               </Button>
               <Button asChild variant="outline" className="h-12">
                 <Link href="/categories">Browse Categories</Link>
               </Button>
             </div>
+            <p className="mt-4 break-all text-sm text-muted-foreground">{supportEmail}</p>
           </CardContent>
         </Card>
       </section>

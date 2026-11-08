@@ -28,6 +28,7 @@ import {
   trackRegistrationSuccess,
 } from "@/lib/registration-analytics";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { markRegistrationConversion } from "@/lib/registration-conversion";
 import { findOrCreateCategoryId, findOrCreateCityId } from "@/lib/taxonomy";
 import {
   parseWorkerAge,
@@ -185,6 +186,7 @@ export async function registerProfessional(formData: FormData) {
       await clearFormDraft("professional");
       if (professional) {
         await createProfessionalSession(professional.id);
+        await markRegistrationConversion(professional.id);
         await trackRegistrationSuccess(
           formData,
           "professional",
@@ -318,6 +320,7 @@ export async function registerProfessional(formData: FormData) {
   });
 
   await createProfessionalSession(professional.id as string);
+  await markRegistrationConversion(professional.id as string);
   await clearFormDraft("professional");
   redirect("/account?status=registered");
 }

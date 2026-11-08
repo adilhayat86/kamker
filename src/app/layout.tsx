@@ -3,15 +3,19 @@ import Script from "next/script";
 import { Suspense } from "react";
 
 import { AnalyticsPageView } from "@/components/analytics-page-view";
+import { AdDisplay } from "@/components/ad-display";
 import { RegistrationSubmitGuard } from "@/components/form-submit-guard";
 import { GlobalMenu } from "@/components/global-menu";
 import { RegistrationClickTracker } from "@/components/registration-analytics";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
+import { SiteFooter } from "@/components/site-footer";
+import { updateAdDisplay } from "@/lib/ad-display";
+import { googleAdsTagId } from "@/lib/google-ads";
 
 import "./globals.css";
 
 const siteUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://kamker.com");
-const googleAdsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
+const googleAdsId = googleAdsTagId();
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
@@ -88,7 +92,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          id="kamker-ad-display"
+          dangerouslySetInnerHTML={{ __html: `(${updateAdDisplay.toString()})();` }}
+        />
+      </head>
       <body className="font-sans">
         {googleAdsId ? (
           <>
@@ -96,7 +106,7 @@ export default function RootLayout({
               src={`https://www.googletagmanager.com/gtag/js?id=${googleAdsId}`}
               strategy="afterInteractive"
             />
-            <Script id="google-ads-tag" strategy="afterInteractive">
+            <Script id="google-ads-tag" strategy="beforeInteractive">
               {`
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
@@ -107,6 +117,7 @@ export default function RootLayout({
           </>
         ) : null}
         <Suspense fallback={null}>
+          <AdDisplay />
           <AnalyticsPageView />
           <RegistrationClickTracker />
           <RegistrationSubmitGuard />
@@ -114,6 +125,7 @@ export default function RootLayout({
         <ServiceWorkerRegistration />
         <GlobalMenu />
         {children}
+        <SiteFooter />
       </body>
     </html>
   );
