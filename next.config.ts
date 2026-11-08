@@ -36,6 +36,7 @@ remotePatterns.push({
 const sharedConfig: NextConfig = {
   async redirects() {
     return [
+      { source: "/add-provider", destination: "/register/professional", permanent: true },
       { source: "/privacy-policy", destination: "/privacy", permanent: true },
       { source: "/terms-of-service", destination: "/terms", permanent: true },
     ];

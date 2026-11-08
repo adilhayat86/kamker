@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Building2, CheckCircle2, MessageCircle, Search, UserRoundPlus } from "lucide-react";
 
 import { PageNavigation } from "@/components/page-navigation";
+import { WorkerRegistrationCta } from "@/components/worker-registration-cta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -70,12 +71,14 @@ export default function AboutPage() {
               <Link href="/categories">Browse Categories</Link>
             </Button>
             <Button asChild variant="outline" className="h-12">
-              <Link href="/register">Register</Link>
+              <Link href="/register">Company and customer registration</Link>
             </Button>
           </div>
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2">
+        <WorkerRegistrationCta />
+
+        <section className="mt-8 grid gap-4 sm:grid-cols-2">
           {highlights.map((item) => {
             const Icon = item.icon;
 
