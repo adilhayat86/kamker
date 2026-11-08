@@ -90,26 +90,23 @@ export async function generateMetadata({ params }: ProfessionalProfilePageProps)
   const name = dbProfessional?.full_name ?? demoProfessional?.name;
   const role = dbProfessional?.categories?.name ?? demoProfessional?.role ?? "Professional";
   const city = dbProfessional?.cities?.name ?? demoProfessional?.city ?? "Pakistan";
-  const tagline =
-    dbProfessional?.tagline?.trim() ||
-    demoProfessional?.tagline?.trim() ||
-    "Trusted local professional";
-  const description = `${tagline}. ${role} in ${city} on Kamker. Contact directly by call or WhatsApp where available.`;
+  const title = name ? `${name} | ${role} in ${city} | Kamker` : "Professional Profile | Kamker";
+  const description = name
+    ? `View ${name}'s ${role} profile in ${city} on Kamker. Review service details and availability, then contact the worker using the details provided.`
+    : "Browse worker profiles by profession and city on Kamker.";
   const canonicalPath = dbProfessional
     ? `/professionals/${buildProfileSlug(dbProfessional.full_name, dbProfessional.id)}`
     : `/professionals/${rawParam}`;
   const image = dbProfessional?.profile_photo_url || undefined;
 
   return {
-    title: name
-      ? `${name} - ${tagline} | Kamker`
-      : "Professional Profile | Kamker",
+    title,
     description,
     alternates: {
       canonical: canonicalPath,
     },
     openGraph: {
-      title: name ? `${name} | Kamker` : "Professional Profile | Kamker",
+      title,
       description,
       url: canonicalPath,
       type: "profile",
@@ -117,7 +114,7 @@ export async function generateMetadata({ params }: ProfessionalProfilePageProps)
     },
     twitter: {
       card: image ? "summary_large_image" : "summary",
-      title: name ? `${name} | Kamker` : "Professional Profile | Kamker",
+      title,
       description,
       images: image ? [image] : undefined,
     },

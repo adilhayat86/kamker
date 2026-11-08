@@ -7,6 +7,7 @@ import { CategoryGrid } from "@/components/category-grid";
 import { DirectoryEmptyState } from "@/components/directory-empty-state";
 import { KamkerLogo } from "@/components/kamker-logo";
 import { ProfessionalCard } from "@/components/professional-card";
+import { WorkerRegistrationCta } from "@/components/worker-registration-cta";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -458,6 +459,8 @@ export default async function CategoryDetailPage({
             {[area, city].filter(Boolean).join(", ")}
           </div>
         ) : null}
+
+        <WorkerRegistrationCta />
 
         <BroadcastRequirementCta
           count={recipientCount}

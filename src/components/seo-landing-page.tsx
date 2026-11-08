@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2, MapPin, Search, UserPlus } from "lucide-react";
 
 import { AdBanner } from "@/components/ad-banner";
+import { CityWorkerPreviews } from "@/components/city-worker-previews";
+import { WorkerRegistrationCta } from "@/components/worker-registration-cta";
 import { KamkerLogo } from "@/components/kamker-logo";
 import { PageNavigation } from "@/components/page-navigation";
 import { Badge } from "@/components/ui/badge";
@@ -119,6 +121,12 @@ export function SeoLandingPageView({ page }: SeoLandingPageViewProps) {
         </div>
       </section>
 
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <WorkerRegistrationCta />
+      </section>
+
+      {page.focusCity ? <CityWorkerPreviews city={page.focusCity} category={page.focusCategory} directoryHref={page.primaryHref} /> : null}
+
       <section className="kamker-ad-section mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <AdBanner label="Reserved ad space for local services" />
       </section>
@@ -219,9 +227,9 @@ export function SeoLandingPageView({ page }: SeoLandingPageViewProps) {
               </Link>
             </Button>
             <Button asChild variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/10">
-              <Link href="/register">
+              <Link href="/register/professional">
                 <UserPlus aria-hidden="true" />
-                Register
+                Register as worker
               </Link>
             </Button>
           </div>

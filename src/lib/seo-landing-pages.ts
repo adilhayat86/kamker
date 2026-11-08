@@ -160,7 +160,7 @@ export const partTimeWorkerPages: SeoLandingPage[] = [
     faqs: defaultFaqs,
     primaryHref: "/professionals",
     primaryLabel: "Browse workers",
-    secondaryHref: "/register",
+    secondaryHref: "/register/professional",
     secondaryLabel: "Register as worker",
     relatedCategories: commonCategories,
   },

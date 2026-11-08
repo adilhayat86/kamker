@@ -130,6 +130,7 @@ export default async function ProfessionalRegisterPage({
           Create your free worker profile on Kamker so customers can find your skills
           and contact you. Kamker does not charge commission from workers.
         </p>
+        <p className="mt-3 text-sm"><Link href="/worker-guides/create-worker-profile" className="font-semibold text-primary underline underline-offset-4">Need help? Read the worker registration guide</Link>.</p>
         <div className="mt-5 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
           <div className="flex gap-3">
             <Info className="mt-0.5 size-5 shrink-0" aria-hidden="true" />

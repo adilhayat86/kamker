@@ -6,6 +6,7 @@ import {
   parentCategories,
 } from "@/lib/marketplace-data";
 import { seoLandingPages } from "@/lib/seo-landing-pages";
+import { workerGuides } from "@/lib/worker-guides";
 import { buildProfileSlug } from "@/lib/slug";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -75,6 +76,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
     "/",
     "/about",
+    "/worker-guides",
     "/categories",
     "/professionals",
     "/register",
@@ -99,6 +101,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticRoutes,
     ...categoryRoutes,
     ...seoRoutes,
+    ...workerGuides.map((guide) => `/worker-guides/${guide.slug}`),
     ...professionalRoutes,
     ...companyRoutes,
     ...companyListingRoutes,

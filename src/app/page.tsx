@@ -243,7 +243,7 @@ export default async function HomePage() {
 
       <section className="relative">
         <div className="absolute inset-0 -z-10">
-          <Image src="/kamker-professionals.png" alt="Pakistani service professionals ready for work" fill priority sizes="100vw" className="object-cover object-center opacity-40" />
+          <Image src="/kamker-professionals.png" alt="Pakistani service professionals ready for work" fill priority fetchPriority="high" sizes="100vw" className="object-cover object-center opacity-40" />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(251,251,247,0.98)_0%,rgba(251,251,247,0.92)_42%,rgba(251,251,247,0.58)_100%)]" />
         </div>
         <div className="mx-auto grid min-h-[164px] max-w-7xl content-center px-4 py-4 sm:min-h-[380px] sm:px-6 lg:px-8">
