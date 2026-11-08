@@ -10,7 +10,7 @@ import {
   getPublishedCompanyListingUsage,
 } from "@/lib/company-packages";
 import { verifyPhotoIntent, recordPhotoAttachment } from "@/lib/photo-intents";
-import { getSessionProfessional, getSessionCustomer } from "@/lib/auth";
+import { getPhotoActor } from "@/lib/photo-actor";
 import { clearFormDraft, saveFormDraft } from "@/lib/form-draft";
 import {
   getLocalCompanyRecordById,
@@ -216,7 +216,7 @@ export async function createCompanyListing(formData: FormData) {
   const photoIntentId = field(formData, "photoIntentId");
   let browserUploadedPhotoUrl: string | null = null;
   if (photoIntentId) {
-    const owner = (await getSessionProfessional()) ?? (await getSessionCustomer());
+    const owner = await getPhotoActor("company-staff");
     if (!owner) redirect("/login");
     try { browserUploadedPhotoUrl = (await verifyPhotoIntent(photoIntentId, owner.id, "company-staff")).url; }
     catch { redirect(draftPath(companyId) + "?status=photo-error"); }
@@ -281,8 +281,8 @@ export async function createCompanyListing(formData: FormData) {
   );
 
   if (photoIntentId) {
-    const owner = (await getSessionProfessional()) ?? (await getSessionCustomer());
-    if (owner) await recordPhotoAttachment(photoIntentId, owner.id);
+    const owner = await getPhotoActor("company-staff");
+    if (owner) await recordPhotoAttachment(photoIntentId, owner.id, owner.targetType);
   }
   await clearCompanyListingDraft(companyId);
   redirect(`/companies/${companyId}/dashboard?status=staff-profile-submitted`);

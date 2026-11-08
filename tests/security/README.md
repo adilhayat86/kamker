@@ -24,15 +24,15 @@ No production migration, session deletion, secret rotation, password change or d
 - The boundary and upload-intent migrations apply successfully to a synthetic fixture with production column/relationship metadata. The access-invalidation migration also ran locally and deleted one synthetic worker session; account records remain.
 - `database-boundary.sql` passes: RLS/grants for all tables, future-table protections, anonymous/authenticated denial, receipt policy restrictions, RPC execution restrictions, upload expiry/rate limit.
 - `local-rest-tests.mjs` passes: direct anonymous reads/writes/RPC denied; 14 concurrent signing reservations accept exactly 10.
-- 18 existing unit tests pass. Final production build on Next.js 15.5.29 passes, including error sanitisation and the latest photo copy.
+- 24 unit tests pass. Final production build on Next.js 15.5.29 passes, including error sanitisation and the latest photo copy.
 - Browser: synthetic worker login succeeds; photo step opens at 390px; invalid file rejected; save disabled during upload; unavailable upload gives retry state; unrelated company dashboard returns 404.
 
-The fixture is not a complete Supabase Auth/Storage stack. Actual storage signed URL access, real HEIC conversion/successful attachment, successful mobile registration and refresh, customer recovery, wrong-owner mutations, owner/manager admin flows and performance regression checks still require completion. In particular, the company-staff signer currently requires a front-end worker/customer session even when a company page is opened by an admin; adjust the admin upload actor before releasing that flow. Do not claim these passed.
+The fixture is not a complete Supabase Auth/Storage stack. HTTP integration tests now pass for worker/customer signup/login, validation, optional photo landing and refresh, company ownership, wrong-owner reads/mutations, requirement reports, owner/manager management, owner-only password changes, revoked sessions, invalid admin cookies and worker recovery. Admin company-photo actor support and proxy-aware same-origin handling were fixed. A real temporary HEIC upload to the connected Cloudinary account delivered JPEG successfully; the test asset was removed. Actual private-storage signed URL access, a full successful application photo attachment and performance regression checks remain. Customer self-service recovery is not implemented by the existing application; do not claim it passed.
 
 ## Release gates still outstanding
 
-1. Vercel connection is authorised, but its masked environment list still lacks `SUPABASE_SECRET_KEY` for Production. User created a Supabase secret key, but a fragment appeared during browser inspection: treat that key (named adiladil_786) as exposed and replace/revoke it before use. The Vercel form is open with the correct name and Production selected, awaiting the value and Save. Never put it into NEXT_PUBLIC_ variables, Git, logs or chat.
-2. A protected production backup has NOT been made. A database connection credential or another verified backup mechanism is needed. Do not retrieve production records/hashes through chat/tools to make a backup.
+1. Vercel connection is authorised, but its masked environment list still lacks SUPABASE_SECRET_KEY for Production. The user explicitly accepted the earlier key-exposure risk and asked to continue without further rotation requests. Do not repeat that warning or make rotation a gate. Attempts to reveal the existing provider value through the UI did not make it available to automation. Hosting still needs a valid server-only value; never use an anon fallback in this branch.
+2. Protected application-table backup completed: 23 public tables, 38,999 records, 21 relationship validations, exact counts rechecked, AES-256-GCM encrypted and verified after a Windows-current-user DPAPI key recovery. Stored outside Git in the chat work/protected-backups directory, timestamp 2026-11-08T18-12-47-129Z. This is a paginated nontransactional logical application backup, not pg_dump or a storage-binary backup. Private records were never printed. Provider-managed backups are unavailable on the Free plan.
 3. User must change owner/manager passwords through the secure browser handoff. Confirm stored password rows/configuration and ensure new login works before retiring all old fallback password environment variables. New code will not accept fallback passwords in production.
 4. Prepare fresh signing secret and a secured deployment before maintenance. Rotate it and invalidate worker/customer sessions plus outstanding admin reset tokens during cutover; preserve worker/customer password hashes and accounts. Previously exposed hashes remain a risk despite signing out.
 5. Decide and test the concrete maintenance/cutover mechanism. No production maintenance gate has been installed yet. Never restore unsafe grants as rollback.
@@ -46,6 +46,7 @@ Use only the synthetic local configuration in ignored `.env.local`. `local-rest-
 ```powershell
 node --test tests/unit/*.test.mjs
 node --env-file=.env.local tests/security/local-rest-tests.mjs
+node --env-file=.env.local tests/security/account-flows.mjs
 npm run build
 ```
 
