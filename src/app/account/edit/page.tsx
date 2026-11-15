@@ -350,7 +350,7 @@ export default async function EditAccountPage({
                     These fields help customers identify and contact you.
                   </p>
                 </div>
-                <PhotoUploadField disabled={isDemo} />
+                <PhotoUploadField disabled={isDemo} initialPhotoUrl={dbProfessional?.profile_photo_url ?? ""} />
                 <TextInput
                   label="Full name"
                   name="fullName"

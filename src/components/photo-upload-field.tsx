@@ -2,6 +2,7 @@
 
 import { usePhotoUpload } from "@/components/photo-form";
 import { useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 
 const MAX_DIRECT_UPLOAD_BYTES = 10 * 1024 * 1024;
 const TARGET_UPLOAD_BYTES = 2 * 1024 * 1024;
@@ -19,6 +20,7 @@ type PhotoUploadFieldProps = {
   uploadFolder?: "professional-photos" | "company-staff";
   uploadTags?: string[];
   companyId?: string;
+  initialPhotoUrl?: string;
 };
 
 function formatSize(bytes: number) {
@@ -192,7 +194,13 @@ async function uploadPhotoToCloudinary(
     throw new Error("upload-no-url");
   }
 
-  return signed.intentId;
+  const preview = new URL(result.secure_url);
+  if (preview.origin !== "https://res.cloudinary.com" ||
+      !preview.pathname.startsWith(`/${signed.cloudName}/image/upload/`)) {
+    throw new Error("upload-invalid-url");
+  }
+
+  return { intentId: signed.intentId, previewUrl: preview.href };
 }
 
 export function PhotoUploadField({
@@ -202,22 +210,29 @@ export function PhotoUploadField({
   uploadFolder = "professional-photos",
   uploadTags = ["professional-photo"],
   companyId,
+  initialPhotoUrl = "",
 }: PhotoUploadFieldProps) {
-  const { setBusy } = usePhotoUpload();
+  const { setBusy, setHasPendingPhoto } = usePhotoUpload();
+  const { pending } = useFormStatus();
+  const defaultMessage = initialPhotoUrl
+    ? "Your current photo is saved. Choose another photo only if you want to replace it."
+    : DEFAULT_MESSAGE;
   const inputRef = useRef<HTMLInputElement>(null);
-  const [uploadedUrl, setUploadedUrl] = useState("");
-  const [message, setMessage] = useState(DEFAULT_MESSAGE);
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [photoIntentId, setPhotoIntentId] = useState("");
+  const [message, setMessage] = useState(defaultMessage);
+  const [previewUrl, setPreviewUrl] = useState(initialPhotoUrl);
   const [fileName, setFileName] = useState("");
   const [uploadState, setUploadState] = useState<UploadState>("idle");
 
   async function handleChange() {
     const input = inputRef.current;
     const file = input?.files?.[0];
+    setHasPendingPhoto(false);
 
     if (!input || !file) {
-      setMessage(DEFAULT_MESSAGE);
-      setUploadedUrl("");
+      setMessage(defaultMessage);
+      setPhotoIntentId("");
+      setPreviewUrl(initialPhotoUrl);
       setFileName("");
       setUploadState("idle");
       if (input) {
@@ -233,15 +248,16 @@ export function PhotoUploadField({
       setMessage(
         "This file type is not supported, so it was removed. Continue without photo or choose a JPEG, PNG, WebP or HEIC/HEIF image.",
       );
-      setUploadedUrl("");
+      setPhotoIntentId("");
       setFileName(file.name);
       setUploadState("failed");
-      setPreviewUrl("");
+      setPreviewUrl(initialPhotoUrl);
       return;
     }
 
     setInputError(input);
-    setUploadedUrl("");
+    setPhotoIntentId("");
+    setPreviewUrl(initialPhotoUrl);
     setFileName(file.name);
     setUploadState("preparing");
     setBusy(true);
@@ -271,20 +287,22 @@ export function PhotoUploadField({
       if (prepared.size > MAX_DIRECT_UPLOAD_BYTES) throw new Error("Photo is above the final 10MB limit.");
       setMessage(`Uploading photo (${formatSize(prepared.size)})...`);
       setUploadState("uploading");
-      const publicUrl = await uploadPhotoToCloudinary(
+      const uploaded = await uploadPhotoToCloudinary(
         prepared,
         uploadFolder,
         uploadTags,
         companyId,
       );
-      setUploadedUrl(publicUrl);
-      clearSelectedFile(input);
+      setPhotoIntentId(uploaded.intentId);
+      setPreviewUrl(uploaded.previewUrl);
+      setHasPendingPhoto(true);
       setInputError(input);
       setUploadState("attached");
       setMessage("Photo uploaded. Save to attach it to your profile.");
     } catch (error) {
       clearSelectedFile(input);
-      setUploadedUrl("");
+      setPhotoIntentId("");
+      setPreviewUrl(initialPhotoUrl);
       setUploadState("failed");
       setInputError(input);
       const reason =
@@ -307,22 +325,25 @@ export function PhotoUploadField({
       setInputError(input);
     }
 
-    setUploadedUrl("");
+    setPhotoIntentId("");
+    setHasPendingPhoto(false);
     setFileName("");
     setUploadState("idle");
-    setPreviewUrl("");
-    setMessage(DEFAULT_MESSAGE);
+    setPreviewUrl(initialPhotoUrl);
+    setMessage(defaultMessage);
   }
 
   const isBusy = uploadState === "preparing" || uploadState === "uploading";
   const statusLabel =
-    uploadState === "attached"
+    pending && photoIntentId
+      ? "Saving photo..."
+      : uploadState === "attached"
       ? "Photo uploaded"
       : uploadState === "failed"
         ? "Photo not uploaded"
         : isBusy
-          ? "Uploading photo..."
-          : "Photo selected";
+          ? uploadState === "preparing" ? "Preparing photo..." : "Uploading photo..."
+          : initialPhotoUrl ? "Current profile photo" : "Photo selected";
   const statusClass =
     uploadState === "attached"
       ? "border-emerald-200 bg-emerald-50 text-emerald-900"
@@ -335,45 +356,49 @@ export function PhotoUploadField({
       <label htmlFor={`${uploadFolder}-photo`} className="text-sm font-medium">
         {label}
       </label>
+      {/* Submit only the checked upload intent, not the already-uploaded file. */}
       <input
         id={`${uploadFolder}-photo`}
         ref={inputRef}
-        name="photo"
         type="file"
         accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-        disabled={disabled || isBusy}
+        disabled={disabled || isBusy || pending}
         onChange={handleChange}
         className="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
       />
-      <input type="hidden" name="photoIntentId" value={uploadedUrl} />
-      {previewUrl ? (
-        <div className={`flex items-center gap-3 rounded-lg border p-3 ${statusClass}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={previewUrl}
-            alt="Selected profile preview"
-            className="size-16 rounded-lg object-cover"
-          />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">
-              {statusLabel}
-            </p>
-            <p className="truncate text-xs opacity-80">
-              {fileName || "Selected profile photo"}
-            </p>
+      <input type="hidden" name="photoIntentId" value={photoIntentId} />
+      {previewUrl || fileName ? (
+        <div role="status" aria-live="polite" aria-atomic="true" className={`rounded-lg border p-3 ${statusClass}`}>
+          <div className="flex items-center gap-3">
+            {previewUrl ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt={fileName ? "Selected profile preview" : "Current profile photo"}
+                  className="size-16 shrink-0 rounded-lg object-cover"
+                />
+              </>
+            ) : <span aria-hidden="true" className="flex size-16 shrink-0 items-center justify-center rounded-lg bg-white/70 text-2xl">{isBusy ? "…" : "!"}</span>}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">{statusLabel}</p>
+              <p className="truncate text-xs opacity-80">{fileName || "Saved profile photo"}</p>
+            </div>
           </div>
-          {!isBusy ? (
+          <p className="mt-2 text-sm font-medium">{pending && photoIntentId ? "Saving your photo to your profile..." : message}</p>
+          {!isBusy && fileName ? (
             <button
               type="button"
+              disabled={pending}
               onClick={clearPhoto}
-              className="ml-auto rounded-md border border-current bg-white/80 px-3 py-2 text-xs font-semibold"
+              className="mt-3 min-h-11 w-full rounded-md border border-current bg-white/80 px-3 py-2 text-sm font-semibold sm:w-auto"
             >
-              Change
+              Choose another photo
             </button>
           ) : null}
         </div>
       ) : null}
-      <span role="status" aria-live="polite" className="text-xs text-muted-foreground">{message}</span>
+      {!previewUrl && !fileName ? <span role="status" aria-live="polite" className="text-sm text-muted-foreground">{message}</span> : null}
       {helpText ? <span className="text-xs text-muted-foreground">{helpText}</span> : null}
     </div>
   );
