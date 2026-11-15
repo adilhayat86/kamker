@@ -27,6 +27,9 @@ assert.ok((await(await request('/account?status=photo-saved')).text()).includes(
 await save(signed.intentId);
 const events=await rows('analytics_events',`event_type=eq.photo_attached&target_id=eq.${worker.id}&select=id`);assert.ok(events.length>=1);
 async function intent(owner,id=randomUUID(),expires){const public_id=`kamker/professional-photos/${owner}/${id}`;const r=await fetch(db+'/rest/v1/media_upload_intents',{method:'POST',headers:service,body:JSON.stringify({id,owner_id:owner,folder:'professional-photos',public_id,...(expires?{expires_at:expires}:{})})});assert.ok(r.ok);return id;}
+// The fixed oversized-provider fixture must also work on repeated local runs.
+const clearedOversized = await fetch(db+'/rest/v1/media_upload_intents?id=eq.ffffffff-ffff-4fff-8fff-ffffffffffff', {method:'DELETE',headers:service});
+assert.ok(clearedOversized.ok);
 for(const id of [await intent(outsider.id),await intent(worker.id,randomUUID(),new Date(Date.now()-1000).toISOString()),await intent(worker.id,'ffffffff-ffff-4fff-8fff-ffffffffffff')]){
  const rejected=await save(id);assert.ok(rejected.headers.get('location')?.includes('photo-error'));assert.equal(await attached(),expected);
 }

@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionProfessional } from "@/lib/auth";
 import { getRegistrationConversion } from "@/lib/registration-conversion";
 import { RegistrationConversion } from "@/components/registration-conversion";
 import { PhotoUploadField } from "@/components/photo-upload-field";
-import { PhotoForm, PhotoSaveButton } from "@/components/photo-form";
+import { PhotoForm, PhotoSaveButton, PhotoSkipLink } from "@/components/photo-form";
 import { saveAccountPhoto } from "./actions";
 
 export const metadata = { title: "Add your photo | Kamker", robots: { index: false, follow: false } };
@@ -27,10 +26,10 @@ export default async function AddPhotoPage({ searchParams }: { searchParams?: Pr
       <p className="my-4 text-sm leading-6 text-muted-foreground">Help customers recognise you. Choose a clear photo of yourself. You can add or change it later from your profile.</p>
       {status && errors[status] ? <p role="alert" className="mb-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm">{errors[status]}</p> : null}
       <PhotoForm action={saveAccountPhoto} className="grid gap-4">
-        <PhotoUploadField helpText="JPEG, PNG, WebP and iPhone HEIC/HEIF photos are accepted. The final upload must be under 10MB." />
-        <PhotoSaveButton />
+        <PhotoUploadField initialPhotoUrl={worker.profile_photo_url ?? ""} helpText="JPEG, PNG, WebP and iPhone HEIC/HEIF photos are accepted. The final upload must be under 10MB." />
+        <PhotoSaveButton requirePhoto>Save photo and continue</PhotoSaveButton>
+        <PhotoSkipLink href="/account?status=registered">{worker.profile_photo_url ? "Continue to profile" : "Skip for now"}</PhotoSkipLink>
       </PhotoForm>
-      <Link href="/account?status=registered" className="mt-5 block rounded-md border px-4 py-3 text-center text-sm font-semibold">Skip for now</Link>
     </section>
   </main>;
 }
