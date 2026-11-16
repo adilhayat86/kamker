@@ -17,7 +17,10 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+
+import { canShowAdminMenu, guestMenuSession, menuSessionFromResponse, type MenuSession } from "@/lib/menu-session";
 
 import { Badge } from "@/components/ui/badge";
 import { GlobalMenuShell } from "@/components/global-menu-shell";
@@ -27,20 +30,6 @@ type MenuLink = {
   href: string;
   label: string;
   icon: LucideIcon;
-};
-
-type MenuSession = {
-  professionalLoggedIn: boolean;
-  customerLoggedIn: boolean;
-  adminAuthenticated: boolean;
-  adminConfigured: boolean;
-};
-
-const guestSession: MenuSession = {
-  professionalLoggedIn: false,
-  customerLoggedIn: false,
-  adminAuthenticated: false,
-  adminConfigured: true,
 };
 
 const marketplaceLinks: MenuLink[] = [
@@ -97,67 +86,35 @@ function LogoutLink({ href, label }: { href: string; label: string }) {
 }
 
 export function GlobalMenuClient() {
-  const [session, setSession] = useState<MenuSession>(guestSession);
+  const pathname = usePathname();
+  const [loadedSession, setLoadedSession] = useState<{ pathname: string; session: MenuSession } | null>(null);
+  // A response from another page must never supply privileges for this menu.
+  const session = loadedSession?.pathname === pathname ? loadedSession.session : guestMenuSession;
   const isLoggedIn = session.professionalLoggedIn || session.customerLoggedIn;
+  const showAdminMenu = canShowAdminMenu(pathname, session);
 
-  const loadSession = useCallback(async () => {
-    try {
-      const response = await fetch("/api/menu/session", {
-        cache: "no-store",
-        credentials: "same-origin",
-      });
+  useEffect(() => {
+    const controller = new AbortController();
 
-      if (!response.ok) {
-        return;
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/menu/session", {
+          cache: "no-store",
+          credentials: "same-origin",
+          signal: controller.signal,
+        });
+        const nextSession = response.ok
+          ? menuSessionFromResponse(await response.json())
+          : guestMenuSession;
+        if (!controller.signal.aborted) setLoadedSession({ pathname, session: nextSession });
+      } catch {
+        if (!controller.signal.aborted) setLoadedSession({ pathname, session: guestMenuSession });
       }
-
-      const nextSession = (await response.json()) as MenuSession;
-
-      setSession({
-        professionalLoggedIn: Boolean(nextSession.professionalLoggedIn),
-        customerLoggedIn: Boolean(nextSession.customerLoggedIn),
-        adminAuthenticated: Boolean(nextSession.adminAuthenticated),
-        adminConfigured: Boolean(nextSession.adminConfigured),
-      });
-    } catch {
-      // Keep the current menu if session lookup fails.
     }
-  }, []);
 
-  useEffect(() => {
-    loadSession();
-  }, [loadSession]);
-
-  useEffect(() => {
-    const refreshSession = () => {
-      void loadSession();
-    };
-
-    const originalPushState = window.history.pushState;
-    const originalReplaceState = window.history.replaceState;
-
-    window.history.pushState = function pushState(...args) {
-      const result = originalPushState.apply(this, args);
-      window.dispatchEvent(new Event("kamker:navigation"));
-      return result;
-    };
-
-    window.history.replaceState = function replaceState(...args) {
-      const result = originalReplaceState.apply(this, args);
-      window.dispatchEvent(new Event("kamker:navigation"));
-      return result;
-    };
-
-    window.addEventListener("kamker:navigation", refreshSession);
-    window.addEventListener("popstate", refreshSession);
-
-    return () => {
-      window.history.pushState = originalPushState;
-      window.history.replaceState = originalReplaceState;
-      window.removeEventListener("kamker:navigation", refreshSession);
-      window.removeEventListener("popstate", refreshSession);
-    };
-  }, [loadSession]);
+    void loadSession();
+    return () => controller.abort();
+  }, [pathname]);
 
   return (
     <GlobalMenuShell>
@@ -211,7 +168,7 @@ export function GlobalMenuClient() {
           </MenuSection>
         ) : null}
 
-        {session.adminAuthenticated ? (
+        {showAdminMenu ? (
           <MenuSection title="Admin">
               <MenuItem href="/admin" label="Admin Dashboard" icon={LayoutDashboard} />
               <MenuItem href="/admin/workers" label="Admin Workers" icon={Users} />
