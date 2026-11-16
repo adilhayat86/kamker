@@ -35,6 +35,18 @@ export default function ContactPage() {
               </Button>
             </div>
             <p className="mt-4 break-all text-sm text-muted-foreground">{supportEmail}</p>
+            <section id="report-content" className="mt-6 scroll-mt-6 border-t pt-5">
+              <h2 className="text-xl font-semibold">Report a profile or content problem</h2>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                To report an impersonation, misleading claim, photo used without permission, spam or inappropriate content, email support with the public page link and a short explanation. You can use the same address for privacy or account-removal requests. Do not send passwords, CNIC images or payment details in your report.
+              </p>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                Looking to join as a worker? Registration is completed on the website, without emailing support.
+              </p>
+              <Button asChild variant="outline" className="mt-3 h-12">
+                <Link href="/register/professional">Register free as a worker</Link>
+              </Button>
+            </section>
           </CardContent>
         </Card>
       </section>

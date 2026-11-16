@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, MapPin, Search, UserPlus } from "lucide-react";
 
-import { AdBanner } from "@/components/ad-banner";
 import { CityWorkerPreviews } from "@/components/city-worker-previews";
 import { WorkerRegistrationCta } from "@/components/worker-registration-cta";
 import { KamkerLogo } from "@/components/kamker-logo";
@@ -126,10 +125,6 @@ export function SeoLandingPageView({ page }: SeoLandingPageViewProps) {
       </section>
 
       {page.focusCity ? <CityWorkerPreviews city={page.focusCity} category={page.focusCategory} directoryHref={page.primaryHref} /> : null}
-
-      <section className="kamker-ad-section mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <AdBanner label="Reserved ad space for local services" />
-      </section>
 
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:px-8">
         <Card className="bg-white shadow-sm">

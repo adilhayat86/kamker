@@ -3,13 +3,11 @@ import Script from "next/script";
 import { Suspense } from "react";
 
 import { AnalyticsPageView } from "@/components/analytics-page-view";
-import { AdDisplay } from "@/components/ad-display";
 import { RegistrationSubmitGuard } from "@/components/form-submit-guard";
 import { GlobalMenu } from "@/components/global-menu";
 import { RegistrationClickTracker } from "@/components/registration-analytics";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { SiteFooter } from "@/components/site-footer";
-import { updateAdDisplay } from "@/lib/ad-display";
 import { googleAdsTagId } from "@/lib/google-ads";
 
 import "./globals.css";
@@ -59,6 +57,9 @@ export const metadata: Metadata = {
       "Find part time workers by category and city across Pakistan.",
     images: ["/kamker-professionals.png"],
   },
+  // Public publisher ID verified in the owner's AdSense account. This meta tag
+  // supports site verification without loading ads or third-party ad scripts.
+  other: { "google-adsense-account": "ca-pub-8085690995202133" },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -90,12 +91,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          id="kamker-ad-display"
-          dangerouslySetInnerHTML={{ __html: `(${updateAdDisplay.toString()})();` }}
-        />
-      </head>
       <body className="font-sans">
         {googleAdsId ? (
           <>
@@ -114,7 +109,6 @@ export default function RootLayout({
           </>
         ) : null}
         <Suspense fallback={null}>
-          <AdDisplay />
           <AnalyticsPageView />
           <RegistrationClickTracker />
           <RegistrationSubmitGuard />
