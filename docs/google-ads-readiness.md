@@ -33,11 +33,9 @@ The global footer links to existing /privacy, /terms, and /contact pages. Reques
 
 The privacy page discloses first-party measurement, conditional Google advertising cookies, worker-registration conversions, and advertising opt-out links. Consent requirements depend on visitor location and the Google products enabled; review them before activating AdSense or serving relevant regions. No consent-management platform or AdSense account is activated by this change.
 
-## Ad placeholders and landing pages
+## Display advertising readiness
 
-Ad slots reserve responsive space. Google-tagged visits (utm_source=google, or a non-empty gclid, dclid, gbraid, or wbraid) hide only decorative ad sections for that browser session, including later navigation. Core page content, workers, prices, and legal links stay the same. This is a landing-page UX choice, not a Google rule requiring all paid visitors to see a different site.
-
-Only placeholders currently exist. Match each reservation to the actual ad unit before adding real AdSense code; a fixed minimum height alone cannot guarantee no layout shift for a larger ad creative.
+Empty advertising placeholders have been removed for all visitors, including their wrapper spacing and paid-visit-only suppression code. Google Ads registration conversion tracking and first-party attribution remain unchanged. See [AdSense readiness](adsense-readiness.md) for publisher verification, policy references and the remaining account-side steps.
 
 Empty results remain honest and offer broader city/category searches. No fake profiles, verification claims, invented prices, or charges for zero matched recipients are introduced.
 

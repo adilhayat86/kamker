@@ -11,6 +11,7 @@ export function SiteFooter() {
           <Link href="/privacy" className="hover:text-foreground">Privacy Policy</Link>
           <Link href="/terms" className="hover:text-foreground">Terms of Service</Link>
           <Link href="/contact" className="hover:text-foreground">Contact Us</Link>
+          <Link href="/contact#report-content" className="hover:text-foreground">Report content</Link>
         </nav>
       </div>
     </footer>
