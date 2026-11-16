@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import {
   findProfessionalsByPhone,
   getSessionProfessional,
-  hashSecret,
 } from "@/lib/auth";
 import {
   normalizePakistanMobilePhone,
@@ -82,8 +81,6 @@ export async function updateProfessionalProfile(formData: FormData) {
   const tagline = field(formData, "tagline");
   const shortBio = field(formData, "bio");
   const cnic = field(formData, "cnic");
-  const secretQuestion = field(formData, "secretQuestion");
-  const secretAnswer = field(formData, "secretAnswer");
 
   if (phoneInput && !phoneValidation.ok) {
     redirectWithErrors("phone-invalid", ["phoneInvalid"]);
@@ -112,10 +109,6 @@ export async function updateProfessionalProfile(formData: FormData) {
 
   if (tagline && tagline.length > 30) {
     redirectWithErrors("tagline-invalid", ["tagline"]);
-  }
-
-  if ((secretQuestion && !secretAnswer) || (!secretQuestion && secretAnswer)) {
-    redirectWithErrors("recovery-missing", ["secretQuestion", "secretAnswer"]);
   }
 
   if (!isSupabaseConfigured || !supabase) {
@@ -176,11 +169,6 @@ export async function updateProfessionalProfile(formData: FormData) {
     short_bio: shortBio || null,
     cnic: cnic || null,
   };
-
-  if (secretQuestion && secretAnswer) {
-    updates.secret_question = secretQuestion;
-    updates.secret_answer_hash = await hashSecret(secretAnswer.toLowerCase());
-  }
 
   if (profilePhotoUrl) {
     updates.profile_photo_url = profilePhotoUrl;

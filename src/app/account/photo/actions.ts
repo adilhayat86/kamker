@@ -20,5 +20,5 @@ export async function saveAccountPhoto(form: FormData) {
   revalidatePath("/account");
   revalidatePath("/professionals");
   revalidatePath(`/professionals/${worker.id}`);
-  redirect("/account?status=photo-saved");
+  redirect("/account/recovery?status=photo-saved");
 }

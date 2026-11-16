@@ -23,6 +23,7 @@ import { PageNavigation } from "@/components/page-navigation";
 import { ProfilePhotoViewer } from "@/components/profile-photo-viewer";
 import { RegistrationConversion } from "@/components/registration-conversion";
 import { getRegistrationConversion } from "@/lib/registration-conversion";
+import { getWorkerRecoveryStatus } from "@/lib/worker-recovery-server";
 import { fallbackProfessionalImage } from "@/lib/professional-photo";
 import {
   isWorkerApproved,
@@ -41,6 +42,7 @@ export const metadata = {
 const statusMessages = {
   updated: "Profile saved successfully.",
   "photo-saved": "Photo uploaded and profile saved successfully.",
+  "recovery-saved": "Password recovery saved. Keep your recovery phrase somewhere private.",
   registered: "You are registered and logged in.",
   "registered-photo-skipped":
     "You are registered and logged in, but the photo could not be saved. You can add it later from Complete Profile.",
@@ -126,6 +128,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
     redirect("/login");
   }
 
+  const recoveryConfigured = await getWorkerRecoveryStatus(dbProfessional.id);
   const demoProfessional = dbProfessional ? null : getDemoAccountProfessional();
 
   const fullName = dbProfessional?.full_name ?? demoProfessional?.name ?? "";
@@ -301,6 +304,14 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                     </div>
                   </div>
                 </div>
+              ) : null}
+
+              {recoveryConfigured === false ? (
+                <section aria-labelledby="recovery-reminder-title" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <h2 id="recovery-reminder-title" className="flex items-center gap-2 font-semibold text-amber-950"><ShieldCheck className="size-5 shrink-0" aria-hidden="true" />Set up password recovery</h2>
+                  <p className="mt-2 text-sm leading-6 text-amber-950">If you forget your password, you will need recovery details to reset it yourself. Set up a private recovery phrase now while you are signed in.</p>
+                  <Button asChild className="mt-3 h-11"><Link href="/account/recovery">Set up recovery now</Link></Button>
+                </section>
               ) : null}
 
               {needsProfileCompletion ? (
