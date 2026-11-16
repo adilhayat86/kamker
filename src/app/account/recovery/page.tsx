@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionProfessional } from "@/lib/auth";
+import { getRegistrationConversion } from "@/lib/registration-conversion";
+import { RegistrationConversion } from "@/components/registration-conversion";
 import { RECOVERY_PHRASE_MAX_LENGTH, RECOVERY_PHRASE_MIN_LENGTH } from "@/lib/worker-recovery";
 import { getWorkerRecoveryStatus } from "@/lib/worker-recovery-server";
 import { PageNavigation } from "@/components/page-navigation";
@@ -24,9 +26,11 @@ export default async function WorkerRecoveryPage({ searchParams }: { searchParam
   if (!worker) redirect("/login?next=/account/recovery");
   const status = (await searchParams)?.status;
   const configured = await getWorkerRecoveryStatus(worker.id);
+  const registrationEventId = await getRegistrationConversion(worker.id);
   const accountHref = status === "photo-saved" ? "/account?status=photo-saved" : status === "registered" ? "/account?status=registered" : "/account";
 
   return <main className="min-h-screen bg-background px-4 py-8 sm:px-6">
+    {registrationEventId ? <RegistrationConversion eventId={registrationEventId} /> : null}
     <section className="mx-auto max-w-lg">
       <PageNavigation backHref="/account" backLabel="My account" />
       <div className="mt-6 rounded-xl border bg-white p-5 shadow-sm sm:p-6">
