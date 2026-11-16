@@ -58,6 +58,8 @@ redirected(await submit(worker, '/register/professional', {
 }), '/account/photo?status=registered');
 const photoPage = await (await worker.request('/account/photo?status=registered')).text();
 assert.ok(photoPage.includes('/account/recovery?status=registered'));
+assert.ok(photoPage.includes('eventId'));
+assert.ok((await (await worker.request('/account/recovery?status=registered')).text()).includes('eventId'));
 assert.ok((await (await worker.request('/account')).text()).includes('id="recovery-reminder-title"'));
 assert.ok((await (await worker.request('/account/recovery?status=photo-saved')).text()).includes('Photo uploaded and profile saved successfully'));
 
