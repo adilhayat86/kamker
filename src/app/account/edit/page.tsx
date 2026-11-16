@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PhotoForm } from "@/components/photo-form";
 import { redirect } from "next/navigation";
 import type { InputHTMLAttributes } from "react";
@@ -36,14 +37,6 @@ export const metadata = {
 
 const genderOptions = ["Female", "Male"];
 
-const secretQuestionOptions = [
-  "What is your first school name?",
-  "What is your favorite color?",
-  "What is your childhood nickname?",
-  "What is your mother tongue?",
-  "What city were you born in?",
-];
-
 const statusMessages = {
   missing:
     `Please fill name, phone, city, profession, gender, age, work time, work days, and hourly rate. Age must be ${WORKER_AGE_MIN}-${WORKER_AGE_MAX}. Hourly rate must be Rs ${WORKER_HOURLY_RATE_MIN}-${WORKER_HOURLY_RATE_MAX.toLocaleString(
@@ -57,7 +50,6 @@ const statusMessages = {
   "whatsapp-invalid": "Enter a valid WhatsApp number or leave it blank.",
   "duplicate-phone": "This phone number is already registered to another worker profile.",
   "tagline-invalid": "Profile tagline must be 30 characters or less.",
-  "recovery-missing": "To add account recovery, choose a secret question and enter an answer.",
   error: "Could not update profile. Please try again.",
 } as const;
 
@@ -237,8 +229,6 @@ export default async function EditAccountPage({
       )}.`,
       yearsExperience: "Years of experience must be 0 or more.",
       tagline: statusMessages["tagline-invalid"],
-      secretQuestion: statusMessages["recovery-missing"],
-      secretAnswer: statusMessages["recovery-missing"],
     };
 
     if (field === "phone" && failedFields.has("phoneInvalid")) {
@@ -313,7 +303,7 @@ export default async function EditAccountPage({
             </div>
           </div>
           <p className="mt-3 text-muted-foreground">
-            Add WhatsApp, area, experience, CNIC, recovery question, and a short
+            Add WhatsApp, area, experience, CNIC, and a short
             profile tagline after your fast signup.
           </p>
         </div>
@@ -537,33 +527,11 @@ export default async function EditAccountPage({
                 </label>
               </div>
 
-              <div className="grid gap-4 border-t pt-5 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <p className="text-sm font-semibold uppercase tracking-normal text-primary">
-                    Account recovery
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Optional. Add this only if you want secret-question password recovery.
-                  </p>
-                </div>
-                <SelectInput
-                  label="Secret question"
-                  name="secretQuestion"
-                  value=""
-                  options={secretQuestionOptions}
-                  error={errorFor("secretQuestion")}
-                  disabled={isDemo}
-                />
-                <TextInput
-                  label="Secret answer"
-                  name="secretAnswer"
-                  type="password"
-                  placeholder="Private answer"
-                  error={errorFor("secretAnswer")}
-                  helperText="Leave both recovery fields blank if you do not want to set recovery now."
-                  disabled={isDemo}
-                />
-              </div>
+              <section className="border-t pt-5" aria-labelledby="profile-recovery-heading">
+                <h2 id="profile-recovery-heading" className="font-semibold">Password recovery</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">Set up or update your private recovery phrase on its own page. You will confirm your current password before saving it.</p>
+                <Link href="/account/recovery" className="mt-3 inline-block rounded-md border px-4 py-3 text-sm font-semibold text-primary">Set up password recovery</Link>
+              </section>
 
               <CompleteProfileSubmitButton disabled={isDemo} />
             </PhotoForm>

@@ -15,7 +15,7 @@ import {
 
 export const metadata = {
   title: "Forgot Password | Kamker",
-  description: "Reset your Kamker professional password using your secret question.",
+  description: "Reset your Kamker professional password using your recovery phrase or existing secret question.",
 };
 
 const statusMessages = {
@@ -23,9 +23,9 @@ const statusMessages = {
   "missing-answer": "Enter your secret answer.",
   "not-configured": "Supabase is not configured yet.",
   "not-found":
-    "No recovery question is set for this account yet. Log in if you remember your password, or contact Kamker support.",
+    "Password recovery is not set up for this account. If you remember your password, log in and open Set up password recovery. Otherwise, contact Kamker support.",
   "phone-review": "This phone number needs admin review before password reset. Contact Kamker support.",
-  "wrong-answer": "Secret answer is incorrect.",
+  "wrong-answer": "Recovery answer or phrase is incorrect.",
   "recovery-expired": "Recovery session expired. Start again.",
   error: "Could not reset password. Please try again.",
 } as const;
@@ -67,9 +67,9 @@ export default async function ForgotPasswordPage({
           </div>
         </div>
         <p className="mt-3 text-muted-foreground">
-          Reset your password with your registered phone number and secret
-          question. If you have not completed your profile recovery details yet,
-          contact Kamker support.
+          Reset your password with your registered phone number and saved recovery
+          phrase or secret answer. If recovery is not set up and you still know
+          your password, log in and set it up from your account.
         </p>
 
         {statusMessage ? (
@@ -118,7 +118,7 @@ export default async function ForgotPasswordPage({
                   </p>
                 </div>
                 <label className="grid gap-2">
-                  <span className="text-sm font-medium">Secret Answer</span>
+                  <span className="text-sm font-medium">Recovery answer or phrase</span>
                   <input
                     name="secretAnswer"
                     type="password"
@@ -127,7 +127,7 @@ export default async function ForgotPasswordPage({
                   />
                 </label>
                 <Button className="h-12" disabled={!secretQuestion}>
-                  Verify Answer
+                  Verify recovery answer
                 </Button>
               </form>
             ) : null}

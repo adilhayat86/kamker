@@ -9,6 +9,7 @@ import {
   HeartPulse,
   Home,
   LayoutDashboard,
+  KeyRound,
   LogIn,
   LogOut,
   Send,
@@ -138,6 +139,7 @@ export function GlobalMenuClient() {
             <>
               <MenuItem href="/account" label="My Account" icon={User} />
               <MenuItem href="/account/edit" label="Edit Profile" icon={UserCog} />
+              <MenuItem href="/account/recovery" label="Password recovery" icon={KeyRound} />
               <LogoutLink href="/api/logout/professional" label="Logout" />
             </>
           ) : session.customerLoggedIn ? (

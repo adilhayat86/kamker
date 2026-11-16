@@ -19,7 +19,7 @@ const signed=await signedResponse.json();
 assert.equal(signed.cloudName,'kamker-synthetic-local');
 assert.ok(signed.folder.endsWith('/'+worker.id));
 async function save(id){const f=form(await(await request('/account/photo')).text());f.set('photoIntentId',id);return request('/account/photo',{method:'POST',body:f});}
-const saved=await save(signed.intentId);assert.equal(saved.status,303);assert.equal(saved.headers.get('location'),'/account?status=photo-saved');
+const saved=await save(signed.intentId);assert.equal(saved.status,303);assert.equal(saved.headers.get('location'),'/account/recovery?status=photo-saved');
 const expected=`https://res.cloudinary.com/kamker-synthetic-local/image/upload/v12345/${signed.folder}/${signed.publicId}.jpg`;
 async function attached(){return(await rows('professionals',`id=eq.${worker.id}&select=profile_photo_url`))[0].profile_photo_url;}
 assert.equal(await attached(),expected);

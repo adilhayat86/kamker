@@ -28,7 +28,7 @@ export default async function AddPhotoPage({ searchParams }: { searchParams?: Pr
       <PhotoForm action={saveAccountPhoto} className="grid gap-4">
         <PhotoUploadField initialPhotoUrl={worker.profile_photo_url ?? ""} helpText="JPEG, PNG, WebP and iPhone HEIC/HEIF photos are accepted. The final upload must be under 10MB." />
         <PhotoSaveButton requirePhoto>Save photo and continue</PhotoSaveButton>
-        <PhotoSkipLink href="/account?status=registered">{worker.profile_photo_url ? "Continue to profile" : "Skip for now"}</PhotoSkipLink>
+        <PhotoSkipLink href="/account/recovery?status=registered">{worker.profile_photo_url ? "Continue" : "Skip for now"}</PhotoSkipLink>
       </PhotoForm>
     </section>
   </main>;
