@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { isAdminAuthenticated, isAdminPasswordConfigured } from "@/lib/admin-auth";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { getSessionCustomer, getSessionProfessional } from "@/lib/auth";
+import { menuSessionFromResponse } from "@/lib/menu-session";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +14,11 @@ export async function GET() {
   ]);
 
   return NextResponse.json(
-    {
+    menuSessionFromResponse({
       professionalLoggedIn: Boolean(professional),
       customerLoggedIn: Boolean(customer),
       adminAuthenticated,
-      adminConfigured: isAdminPasswordConfigured(),
-    },
+    }),
     {
       headers: {
         "Cache-Control": "no-store, max-age=0",
